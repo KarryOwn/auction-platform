@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Auction;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,8 +19,20 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('admin'), 
+            'wallet_balance' => 10000.00,
+        ]);
+
+        $this->command->info('Creating 1,000 users...');
+        User::factory(1000)->create();
+
+        $this->command->info('Creating 50 auctions...');
+        Auction::factory(50)->create([
+            'status' => 'active',
+            // Ensure they end in the future so we can bid on them
+            'end_time' => now()->addHour(), 
         ]);
     }
 }
