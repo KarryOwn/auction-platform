@@ -1,0 +1,15 @@
+[90m= [39m[34;4mApp\Models\Auction[39;24m {#6739
+    [34mid[39m: [35m1[39m,
+    [34muser_id[39m: [35m1002[39m,
+    [34mtitle[39m: "[32mRatione nobis voluptatibus-2006[39m",
+    [34mdescription[39m: "[32mProvident id vero modi consectetur deserunt. Id voluptatem ab excepturi at laudantium possimus nihil.[39m",
+    [34mimage_path[39m: [36mnull[39m,
+    [34mstarting_price[39m: [33m435.12[39m,
+    [34mcurrent_price[39m: [33m435.12[39m,
+    [34mstart_time[39m: "[32m2025-12-21 03:00:52[39m",
+    [34mend_time[39m: "[32m2025-12-21 10:17:29[39m",
+    [34mstatus[39m: "[32mactive[39m",
+    [34mcreated_at[39m: "[32m2025-12-21 09:17:30[39m",
+    [34mupdated_at[39m: "[32m2025-12-21 09:17:30[39m",
+  }
+
