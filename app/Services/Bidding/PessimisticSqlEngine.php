@@ -2,12 +2,14 @@
 
 namespace App\Services\Bidding;
 
+use App\Events\PriceUpdated;
 use App\Contracts\BiddingStrategy;
 use App\Models\Auction;
 use App\Models\User;
 use App\Models\Bid;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class PessimisticSqlEngine implements BiddingStrategy
 {
@@ -16,13 +18,13 @@ class PessimisticSqlEngine implements BiddingStrategy
         // Start a Database Transaction
         return DB::transaction(function () use ($auction, $user, $amount) {
             
-            // 1. LOCK the row. No one else can read this auction until we finish.
+            // LOCK the row. No one else can read this auction until we finish.
             // This is the "Pessimistic" part.
             $lockedAuction = Auction::where('id', $auction->id)
                                     ->lockForUpdate()
                                     ->first();
 
-            // 2. Validation Logic (The "Business Rules")
+            // Validation Logic (The "Business Rules")
             if ($lockedAuction->status !== 'active') {
                 throw new Exception("Auction is not active.");
             }
@@ -35,17 +37,29 @@ class PessimisticSqlEngine implements BiddingStrategy
                 throw new Exception("Bid must be higher than {$lockedAuction->current_price}.");
             }
 
-            // 3. Update the Price
+            // Update the Price
             $lockedAuction->current_price = $amount;
             $lockedAuction->save();
 
-            // 4. Create the Bid Record
-            return Bid::create([
+            // Create the Bid Record
+            $bid = Bid::create([
                 'auction_id' => $lockedAuction->id,
                 'user_id' => $user->id,
                 'amount' => $amount,
                 'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
             ]);
+
+            Log::info("BIDDING ENGINE: Preparing to dispatch event for Auction ID: " . $lockedAuction->id);
+            
+            try {
+                PriceUpdated::dispatch($lockedAuction);
+                Log::info("BIDDING ENGINE: Event dispatched successfully.");
+            } catch (\Exception $e) {
+                Log::error("BIDDING ENGINE: Event dispatch FAILED. Error: " . $e->getMessage());
+            }
+
+            return $bid;
         });
     }
 }

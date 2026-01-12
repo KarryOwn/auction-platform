@@ -87,4 +87,27 @@
             }
         });
     </script>
+
+    <script type="module">
+    // 1. Get the ID of the auction we are looking at
+    const auctionId = "{{ $auction->id }}";
+
+        // 2. Connect to the channel
+    Echo.channel(`auctions.${auctionId}`)
+        .listen('.price-updated', (e) => {
+            console.log('New price received:', e.newPrice);
+            console.log(e);
+            // 3. Update the big green number visually
+            const priceElement = document.getElementById('price-display');
+                
+            // Add a yellow "flash" effect to show activity
+            priceElement.classList.add('text-yellow-500');
+            priceElement.innerText = '$' + parseFloat(e.newPrice).toFixed(2);
+                
+            // Remove flash after 500ms
+            setTimeout(() => {
+                priceElement.classList.remove('text-yellow-500');
+            }, 500);
+        });
+    </script>
 </x-app-layout>

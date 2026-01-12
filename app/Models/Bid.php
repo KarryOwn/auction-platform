@@ -15,6 +15,6 @@ class Bid extends Model
         'user_id',
         'amount',
         'ip_address',
-        'user_agent'
+        'user_agent',
     ];
 }
