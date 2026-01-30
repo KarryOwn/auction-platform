@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\Pool;
 use App\Models\Auction;
+use Illuminate\Support\Facades\Redis;
 
 class StressTest extends Command
 {
@@ -34,6 +35,8 @@ class StressTest extends Command
 
         $this->info("🚀 LAUNCHING STRESS TEST: {$count} bots targeting Auction #{$auctionId}...");
         $this->info("Current Price: $" . $auction->current_price);
+        Redis::set("auction:{$auctionId}:price", $auction->current_price); 
+        $this->info("✅ Redis synced with MySQL."); 
 
         $startTime = microtime(true);
 
@@ -64,6 +67,11 @@ class StressTest extends Command
                 $success++;
             } else {
                 $fails++;
+                if ($fails === 1) {
+                    $this->error("FIRST FAILURE DETAILS:");
+                    $this->error("Status Code: " . $response->status());
+                    $this->error("Body: " . $response->body());
+                }
             }
         }
 
