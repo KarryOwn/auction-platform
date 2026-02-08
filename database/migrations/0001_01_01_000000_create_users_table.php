@@ -20,6 +20,14 @@ return new class extends Migration
 
             $table->decimal('wallet_balance', 15, 2)->default(0.00);
 
+            $table->string('role', 20)->default('user')->after('email');
+            $table->boolean('is_banned')->default(false)->after('role');
+            $table->timestamp('banned_at')->nullable()->after('is_banned');
+            $table->string('ban_reason')->nullable()->after('banned_at');
+
+            $table->index('role');
+            $table->index('is_banned');
+
             $table->rememberToken();
             $table->timestamps();
         });

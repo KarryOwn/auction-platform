@@ -19,10 +19,20 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('admin'), 
+            'name'           => 'Admin User',
+            'email'          => 'admin@example.com',
+            'password'       => bcrypt('admin'),
+            'role'           => 'admin',
             'wallet_balance' => 10000.00,
+        ]);
+
+        // Moderator user
+        User::factory()->create([
+            'name'           => 'Moderator',
+            'email'          => 'mod@example.com',
+            'password'       => bcrypt('moderator'),
+            'role'           => 'moderator',
+            'wallet_balance' => 5000.00,
         ]);
 
         $this->command->info('Creating 1,000 users...');
@@ -30,9 +40,8 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info('Creating 50 auctions...');
         Auction::factory(50)->create([
-            'status' => 'active',
-            // Ensure they end in the future so we can bid on them
-            'end_time' => now()->addHour(), 
+            'status'   => 'active',
+            'end_time' => now()->addHour(),
         ]);
     }
 }

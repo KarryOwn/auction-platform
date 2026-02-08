@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\BidController;
+use App\Http\Controllers\Admin\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -18,6 +19,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->name('auctions.show');
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');
+});
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard & Live Monitoring
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/metrics/live', [DashboardController::class, 'liveMetrics'])->name('metrics.live');
+    Route::get('/metrics/throughput', [DashboardController::class, 'bidThroughput'])->name('metrics.throughput');
 });
 
 require __DIR__.'/auth.php';
