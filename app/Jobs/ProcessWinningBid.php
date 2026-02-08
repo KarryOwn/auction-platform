@@ -15,6 +15,9 @@ class ProcessWinningBid implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $tries = 3;
+    public $backoff = 1;
+
     public $auctionId;
     public $userId;
     public $amount;

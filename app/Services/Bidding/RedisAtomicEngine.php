@@ -66,7 +66,7 @@ class RedisAtomicEngine implements BiddingStrategy
 
         // Dispatch Background Job (EVENTUAL CONSISTENCY)
         // This saves to MySQL so we don't lose data if Redis crashes
-        ProcessWinningBid::dispatch($auction->id, $user->id, $amount);
+        ProcessWinningBid::dispatch($auction->id, $user->id, $amount)->onQueue('default');
 
         return $bid;
     }
