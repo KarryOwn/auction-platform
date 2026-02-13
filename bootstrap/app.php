@@ -16,7 +16,15 @@ return Application::configure(basePath: dirname(__DIR__))
     App\Console\Commands\StressTest::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'staff'      => \App\Http\Middleware\EnsureIsStaff::class,
+            'admin'      => \App\Http\Middleware\EnsureIsAdmin::class,
+            'not_banned' => \App\Http\Middleware\EnsureNotBanned::class,
+        ]);
+
+        $middleware->appendToGroup('web', [
+            \App\Http\Middleware\EnsureNotBanned::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

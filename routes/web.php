@@ -25,7 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');
 });
 
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard & Live Monitoring
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/metrics/live', [DashboardController::class, 'liveMetrics'])->name('metrics.live');
@@ -42,7 +42,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('users.show');
     Route::post('/users/{user}/ban', [UserManagementController::class, 'ban'])->name('users.ban');
     Route::post('/users/{user}/unban', [UserManagementController::class, 'unban'])->name('users.unban');
-    Route::patch('/users/{user}/role', [UserManagementController::class, 'changeRole'])->name('users.role');
+    Route::patch('/users/{user}/role', [UserManagementController::class, 'changeRole'])->middleware('admin')->name('users.role');
 
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
