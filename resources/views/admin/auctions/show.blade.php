@@ -1,0 +1,277 @@
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex justify-between items-center">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                Auction #{{ $auction->id }}: {{ Str::limit($auction->title, 50) }}
+            </h2>
+            <a href="{{ route('admin.auctions.index') }}" class="text-sm text-indigo-600 hover:text-indigo-900">&larr; Back to Auctions</a>
+        </div>
+    </x-slot>
+
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
+            {{-- Suspicious Activity Alerts --}}
+            @if(count($suspiciousActivity) > 0)
+                <div class="space-y-2">
+                    @foreach($suspiciousActivity as $flag)
+                        @php
+                            $alertColors = [
+                                'critical' => 'bg-red-100 border-red-400 text-red-800',
+                                'high'     => 'bg-orange-100 border-orange-400 text-orange-800',
+                                'warning'  => 'bg-yellow-100 border-yellow-400 text-yellow-800',
+                            ];
+                            $color = $alertColors[$flag['severity']] ?? 'bg-gray-100 border-gray-400 text-gray-800';
+                        @endphp
+                        <div class="border-l-4 p-4 rounded {{ $color }}">
+                            <div class="flex items-center">
+                                <span class="font-bold uppercase text-xs mr-2">{{ $flag['severity'] }}</span>
+                                <span class="text-sm">{{ $flag['detail'] }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            {{-- Auction Details + Bid Stats --}}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {{-- Auction Info --}}
+                <div class="lg:col-span-2 bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Auction Details</h3>
+                    <dl class="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <dt class="text-sm font-medium text-gray-500">Title</dt>
+                        <dd class="text-sm text-gray-900">{{ $auction->title }}</dd>
+
+                        <dt class="text-sm font-medium text-gray-500">Seller</dt>
+                        <dd class="text-sm text-gray-900">
+                            @if($auction->seller)
+                                <a href="{{ route('admin.users.show', $auction->seller->id) }}" class="text-indigo-600 hover:underline">
+                                    {{ $auction->seller->name }} ({{ $auction->seller->email }})
+                                </a>
+                            @else
+                                <span class="text-gray-400">N/A</span>
+                            @endif
+                        </dd>
+
+                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                        <dd class="text-sm">
+                            @php
+                                $colors = ['active' => 'bg-green-100 text-green-800', 'completed' => 'bg-blue-100 text-blue-800', 'cancelled' => 'bg-red-100 text-red-800', 'draft' => 'bg-gray-100 text-gray-800'];
+                            @endphp
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $colors[$auction->status] ?? 'bg-gray-100 text-gray-800' }}">
+                                {{ ucfirst($auction->status) }}
+                            </span>
+                        </dd>
+
+                        <dt class="text-sm font-medium text-gray-500">Starting Price</dt>
+                        <dd class="text-sm text-gray-900">${{ number_format($auction->starting_price, 2) }}</dd>
+
+                        <dt class="text-sm font-medium text-gray-500">Current Price</dt>
+                        <dd class="text-sm font-bold text-gray-900">${{ number_format($auction->current_price, 2) }}</dd>
+
+                        @if($bidStats['redis_price'])
+                            <dt class="text-sm font-medium text-gray-500">Redis Price</dt>
+                            <dd class="text-sm text-gray-900">${{ number_format((float)$bidStats['redis_price'], 2) }}</dd>
+                        @endif
+
+                        <dt class="text-sm font-medium text-gray-500">Start Time</dt>
+                        <dd class="text-sm text-gray-900">{{ $auction->start_time->format('M d, Y H:i:s') }}</dd>
+
+                        <dt class="text-sm font-medium text-gray-500">End Time</dt>
+                        <dd class="text-sm text-gray-900">
+                            {{ $auction->end_time->format('M d, Y H:i:s') }}
+                            @if($auction->status === 'active' && $auction->end_time->isFuture())
+                                <span class="text-orange-500 text-xs ml-1">({{ $auction->end_time->diffForHumans() }})</span>
+                            @endif
+                        </dd>
+
+                        <dt class="text-sm font-medium text-gray-500">Description</dt>
+                        <dd class="text-sm text-gray-900 col-span-2">{{ $auction->description ?? 'No description' }}</dd>
+                    </dl>
+                </div>
+
+                {{-- Bid Statistics --}}
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Bid Statistics</h3>
+                    <dl class="space-y-3">
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Total Bids</dt>
+                            <dd class="text-sm font-semibold text-gray-900">{{ number_format($bidStats['total_bids']) }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Unique Bidders</dt>
+                            <dd class="text-sm font-semibold text-gray-900">{{ number_format($bidStats['unique_bidders']) }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Highest Bid</dt>
+                            <dd class="text-sm font-semibold text-green-600">${{ number_format($bidStats['highest_bid'] ?? 0, 2) }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Lowest Bid</dt>
+                            <dd class="text-sm font-semibold text-gray-900">${{ number_format($bidStats['lowest_bid'] ?? 0, 2) }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Average Bid</dt>
+                            <dd class="text-sm font-semibold text-gray-900">${{ number_format($bidStats['avg_bid'] ?? 0, 2) }}</dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500">Last Bid At</dt>
+                            <dd class="text-sm text-gray-900">{{ $bidStats['last_bid_at'] ? \Carbon\Carbon::parse($bidStats['last_bid_at'])->format('M d, H:i:s') : 'N/A' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            {{-- Admin Actions --}}
+            @if($auction->status === 'active')
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">Admin Actions</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {{-- Force Cancel --}}
+                        <div>
+                            <h4 class="text-sm font-medium text-red-600 mb-2">Force Cancel Auction</h4>
+                            <form id="force-cancel-form" class="space-y-2">
+                                <textarea name="reason" rows="2" placeholder="Reason for cancellation (required)"
+                                          class="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
+                                          required></textarea>
+                                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">
+                                    Force Cancel
+                                </button>
+                            </form>
+                        </div>
+
+                        {{-- Extend Time --}}
+                        <div>
+                            <h4 class="text-sm font-medium text-blue-600 mb-2">Extend Auction Time</h4>
+                            <form id="extend-form" class="space-y-2">
+                                <input type="number" name="minutes" min="1" max="1440" placeholder="Minutes to extend"
+                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                       required>
+                                <textarea name="reason" rows="2" placeholder="Reason for extension (required)"
+                                          class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                          required></textarea>
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
+                                    Extend Time
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="action-message" class="mt-4 hidden"></div>
+                </div>
+            @endif
+
+            {{-- Recent Bids --}}
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 pb-2">
+                    <h3 class="text-lg font-semibold">Recent Bids ({{ $recentBids->count() }})</h3>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Agent</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($recentBids as $bid)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-3 text-sm text-gray-500">#{{ $bid->id }}</td>
+                                <td class="px-6 py-3 text-sm">
+                                    @if($bid->user)
+                                        <a href="{{ route('admin.users.show', $bid->user->id) }}" class="text-indigo-600 hover:underline">
+                                            {{ $bid->user->name }}
+                                        </a>
+                                    @else
+                                        <span class="text-gray-400">Deleted</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3 text-sm font-medium text-gray-900">${{ number_format($bid->amount, 2) }}</td>
+                                <td class="px-6 py-3 text-sm text-gray-500 font-mono">{{ $bid->ip_address ?? '-' }}</td>
+                                <td class="px-6 py-3 text-sm text-gray-500 truncate max-w-xs" title="{{ $bid->user_agent }}">
+                                    {{ Str::limit($bid->user_agent ?? '-', 30) }}
+                                </td>
+                                <td class="px-6 py-3 text-sm text-gray-500">{{ $bid->created_at->format('M d H:i:s.u') }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">No bids yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+        // Force Cancel
+        document.getElementById('force-cancel-form')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!confirm('Are you sure you want to force-cancel this auction? This cannot be undone.')) return;
+
+            const reason = this.querySelector('[name="reason"]').value;
+            const msgEl = document.getElementById('action-message');
+
+            try {
+                const resp = await fetch('{{ route("admin.auctions.force-cancel", $auction) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ reason }),
+                });
+                const data = await resp.json();
+                msgEl.className = resp.ok
+                    ? 'mt-4 p-3 rounded bg-green-100 text-green-800 text-sm'
+                    : 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
+                msgEl.textContent = data.message;
+                msgEl.classList.remove('hidden');
+                if (resp.ok) setTimeout(() => location.reload(), 1500);
+            } catch (err) {
+                msgEl.className = 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
+                msgEl.textContent = 'Request failed.';
+                msgEl.classList.remove('hidden');
+            }
+        });
+
+        // Extend Time
+        document.getElementById('extend-form')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const minutes = this.querySelector('[name="minutes"]').value;
+            const reason = this.querySelector('[name="reason"]').value;
+            const msgEl = document.getElementById('action-message');
+
+            try {
+                const resp = await fetch('{{ route("admin.auctions.extend", $auction) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ minutes: parseInt(minutes), reason }),
+                });
+                const data = await resp.json();
+                msgEl.className = resp.ok
+                    ? 'mt-4 p-3 rounded bg-green-100 text-green-800 text-sm'
+                    : 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
+                msgEl.textContent = data.message;
+                msgEl.classList.remove('hidden');
+                if (resp.ok) setTimeout(() => location.reload(), 1500);
+            } catch (err) {
+                msgEl.className = 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
+                msgEl.textContent = 'Request failed.';
+                msgEl.classList.remove('hidden');
+            }
+        });
+    </script>
+    @endpush
+</x-app-layout>

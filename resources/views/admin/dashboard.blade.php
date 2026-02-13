@@ -38,13 +38,13 @@
                 </div>
             </div>
 
-            {{-- Live Metrics Panel (auto-refreshes via JS) --}}
+            {{-- Live Metrics Panel --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mb-6" id="live-metrics">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">Live Metrics</h3>
                     <span class="text-xs text-gray-400" id="last-updated">Loading...</span>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="metrics-grid">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <div class="text-xs text-gray-500">Bids / min</div>
                         <div class="text-xl font-bold" id="bids-per-min">-</div>
@@ -62,6 +62,26 @@
                         <div class="text-xl font-bold" id="ending-soon">-</div>
                     </div>
                 </div>
+            </div>
+
+            {{-- Quick Links --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="{{ route('admin.auctions.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Manage Auctions</h3>
+                    <p class="text-sm text-gray-500 mt-1">View, cancel, extend auctions. Detect suspicious activity.</p>
+                </a>
+                <a href="{{ route('admin.users.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Manage Users</h3>
+                    <p class="text-sm text-gray-500 mt-1">Search users, ban/unban, change roles.</p>
+                </a>
+                <a href="{{ route('admin.reports.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Review Reports</h3>
+                    <p class="text-sm text-gray-500 mt-1">{{ $stats['pending_reports'] }} pending report(s) to review.</p>
+                </a>
+                <a href="{{ route('admin.audit-logs.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Audit Logs</h3>
+                    <p class="text-sm text-gray-500 mt-1">Review all admin actions and changes.</p>
+                </a>
             </div>
 
         </div>

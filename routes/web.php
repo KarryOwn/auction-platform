@@ -4,6 +4,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\BidController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AuctionManagementController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\AuditLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -26,6 +30,26 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/metrics/live', [DashboardController::class, 'liveMetrics'])->name('metrics.live');
     Route::get('/metrics/throughput', [DashboardController::class, 'bidThroughput'])->name('metrics.throughput');
+
+    // Auction Management
+    Route::get('/auctions', [AuctionManagementController::class, 'index'])->name('auctions.index');
+    Route::get('/auctions/{auction}', [AuctionManagementController::class, 'show'])->name('auctions.show');
+    Route::post('/auctions/{auction}/force-cancel', [AuctionManagementController::class, 'forceCancel'])->name('auctions.force-cancel');
+    Route::post('/auctions/{auction}/extend', [AuctionManagementController::class, 'extend'])->name('auctions.extend');
+
+    // User Management
+    Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('users.show');
+    Route::post('/users/{user}/ban', [UserManagementController::class, 'ban'])->name('users.ban');
+    Route::post('/users/{user}/unban', [UserManagementController::class, 'unban'])->name('users.unban');
+    Route::patch('/users/{user}/role', [UserManagementController::class, 'changeRole'])->name('users.role');
+
+    // Reports
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::patch('/reports/{report}', [ReportController::class, 'review'])->name('reports.review');
+
+    // Audit Logs
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 });
 
 require __DIR__.'/auth.php';
