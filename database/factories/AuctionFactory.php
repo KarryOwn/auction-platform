@@ -2,34 +2,112 @@
 
 namespace Database\Factories;
 
+use App\Models\Auction;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Model>
+ * @extends Factory<Auction>
  */
 class AuctionFactory extends Factory
 {
+    protected $model = Auction::class;
+
     /**
      * Define the model's default state.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
-    {   
+    {
         $startAt = $this->faker->dateTimeBetween('-1 day', '+1 day');
         $endAt = (clone $startAt)->modify('+1 hour');
+        $startingPrice = $this->faker->randomFloat(2, 10, 500);
 
         return [
-            'user_id' => \App\Models\User::factory(),
-            'title' => ucfirst($this->faker->words(3, true)) . '-' . $this->faker->year,
-            'description' => $this->faker->paragraph,
-            'starting_price' => $this->faker->randomFloat(2, 10, 500),
-            'current_price' => function (array $attributes) {
-                return $attributes['starting_price'];
-            },
-            'start_time' => $startAt,
-            'end_time' => $endAt,
-            'status' => 'active',
+            'user_id'                 => User::factory(),
+            'title'                   => ucfirst($this->faker->words(3, true)) . '-' . $this->faker->year,
+            'description'             => $this->faker->paragraph,
+            'starting_price'          => $startingPrice,
+            'current_price'           => $startingPrice,
+            'min_bid_increment'       => $this->faker->randomElement([0.50, 1.00, 5.00, 10.00]),
+            'snipe_threshold_seconds' => 30,
+            'snipe_extension_seconds' => 30,
+            'max_extensions'          => 10,
+            'currency'                => 'USD',
+            'start_time'              => $startAt,
+            'end_time'                => $endAt,
+            'status'                  => Auction::STATUS_ACTIVE,
         ];
+    }
+
+    /**
+     * Auction with a reserve price.
+     */
+    public function withReserve(float $reservePrice = null): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'reserve_price' => $reservePrice ?? $attrs['starting_price'] * 2,
+            'reserve_met'   => false,
+        ]);
+    }
+
+    /**
+     * Featured auction.
+     */
+    public function featured(): static
+    {
+        return $this->state(fn () => [
+            'is_featured'    => true,
+            'featured_until' => now()->addDays(7),
+        ]);
+    }
+
+    /**
+     * Draft auction.
+     */
+    public function draft(): static
+    {
+        return $this->state(fn () => [
+            'status' => Auction::STATUS_DRAFT,
+        ]);
+    }
+
+    /**
+     * Completed auction with a winner.
+     */
+    public function completed(): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'status'             => Auction::STATUS_COMPLETED,
+            'winner_id'          => User::factory(),
+            'winning_bid_amount' => $attrs['starting_price'] + $this->faker->randomFloat(2, 10, 200),
+            'closed_at'          => now(),
+            'end_time'           => now()->subMinutes(5),
+            'start_time'         => now()->subHours(2),
+        ]);
+    }
+
+    /**
+     * Cancelled auction.
+     */
+    public function cancelled(): static
+    {
+        return $this->state(fn () => [
+            'status'    => Auction::STATUS_CANCELLED,
+            'closed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Auction ending soon (within the given minutes).
+     */
+    public function endingSoon(int $minutes = 5): static
+    {
+        return $this->state(fn () => [
+            'status'     => Auction::STATUS_ACTIVE,
+            'start_time' => now()->subHour(),
+            'end_time'   => now()->addMinutes($minutes),
+        ]);
     }
 }
