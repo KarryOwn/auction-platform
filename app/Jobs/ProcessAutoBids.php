@@ -15,11 +15,12 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Triggered after a manual bid is placed.
- * Checks if any other users have auto-bid rules that should fire
- * and places bids on their behalf.
+ * Resolves the full auto-bid competition in a loop: each iteration finds
+ * the best qualifying auto-bid from a user OTHER than the current highest
+ * bidder, places the minimum bid on their behalf, then repeats.
  *
- * Prevents infinite loops by only triggering the top qualifying auto-bid
- * that is not the current highest bidder.
+ * The loop naturally terminates when no more auto-bids can afford the next
+ * increment. A hard cap of 100 rounds provides additional safety.
  */
 class ProcessAutoBids implements ShouldQueue
 {
@@ -27,6 +28,8 @@ class ProcessAutoBids implements ShouldQueue
 
     public int $tries = 3;
     public array $backoff = [1, 3];
+
+    private const MAX_ROUNDS = 100;
 
     public function __construct(
         public int $auctionId,
@@ -41,51 +44,67 @@ class ProcessAutoBids implements ShouldQueue
             return;
         }
 
-        $currentPrice = $engine->getCurrentPrice($auction);
-        $nextBid      = round($currentPrice + (float) $auction->min_bid_increment, 2);
+        // The user who currently holds the highest bid — competing auto-bids
+        // must belong to a DIFFERENT user.
+        $lastBidderId = $this->triggeredByUserId;
 
-        // Find auto-bids that:
-        // 1. Belong to a different user than the one who just bid
-        // 2. Have max_amount >= nextBid
-        // 3. Ordered by max_amount desc (highest ceiling wins)
-        $autoBid = AutoBid::where('auction_id', $this->auctionId)
-            ->where('user_id', '!=', $this->triggeredByUserId)
-            ->where('max_amount', '>=', $nextBid)
-            ->orderByDesc('max_amount')
-            ->with('user')
-            ->first();
+        for ($round = 0; $round < self::MAX_ROUNDS; $round++) {
+            // Refresh auction state for snipe-window checks, etc.
+            $auction = $auction->fresh();
+            if (! $auction || ! $auction->isActive()) {
+                break;
+            }
 
-        if (! $autoBid || ! $autoBid->user) {
-            return;
-        }
+            $currentPrice = $engine->getCurrentPrice($auction);
+            $nextBid      = round($currentPrice + (float) $auction->min_bid_increment, 2);
 
-        // Safety: don't auto-bid if userBanned
-        if ($autoBid->user->isBanned()) {
-            Log::info('ProcessAutoBids: skipping banned user', ['user_id' => $autoBid->user_id]);
-            return;
-        }
+            // Find the best qualifying auto-bid:
+            // - Different user than the current highest bidder
+            // - Active
+            // - Has enough budget for the next bid
+            // - Highest ceiling wins ties
+            $autoBid = AutoBid::where('auction_id', $this->auctionId)
+                ->where('user_id', '!=', $lastBidderId)
+                ->where('is_active', true)
+                ->where('max_amount', '>=', $nextBid)
+                ->orderByDesc('max_amount')
+                ->with('user')
+                ->first();
 
-        try {
-            $engine->placeBid($auction->fresh(), $autoBid->user, $nextBid, [
-                'bid_type'    => Bid::TYPE_AUTO,
-                'auto_bid_id' => $autoBid->id,
-                'ip_address'  => '127.0.0.1',
-                'user_agent'  => 'AutoBid/System',
-            ]);
+            if (! $autoBid || ! $autoBid->user) {
+                break;
+            }
 
-            $autoBid->markTriggered();
+            if ($autoBid->user->isBanned()) {
+                Log::info('ProcessAutoBids: skipping banned user', ['user_id' => $autoBid->user_id]);
+                break;
+            }
 
-            Log::info('ProcessAutoBids: auto-bid placed', [
-                'auto_bid_id' => $autoBid->id,
-                'auction_id'  => $this->auctionId,
-                'user_id'     => $autoBid->user_id,
-                'amount'      => $nextBid,
-            ]);
-        } catch (\Throwable $e) {
-            Log::warning('ProcessAutoBids: failed to place auto-bid', [
-                'auto_bid_id' => $autoBid->id,
-                'error'       => $e->getMessage(),
-            ]);
+            try {
+                $engine->placeBid($auction, $autoBid->user, $nextBid, [
+                    'bid_type'    => Bid::TYPE_AUTO,
+                    'auto_bid_id' => $autoBid->id,
+                    'ip_address'  => '127.0.0.1',
+                    'user_agent'  => 'AutoBid/System',
+                ]);
+
+                $autoBid->markTriggered();
+                $lastBidderId = $autoBid->user_id;
+
+                Log::info('ProcessAutoBids: auto-bid placed', [
+                    'auto_bid_id' => $autoBid->id,
+                    'auction_id'  => $this->auctionId,
+                    'user_id'     => $autoBid->user_id,
+                    'amount'      => $nextBid,
+                    'round'       => $round + 1,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('ProcessAutoBids: failed to place auto-bid', [
+                    'auto_bid_id' => $autoBid->id,
+                    'error'       => $e->getMessage(),
+                ]);
+                break;
+            }
         }
     }
 }
