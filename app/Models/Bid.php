@@ -88,7 +88,7 @@ class Bid extends Model
     /**
      * The dollar increase over the previous bid.
      */
-    public function increment(): float
+    public function bidIncrement(): float
     {
         if ($this->previous_amount === null) {
             return 0;

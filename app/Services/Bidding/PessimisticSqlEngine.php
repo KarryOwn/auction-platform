@@ -2,64 +2,110 @@
 
 namespace App\Services\Bidding;
 
-use App\Events\PriceUpdated;
 use App\Contracts\BiddingStrategy;
+use App\Events\BidPlaced;
+use App\Events\PriceUpdated;
+use App\Exceptions\BidValidationException;
 use App\Models\Auction;
-use App\Models\User;
 use App\Models\Bid;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Exception;
 use Illuminate\Support\Facades\Log;
 
 class PessimisticSqlEngine implements BiddingStrategy
 {
-    public function placeBid(Auction $auction, User $user, float $amount): Bid
+    public function __construct(
+        protected BidValidator $validator,
+        protected BidRateLimiter $rateLimiter,
+    ) {}
+
+    public function placeBid(Auction $auction, User $user, float $amount, array $meta = []): Bid
     {
-        // Start a Database Transaction
-        return DB::transaction(function () use ($auction, $user, $amount) {
-            
-            // LOCK the row. No one else can read this auction until we finish.
-            // This is the "Pessimistic" part.
-            $lockedAuction = Auction::where('id', $auction->id)
-                                    ->lockForUpdate()
-                                    ->first();
+        // Pre-flight validation (before acquiring lock)
+        $this->validator->validate($auction, $user, $amount);
+        $this->rateLimiter->check($user, $auction);
 
-            // Validation Logic (The "Business Rules")
-            if ($lockedAuction->status !== 'active') {
-                throw new Exception("Auction is not active.");
+        return DB::transaction(function () use ($auction, $user, $amount, $meta) {
+            // Lock the auction row — pessimistic concurrency control
+            $locked = Auction::where('id', $auction->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Re-validate against the locked row (price may have changed)
+            if ($locked->status !== Auction::STATUS_ACTIVE) {
+                throw BidValidationException::auctionNotActive();
+            }
+            if ($locked->end_time->isPast()) {
+                throw BidValidationException::auctionEnded();
+            }
+            $minimumBid = $locked->minimumNextBid();
+            if ($amount < $minimumBid) {
+                throw BidValidationException::bidTooLow((float) $locked->current_price, $minimumBid);
             }
 
-            if ($lockedAuction->end_time < now()) {
-                throw new Exception("Auction has ended.");
+            $previousPrice = (float) $locked->current_price;
+            $isSnipeBid    = $locked->isInSnipeWindow();
+
+            // Update auction price
+            $locked->current_price = $amount;
+
+            // Check reserve
+            if ($locked->hasReserve() && ! $locked->reserve_met && $locked->isReserveMet()) {
+                $locked->reserve_met = true;
             }
 
-            if ($amount <= $lockedAuction->current_price) {
-                throw new Exception("Bid must be higher than {$lockedAuction->current_price}.");
-            }
+            $locked->save();
 
-            // Update the Price
-            $lockedAuction->current_price = $amount;
-            $lockedAuction->save();
-
-            // Create the Bid Record
+            // Create the bid record
             $bid = Bid::create([
-                'auction_id' => $lockedAuction->id,
-                'user_id' => $user->id,
-                'amount' => $amount,
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
+                'auction_id'      => $locked->id,
+                'user_id'         => $user->id,
+                'amount'          => $amount,
+                'bid_type'        => $meta['bid_type'] ?? Bid::TYPE_MANUAL,
+                'previous_amount' => $previousPrice,
+                'ip_address'      => $meta['ip_address'] ?? request()->ip(),
+                'user_agent'      => $meta['user_agent'] ?? request()->userAgent(),
+                'auto_bid_id'     => $meta['auto_bid_id'] ?? null,
+                'is_snipe_bid'    => $isSnipeBid,
             ]);
 
-            Log::info("BIDDING ENGINE: Preparing to dispatch event for Auction ID: " . $lockedAuction->id);
-            
-            try {
-                PriceUpdated::dispatch($lockedAuction);
-                Log::info("BIDDING ENGINE: Event dispatched successfully.");
-            } catch (\Exception $e) {
-                Log::error("BIDDING ENGINE: Event dispatch FAILED. Error: " . $e->getMessage());
+            // Increment counters
+            $locked->incrementBidCounters($user->id);
+
+            // Anti-snipe extension
+            if ($isSnipeBid) {
+                $locked->applySnipeExtension();
             }
+
+            // Record rate-limit hit
+            $this->rateLimiter->hit($user, $locked);
+
+            // Broadcast price update immediately
+            try {
+                PriceUpdated::dispatch($locked);
+            } catch (\Throwable $e) {
+                Log::error('PriceUpdated broadcast failed', ['error' => $e->getMessage()]);
+            }
+
+            // Dispatch domain event for listener chain
+            BidPlaced::dispatch($bid, $locked);
 
             return $bid;
         });
+    }
+
+    public function getCurrentPrice(Auction $auction): float
+    {
+        return (float) Auction::where('id', $auction->id)->value('current_price');
+    }
+
+    public function initializePrice(Auction $auction): void
+    {
+        // No-op for SQL engine — price lives in the DB already.
+    }
+
+    public function cleanup(Auction $auction): void
+    {
+        // No-op for SQL engine.
     }
 }

@@ -3,49 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\BiddingStrategy;
-use App\Models\Bid;
+use App\Exceptions\BidValidationException;
 use App\Models\Auction;
 use Illuminate\Http\Request;
 
 class BidController extends Controller
 {
-    protected $biddingStrategy;
-
-    // Inject the Interface. 
-    // Laravel automatically gives us 'PessimisticSqlEngine' because of AppServiceProvider.
-    public function __construct(BiddingStrategy $biddingStrategy)
-    {
-        $this->biddingStrategy = $biddingStrategy;
-    }
+    public function __construct(
+        protected BiddingStrategy $biddingStrategy,
+    ) {}
 
     public function store(Request $request, Auction $auction)
     {
-        // Validate the Request
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:1',
+            'amount' => 'required|numeric|min:0.01',
         ]);
 
         try {
-            // Call the Engine
             $bid = $this->biddingStrategy->placeBid(
-                $auction,
-                $request->user(), // The logged-in user
-                $validated['amount']
+                auction: $auction,
+                user: $request->user(),
+                amount: (float) $validated['amount'],
+                meta: [
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ],
             );
 
-            // Return Success Response
             return response()->json([
-                'success' => true,
-                'message' => 'Bid accepted!',
-                'new_price' => $bid->amount,
+                'success'   => true,
+                'message'   => 'Bid accepted!',
+                'new_price' => (float) $bid->amount,
+                'bid_type'  => $bid->bid_type ?? 'manual',
             ]);
-
-        } catch (Exception $e) {
-            // Handle "Race Condition" Failures or Logic Errors
+        } catch (BidValidationException $e) {
+            return $e->render();
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 422); // 422 Unprocessable Entity
+            ], 422);
         }
     }
 }

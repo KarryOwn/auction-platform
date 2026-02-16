@@ -23,6 +23,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->name('auctions.show');
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');
+    Route::post('/auctions/{auction}/watch', [AuctionController::class, 'toggleWatch'])->name('auctions.watch');
+    Route::post('/auctions/{auction}/auto-bid', [AuctionController::class, 'setAutoBid'])->name('auctions.auto-bid');
+    Route::delete('/auctions/{auction}/auto-bid', [AuctionController::class, 'cancelAutoBid'])->name('auctions.cancel-auto-bid');
 });
 
 Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(function () {

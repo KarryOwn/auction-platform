@@ -16,11 +16,15 @@ class AutoBid extends Model
         'auction_id',
         'user_id',
         'max_amount',
+        'bid_increment',
+        'is_active',
         'last_triggered_at',
     ];
 
     protected $casts = [
-        'max_amount'       => 'decimal:2',
+        'max_amount'        => 'decimal:2',
+        'bid_increment'     => 'decimal:2',
+        'is_active'         => 'boolean',
         'last_triggered_at' => 'datetime',
     ];
 

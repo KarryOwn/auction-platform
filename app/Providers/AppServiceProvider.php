@@ -2,10 +2,14 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use App\Contracts\BiddingStrategy;
+use App\Events\BidPlaced;
+use App\Listeners\HandleBidPlaced;
+use App\Services\Bidding\BidRateLimiter;
 use App\Services\Bidding\PessimisticSqlEngine;
 use App\Services\Bidding\RedisAtomicEngine;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,9 +18,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bidding engine binding (swap to PessimisticSqlEngine for non-Redis setups)
         // $this->app->bind(BiddingStrategy::class, PessimisticSqlEngine::class);
         $this->app->bind(BiddingStrategy::class, RedisAtomicEngine::class);
+
+        // Rate limiter as singleton (shared config across the request)
+        $this->app->singleton(BidRateLimiter::class, function () {
+            return new BidRateLimiter(
+                maxBids: (int) config('auction.rate_limit.max_bids', 10),
+                windowSeconds: (int) config('auction.rate_limit.window_seconds', 60),
+            );
+        });
     }
 
     /**
@@ -24,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Event → Listener wiring
+        Event::listen(BidPlaced::class, HandleBidPlaced::class);
     }
 }
