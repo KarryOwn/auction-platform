@@ -7,6 +7,7 @@ use App\Models\Auction;
 use App\Models\AutoBid;
 use App\Models\Bid;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -21,13 +22,21 @@ use Illuminate\Support\Facades\Log;
  *
  * The loop naturally terminates when no more auto-bids can afford the next
  * increment. A hard cap of 100 rounds provides additional safety.
+ *
+ * Implements ShouldBeUniqueUntilProcessing so only one job per auction
+ * can sit in the queue at a time, preventing duplicate auto-bid runs.
  */
-class ProcessAutoBids implements ShouldQueue
+class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
     public array $backoff = [1, 3];
+
+    /**
+     * Unique lock TTL (seconds) — should exceed max expected processing time.
+     */
+    public int $uniqueFor = 120;
 
     private const MAX_ROUNDS = 100;
 
@@ -35,6 +44,15 @@ class ProcessAutoBids implements ShouldQueue
         public int $auctionId,
         public int $triggeredByUserId,
     ) {}
+
+    /**
+     * Scope uniqueness to the auction so only one ProcessAutoBids
+     * job per auction can be queued/processing at a time.
+     */
+    public function uniqueId(): string
+    {
+        return (string) $this->auctionId;
+    }
 
     public function handle(BiddingStrategy $engine): void
     {
@@ -44,9 +62,10 @@ class ProcessAutoBids implements ShouldQueue
             return;
         }
 
-        // The user who currently holds the highest bid — competing auto-bids
-        // must belong to a DIFFERENT user.
-        $lastBidderId = $this->triggeredByUserId;
+        // Resolve the ACTUAL current highest bidder from the database,
+        // not the triggeredByUserId. This prevents double-bidding on
+        // job retries where an auto-bid was already placed in a prior attempt.
+        $lastBidderId = $this->resolveCurrentHighestBidder($auction);
 
         for ($round = 0; $round < self::MAX_ROUNDS; $round++) {
             // Refresh auction state for snipe-window checks, etc.
@@ -106,5 +125,22 @@ class ProcessAutoBids implements ShouldQueue
                 break;
             }
         }
+    }
+
+    /**
+     * Determine who actually holds the highest bid right now.
+     *
+     * On the first run this normally matches triggeredByUserId. On a retry
+     * (after a prior attempt already placed an auto-bid), it returns the
+     * user who truly leads — preventing the same auto-bidder from being
+     * selected again.
+     */
+    private function resolveCurrentHighestBidder(Auction $auction): int
+    {
+        $latestBid = Bid::where('auction_id', $auction->id)
+            ->orderByDesc('amount')
+            ->first();
+
+        return $latestBid ? $latestBid->user_id : $this->triggeredByUserId;
     }
 }

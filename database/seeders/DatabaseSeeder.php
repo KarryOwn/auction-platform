@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Auction;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Redis;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,6 +17,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Flush auction-related Redis keys so stale prices don't persist
+        $this->command->info('Flushing Redis auction keys...');
+        $this->flushAuctionKeys();
+
         // User::factory(10)->create();
         User::factory()->create([
             'name'           => 'KarryOwn',
@@ -50,5 +55,32 @@ class DatabaseSeeder extends Seeder
             'status'   => 'active',
             'end_time' => now()->addHour(),
         ]);
+    }
+
+    /**
+     * Remove all auction:* keys from Redis to prevent stale price data
+     * after a database refresh.
+     */
+    private function flushAuctionKeys(): void
+    {
+        $prefix = config('database.redis.options.prefix', '');
+        $pattern = $prefix . 'auction:*';
+        $cursor = null;
+
+        do {
+            $result = Redis::scan($cursor, ['match' => $pattern, 'count' => 200]);
+
+            // Redis::scan returns false when iteration is complete or no keys found
+            if ($result === false) {
+                break;
+            }
+
+            [$cursor, $keys] = $result;
+
+            if (! empty($keys)) {
+                $unprefixed = array_map(fn ($k) => str_replace($prefix, '', $k), $keys);
+                Redis::del($unprefixed);
+            }
+        } while ($cursor);
     }
 }

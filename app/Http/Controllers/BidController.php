@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Contracts\BiddingStrategy;
 use App\Exceptions\BidValidationException;
+use App\Http\Requests\PlaceBidRequest;
 use App\Models\Auction;
-use Illuminate\Http\Request;
 
 class BidController extends Controller
 {
@@ -13,11 +13,9 @@ class BidController extends Controller
         protected BiddingStrategy $biddingStrategy,
     ) {}
 
-    public function store(Request $request, Auction $auction)
+    public function store(PlaceBidRequest $request, Auction $auction)
     {
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-        ]);
+        $validated = $request->validated();
 
         try {
             $bid = $this->biddingStrategy->placeBid(

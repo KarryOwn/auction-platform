@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -20,11 +21,11 @@ class OutbidNotification extends Notification implements ShouldQueue
     ) {}
 
     /**
-     * Deliver via database + mail.
+     * Deliver via database, mail, and broadcast (private user channel).
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return ['database', 'mail', 'broadcast'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -47,6 +48,24 @@ class OutbidNotification extends Notification implements ShouldQueue
                 ->line('Place a higher bid to stay in the lead!');
 
         return $message;
+    }
+
+    /**
+     * Broadcast on the user's private channel for real-time outbid alerts.
+     */
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage([
+            'type'          => $this->isWatcher ? 'auction_activity' : 'outbid',
+            'auction_id'    => $this->auctionId,
+            'auction_title' => $this->auctionTitle,
+            'outbid_amount' => $this->outbidAmount,
+            'your_amount'   => $this->yourAmount,
+            'is_watcher'    => $this->isWatcher,
+            'message'       => $this->isWatcher
+                ? "New bid of \${$this->outbidAmount} on \"{$this->auctionTitle}\""
+                : "You've been outbid on \"{$this->auctionTitle}\" — new bid: \${$this->outbidAmount}",
+        ]);
     }
 
     public function toArray(object $notifiable): array
