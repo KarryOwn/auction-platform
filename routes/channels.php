@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
+use App\Models\Conversation;
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
@@ -16,4 +17,23 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 */
 Broadcast::channel('auctions.{auctionId}', function () {
     return true; // public — any authenticated or guest user may listen
+});
+
+Broadcast::channel('conversation.{conversationId}', function ($user, $conversationId) {
+    $conversation = Conversation::find($conversationId);
+
+    if (! $conversation) {
+        return false;
+    }
+
+    return (int) $user->id === (int) $conversation->buyer_id
+        || (int) $user->id === (int) $conversation->seller_id;
+});
+
+Broadcast::channel('seller.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+Broadcast::channel('buyer.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
 });

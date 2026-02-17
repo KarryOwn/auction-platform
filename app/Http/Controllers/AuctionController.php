@@ -33,7 +33,7 @@ class AuctionController extends Controller
     public function show(Auction $auction)
     {
         $auction->loadCount('bids');
-        $auction->load(['seller:id,name', 'highestBid.user:id,name']);
+        $auction->load(['seller:id,name,seller_slug', 'highestBid.user:id,name']);
 
         // Get the real-time price from the bidding engine (Redis may be ahead of DB)
         $auction->current_price = $this->biddingStrategy->getCurrentPrice($auction);

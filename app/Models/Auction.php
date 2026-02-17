@@ -114,6 +114,16 @@ class Auction extends Model
         return $this->hasMany(ReportedAuction::class);
     }
 
+    public function views(): HasMany
+    {
+        return $this->hasMany(AuctionView::class);
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class);
+    }
+
 
     public function scopeActive(Builder $query): Builder
     {

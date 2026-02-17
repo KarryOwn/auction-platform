@@ -59,9 +59,26 @@
                             </div>
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Seller</span>
-                                <span class="text-lg font-bold text-gray-800">{{ $auction->seller->name ?? 'N/A' }}</span>
+                                @if(($auction->seller->seller_slug ?? null))
+                                    <a class="text-lg font-bold text-indigo-700 hover:underline" href="{{ route('storefront.show', $auction->seller->seller_slug) }}">{{ $auction->seller->name ?? 'N/A' }}</a>
+                                @else
+                                    <span class="text-lg font-bold text-gray-800">{{ $auction->seller->name ?? 'N/A' }}</span>
+                                @endif
                             </div>
                         </div>
+
+                        @auth
+                            @if(auth()->id() !== $auction->user_id)
+                                <div class="mt-6 border-t pt-4">
+                                    <h4 class="text-sm font-semibold text-gray-800 mb-2">Message Seller</h4>
+                                    <form method="POST" action="{{ route('conversations.start', $auction) }}" class="space-y-2">
+                                        @csrf
+                                        <textarea name="body" rows="3" class="w-full rounded-md border-gray-300" maxlength="2000" placeholder="Ask the seller a question..." required></textarea>
+                                        <button class="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm">Send Message</button>
+                                    </form>
+                                </div>
+                            @endif
+                        @endauth
 
                         {{-- Reserve Price Indicator --}}
                         @if($auction->hasReserve())

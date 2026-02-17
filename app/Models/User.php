@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -17,6 +18,7 @@ class User extends Authenticatable
     public const ROLE_USER      = 'user';
     public const ROLE_ADMIN     = 'admin';
     public const ROLE_MODERATOR = 'moderator';
+    public const ROLE_SELLER    = 'seller';
 
     /**
      * The attributes that are mass assignable.
@@ -32,6 +34,14 @@ class User extends Authenticatable
         'banned_at',
         'ban_reason',
         'wallet_balance',
+        'seller_verified_at',
+        'seller_application_status',
+        'seller_application_note',
+        'seller_bio',
+        'seller_avatar_path',
+        'seller_slug',
+        'seller_applied_at',
+        'seller_rejected_reason',
     ];
 
     /**
@@ -57,6 +67,8 @@ class User extends Authenticatable
             'is_banned'         => 'boolean',
             'banned_at'         => 'datetime',
             'wallet_balance'    => 'decimal:2',
+            'seller_verified_at' => 'datetime',
+            'seller_applied_at' => 'datetime',
         ];
     }
 
@@ -75,6 +87,28 @@ class User extends Authenticatable
     public function isStaff(): bool
     {
         return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_MODERATOR]);
+    }
+
+    public function isSeller(): bool
+    {
+        return $this->role === self::ROLE_SELLER;
+    }
+
+    public function isVerifiedSeller(): bool
+    {
+        return $this->isSeller()
+            && $this->seller_verified_at !== null
+            && $this->seller_application_status === 'approved';
+    }
+
+    public function hasPendingSellerApplication(): bool
+    {
+        return $this->seller_application_status === 'pending';
+    }
+
+    public function canCreateAuctions(): bool
+    {
+        return $this->isVerifiedSeller();
     }
 
     public function isBanned(): bool
@@ -113,6 +147,25 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class);
     }
 
+    public function sellerApplication(): HasOne
+    {
+        return $this->hasOne(SellerApplication::class)->latestOfMany();
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'buyer_id')
+            ->where(function (Builder $query) {
+                $query->where('buyer_id', $this->id)
+                    ->orWhere('seller_id', $this->id);
+            });
+    }
+
+    public function sentMessages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
     // ── Scopes ──────────────────────────────────
 
     public function scopeActive(Builder $query): Builder
@@ -128,6 +181,18 @@ class User extends Authenticatable
     public function scopeByRole(Builder $query, string $role): Builder
     {
         return $query->where('role', $role);
+    }
+
+    public function scopePendingSellers(Builder $query): Builder
+    {
+        return $query->where('seller_application_status', 'pending');
+    }
+
+    public function scopeVerifiedSellers(Builder $query): Builder
+    {
+        return $query->where('role', self::ROLE_SELLER)
+            ->whereNotNull('seller_verified_at')
+            ->where('seller_application_status', 'approved');
     }
 
     /**

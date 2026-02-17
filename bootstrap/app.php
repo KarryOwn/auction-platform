@@ -20,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff'      => \App\Http\Middleware\EnsureIsStaff::class,
             'admin'      => \App\Http\Middleware\EnsureIsAdmin::class,
             'not_banned' => \App\Http\Middleware\EnsureNotBanned::class,
+            'seller'     => \App\Http\Middleware\EnsureIsSeller::class,
+            'track.auction.view' => \App\Http\Middleware\TrackAuctionView::class,
         ]);
 
         $middleware->appendToGroup('web', [

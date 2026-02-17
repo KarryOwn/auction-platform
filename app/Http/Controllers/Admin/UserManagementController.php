@@ -161,7 +161,7 @@ class UserManagementController extends Controller
     public function changeRole(Request $request, User $user): JsonResponse
     {
         $request->validate([
-            'role' => 'required|in:user,moderator,admin',
+            'role' => 'required|in:user,seller,moderator,admin',
         ]);
 
         if ($user->id === $request->user()->id) {

@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\BidPlaced;
+use App\Events\NewBidOnListing;
 use App\Jobs\ProcessAutoBids;
 use App\Models\AuctionWatcher;
 use App\Models\Bid;
@@ -29,6 +30,8 @@ class HandleBidPlaced implements ShouldQueue
     {
         $bid     = $event->bid;
         $auction = $event->auction;
+
+        broadcast(new NewBidOnListing($auction, (float) $bid->amount))->toOthers();
 
         // 1. Outbid notification to the previous highest bidder
         $this->notifyOutbidUser($bid, $auction);

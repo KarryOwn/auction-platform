@@ -55,4 +55,16 @@ return [
     */
     'min_bid_increment' => (float) env('AUCTION_MIN_INCREMENT', 1.00),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Seller Insights
+    |--------------------------------------------------------------------------
+    */
+    'insights' => [
+        'suggestion_lookback_days' => (int) env('AUCTION_INSIGHTS_LOOKBACK_DAYS', 90),
+        'starting_price_factor' => (float) env('AUCTION_INSIGHTS_START_FACTOR', 0.65),
+        'reserve_price_factor' => (float) env('AUCTION_INSIGHTS_RESERVE_FACTOR', 0.87),
+        'min_similar_auctions' => (int) env('AUCTION_INSIGHTS_MIN_SIMILAR', 5),
+    ],
+
 ];
