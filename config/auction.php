@@ -55,6 +55,29 @@ return [
     */
     'min_bid_increment' => (float) env('AUCTION_MIN_INCREMENT', 1.00),
 
+    'supported_currencies' => ['USD', 'EUR', 'GBP', 'JPY', 'VND'],
+
+    'images' => [
+        'max_per_auction' => (int) env('AUCTION_IMAGES_MAX_PER_AUCTION', 10),
+        'max_size_kb' => (int) env('AUCTION_IMAGES_MAX_SIZE_KB', 5120),
+        'allowed_types' => ['image/jpeg', 'image/png', 'image/webp'],
+        'conversions' => [
+            'thumbnail' => [300, 300],
+            'gallery' => [800, 600],
+            'full' => [1920, 1080],
+        ],
+    ],
+
+    'video' => [
+        'allowed_domains' => [
+            'youtube.com',
+            'www.youtube.com',
+            'youtu.be',
+            'vimeo.com',
+            'player.vimeo.com',
+        ],
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Seller Insights

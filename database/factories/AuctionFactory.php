@@ -110,4 +110,24 @@ class AuctionFactory extends Factory
             'end_time'   => now()->addMinutes($minutes),
         ]);
     }
+
+    public function withImages(int $count = 3): static
+    {
+        return $this->afterCreating(function (Auction $auction) use ($count) {
+            $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7ZxV0AAAAASUVORK5CYII=');
+
+            for ($index = 1; $index <= $count; $index++) {
+                $auction->addMediaFromString($png)
+                    ->usingFileName("seed-{$auction->id}-{$index}.png")
+                    ->toMediaCollection('images');
+            }
+        });
+    }
+
+    public function withVideo(): static
+    {
+        return $this->state(fn () => [
+            'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        ]);
+    }
 }

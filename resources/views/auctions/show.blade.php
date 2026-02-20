@@ -36,6 +36,36 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            @php($galleryImages = $auction->getGalleryImages())
+            <div class="bg-white shadow-sm sm:rounded-lg p-6" x-data="{ images: @js($galleryImages), activeImage: @js($galleryImages[0]['full_url'] ?? null) }">
+                @if(!empty($galleryImages))
+                    <div class="aspect-[16/10] rounded-lg overflow-hidden bg-gray-100 mb-4">
+                        <img :src="activeImage" class="w-full h-full object-contain" alt="{{ $auction->title }}">
+                    </div>
+                    <div class="grid grid-cols-5 md:grid-cols-8 gap-2">
+                        <template x-for="image in images" :key="image.id">
+                            <button type="button" class="border rounded overflow-hidden" @click="activeImage = image.full_url">
+                                <img :src="image.thumbnail_url" class="w-full h-16 object-cover" alt="thumbnail">
+                            </button>
+                        </template>
+                    </div>
+                @else
+                    <div class="aspect-[16/10] rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">No images uploaded</div>
+                @endif
+            </div>
+
+            @if($auction->hasVideo() && $auction->getVideoEmbedUrl())
+                <div class="bg-white shadow-sm sm:rounded-lg p-6" x-data="{ play: false }">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Video</h3>
+                    <div class="aspect-video rounded-lg overflow-hidden bg-black relative">
+                        <button x-show="!play" @click="play = true" type="button" class="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-lg font-semibold">
+                            ▶ Play Video
+                        </button>
+                        <iframe x-show="play" class="w-full h-full" :src="play ? '{{ $auction->getVideoEmbedUrl() }}' : ''" loading="lazy" allowfullscreen></iframe>
+                    </div>
+                </div>
+            @endif
+
             {{-- Main Grid: Info + Bidding --}}
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

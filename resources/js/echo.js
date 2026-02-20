@@ -22,5 +22,5 @@ window.Echo = new Echo({
     forceTLS: false,                   // <--- FORCE THIS TO FALSE
     encrypted: false,                  // <--- ADD THIS
     disableStats: true,                // <--- ADD THIS (Optional, removes noise)
-    enabledTransports: ['ws', 'wss'],
+    enabledTransports: ['ws'],
 });

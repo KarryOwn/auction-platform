@@ -1,4 +1,5 @@
 import './bootstrap';
+import './filepond-setup';
 
 import Alpine from 'alpinejs';
 

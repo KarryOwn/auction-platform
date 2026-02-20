@@ -1,5 +1,10 @@
 <x-app-layout>
-    <x-slot name="header"><h2 class="font-semibold text-xl text-gray-800 leading-tight">Seller Dashboard</h2></x-slot>
+    <x-slot name="header">
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Seller Dashboard</h2>
+            <a href="{{ route('seller.auctions.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Create New Auction</a>
+        </div>
+    </x-slot>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
@@ -10,13 +15,31 @@
                 <div class="bg-white p-4 rounded">Unread Msg: <strong id="m-unread">{{ $stats['unread_messages'] }}</strong></div>
             </div>
 
+            <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded text-sm">
+                Draft auctions waiting to publish: <strong>{{ $stats['draft_auctions'] }}</strong>
+            </div>
+
             <div class="bg-white p-6 rounded shadow-sm">
                 <h3 class="font-semibold mb-3">Active Listings</h3>
                 <table class="min-w-full text-sm">
-                    <thead><tr><th class="text-left">Title</th><th class="text-left">Current</th><th class="text-left">Bids</th><th class="text-left">Ends</th></tr></thead>
+                    <thead><tr><th class="text-left">Auction</th><th class="text-left">Current</th><th class="text-left">Bids</th><th class="text-left">Ends</th></tr></thead>
                     <tbody>
                     @foreach($activeListings as $auction)
-                        <tr class="border-t"><td><a class="text-indigo-600" href="{{ route('auctions.show', $auction) }}">{{ $auction->title }}</a></td><td>${{ number_format($auction->current_price,2) }}</td><td>{{ $auction->bids_count }}</td><td>{{ optional($auction->end_time)->diffForHumans() }}</td></tr>
+                        <tr class="border-t">
+                            <td class="py-2">
+                                <div class="flex items-center gap-2">
+                                    @if($auction->getCoverImageUrl())
+                                        <img src="{{ $auction->getCoverImageUrl() }}" class="w-10 h-10 rounded object-cover" alt="{{ $auction->title }}">
+                                    @else
+                                        <div class="w-10 h-10 rounded bg-gray-100"></div>
+                                    @endif
+                                    <a class="text-indigo-600" href="{{ route('auctions.show', $auction) }}">{{ $auction->title }}</a>
+                                </div>
+                            </td>
+                            <td>${{ number_format($auction->current_price,2) }}</td>
+                            <td>{{ $auction->bids_count }}</td>
+                            <td>{{ optional($auction->end_time)->diffForHumans() }}</td>
+                        </tr>
                     @endforeach
                     </tbody>
                 </table>

@@ -45,6 +45,7 @@ class DashboardController extends Controller
             ->where('user_id', $seller->id)
             ->whereIn('status', [Auction::STATUS_ACTIVE, Auction::STATUS_DRAFT])
             ->withCount('bids')
+            ->with('media')
             ->orderBy('end_time')
             ->get();
 

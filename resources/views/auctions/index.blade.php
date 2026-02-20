@@ -10,6 +10,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach ($auctions as $auction)
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow duration-200">
+                        <div class="aspect-video bg-gray-100">
+                            @if($auction->getCoverImageUrl('gallery'))
+                                <img src="{{ $auction->getCoverImageUrl('gallery') }}" alt="{{ $auction->title }}" class="w-full h-full object-cover">
+                            @else
+                                <div class="w-full h-full flex items-center justify-center text-sm text-gray-400">No image</div>
+                            @endif
+                        </div>
                         <div class="p-6">
                             <div class="flex items-start justify-between mb-2">
                                 <h3 class="font-bold text-lg text-gray-900 line-clamp-1">{{ $auction->title }}</h3>

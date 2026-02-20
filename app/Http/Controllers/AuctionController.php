@@ -19,6 +19,7 @@ class AuctionController extends Controller
         $auctions = Auction::where('status', Auction::STATUS_ACTIVE)
             ->where('end_time', '>', now())
             ->withCount('bids')
+            ->with('media')
             ->orderBy('end_time', 'asc')
             ->paginate(12);
 
@@ -33,7 +34,7 @@ class AuctionController extends Controller
     public function show(Auction $auction)
     {
         $auction->loadCount('bids');
-        $auction->load(['seller:id,name,seller_slug', 'highestBid.user:id,name']);
+        $auction->load(['seller:id,name,seller_slug', 'highestBid.user:id,name', 'media']);
 
         // Get the real-time price from the bidding engine (Redis may be ahead of DB)
         $auction->current_price = $this->biddingStrategy->getCurrentPrice($auction);

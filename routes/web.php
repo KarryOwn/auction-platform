@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplica
 use App\Http\Controllers\Seller\AnalyticsController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InsightController;
+use App\Http\Controllers\Seller\AuctionCrudController;
 use App\Http\Controllers\Seller\MessageController as SellerMessageController;
 use App\Http\Controllers\Seller\RevenueController;
 use App\Http\Controllers\Seller\SellerApplicationController;
@@ -70,6 +71,19 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
 
     Route::post('/insights/price-suggestion', [InsightController::class, 'suggestPrice'])->name('insights.price-suggestion');
     Route::get('/auctions/{auction}/insights', [InsightController::class, 'auctionInsights'])->name('auctions.insights');
+
+    Route::get('/auctions', [AuctionCrudController::class, 'index'])->name('auctions.index');
+    Route::get('/auctions/create', [AuctionCrudController::class, 'create'])->name('auctions.create');
+    Route::post('/auctions', [AuctionCrudController::class, 'store'])->name('auctions.store');
+    Route::get('/auctions/{auction}/edit', [AuctionCrudController::class, 'edit'])->name('auctions.edit');
+    Route::patch('/auctions/{auction}', [AuctionCrudController::class, 'update'])->name('auctions.update');
+    Route::post('/auctions/{auction}/publish', [AuctionCrudController::class, 'publish'])->name('auctions.publish');
+    Route::post('/auctions/{auction}/cancel', [AuctionCrudController::class, 'cancel'])->name('auctions.cancel');
+    Route::delete('/auctions/{auction}', [AuctionCrudController::class, 'destroy'])->name('auctions.destroy');
+
+    Route::post('/auctions/{auction}/images', [AuctionCrudController::class, 'uploadImage'])->name('auctions.images.upload');
+    Route::delete('/auctions/{auction}/images/{media}', [AuctionCrudController::class, 'deleteImage'])->name('auctions.images.delete');
+    Route::post('/auctions/{auction}/images/reorder', [AuctionCrudController::class, 'reorderImages'])->name('auctions.images.reorder');
 });
 
 Route::get('/sellers/{slug}', [StorefrontController::class, 'show'])->name('storefront.show');

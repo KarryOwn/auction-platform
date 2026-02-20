@@ -2,16 +2,21 @@
 
 namespace App\Models;
 
+use App\Services\VideoEmbedService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Auction extends Model
+class Auction extends Model implements HasMedia
 {
-    use HasFactory;
+    use HasFactory, InteractsWithMedia;
 
 
     public const STATUS_DRAFT     = 'draft';
@@ -25,6 +30,7 @@ class Auction extends Model
         'title',
         'description',
         'image_path',
+        'video_url',
         'starting_price',
         'current_price',
         'reserve_price',
@@ -67,6 +73,40 @@ class Auction extends Model
         'snipe_threshold_seconds'  => 'integer',
         'snipe_extension_seconds'  => 'integer',
     ];
+
+    public function registerMediaCollections(): void
+    {
+        $allowed = config('auction.images.allowed_types', ['image/jpeg', 'image/png', 'image/webp']);
+
+        $this->addMediaCollection('images')
+            ->acceptsMimeTypes($allowed)
+            ->useDisk('public')
+            ->withResponsiveImages();
+
+        $this->addMediaCollection('cover')
+            ->singleFile()
+            ->acceptsMimeTypes($allowed)
+            ->useDisk('public');
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        [$thumbWidth, $thumbHeight] = config('auction.images.conversions.thumbnail', [300, 300]);
+        [$galleryWidth, $galleryHeight] = config('auction.images.conversions.gallery', [800, 600]);
+        [$fullWidth, $fullHeight] = config('auction.images.conversions.full', [1920, 1080]);
+
+        $this->addMediaConversion('thumbnail')
+            ->fit(Fit::Crop, $thumbWidth, $thumbHeight)
+            ->nonQueued();
+
+        $this->addMediaConversion('gallery')
+            ->fit(Fit::Contain, $galleryWidth, $galleryHeight)
+            ->nonQueued();
+
+        $this->addMediaConversion('full')
+            ->fit(Fit::Contain, $fullWidth, $fullHeight)
+            ->nonQueued();
+    }
 
 
     public function seller(): BelongsTo
@@ -273,5 +313,64 @@ class Auction extends Model
         }
 
         return $this->end_time->diffForHumans(parts: 2, short: true);
+    }
+
+    public function getCoverImageUrl(string $conversion = 'thumbnail'): ?string
+    {
+        $media = $this->getFirstMedia('cover') ?? $this->getFirstMedia('images');
+
+        if ($media) {
+            $conversionPath = $media->getPath($conversion);
+
+            if (is_string($conversionPath) && file_exists($conversionPath)) {
+                return $media->getUrl($conversion);
+            }
+
+            return $media->getUrl();
+        }
+
+        return $this->image_path;
+    }
+
+    public function getGalleryImages(string $conversion = 'gallery'): array
+    {
+        return $this->getMedia('images')->map(function (Media $media) use ($conversion) {
+            $conversionUrl = file_exists($media->getPath($conversion))
+                ? $media->getUrl($conversion)
+                : $media->getUrl();
+
+            $fullUrl = file_exists($media->getPath('full'))
+                ? $media->getUrl('full')
+                : $media->getUrl();
+
+            $thumbnailUrl = file_exists($media->getPath('thumbnail'))
+                ? $media->getUrl('thumbnail')
+                : $media->getUrl();
+
+            return [
+                'id' => $media->id,
+                'name' => $media->name,
+                'url' => $conversionUrl,
+                'full_url' => $fullUrl,
+                'thumbnail_url' => $thumbnailUrl,
+                'order' => $media->order_column,
+            ];
+        })->all();
+    }
+
+    public function hasVideo(): bool
+    {
+        return ! empty($this->video_url);
+    }
+
+    public function getVideoEmbedUrl(): ?string
+    {
+        if (! $this->hasVideo()) {
+            return null;
+        }
+
+        $parsed = app(VideoEmbedService::class)->parse((string) $this->video_url);
+
+        return $parsed['embed_url'] ?? null;
     }
 }

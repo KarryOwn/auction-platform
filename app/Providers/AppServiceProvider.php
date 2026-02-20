@@ -5,10 +5,13 @@ namespace App\Providers;
 use App\Contracts\BiddingStrategy;
 use App\Events\BidPlaced;
 use App\Listeners\HandleBidPlaced;
+use App\Models\Auction;
+use App\Policies\AuctionPolicy;
 use App\Services\Bidding\BidRateLimiter;
 use App\Services\Bidding\PessimisticSqlEngine;
 use App\Services\Bidding\RedisAtomicEngine;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -36,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Auction::class, AuctionPolicy::class);
+
         // Event → Listener wiring
         Event::listen(BidPlaced::class, HandleBidPlaced::class);
     }

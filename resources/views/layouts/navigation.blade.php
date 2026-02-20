@@ -65,6 +65,8 @@
 
                     @if(Auth::user()->isVerifiedSeller())
                         <x-nav-link :href="route('seller.dashboard')" :active="request()->routeIs('seller.dashboard')">{{ __('Seller Dashboard') }}</x-nav-link>
+                        <x-nav-link :href="route('seller.auctions.index')" :active="request()->routeIs('seller.auctions.index')">{{ __('My Auctions') }}</x-nav-link>
+                        <x-nav-link :href="route('seller.auctions.create')" :active="request()->routeIs('seller.auctions.create')">{{ __('Create Auction') }}</x-nav-link>
                         <x-nav-link :href="route('seller.messages.index')" :active="request()->routeIs('seller.messages.*')">
                             {{ __('Messages') }}
                             @if($unreadMessageCount > 0)
@@ -155,6 +157,8 @@
 
             @if(Auth::user()->isVerifiedSeller())
                 <x-responsive-nav-link :href="route('seller.dashboard')" :active="request()->routeIs('seller.dashboard')">{{ __('Seller Dashboard') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('seller.auctions.index')" :active="request()->routeIs('seller.auctions.index')">{{ __('My Auctions') }}</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('seller.auctions.create')" :active="request()->routeIs('seller.auctions.create')">{{ __('Create Auction') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('seller.messages.index')" :active="request()->routeIs('seller.messages.*')">{{ __('Messages') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('seller.analytics.index')" :active="request()->routeIs('seller.analytics.*')">{{ __('Analytics') }}</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('seller.revenue.index')" :active="request()->routeIs('seller.revenue.*')">{{ __('Revenue') }}</x-responsive-nav-link>
