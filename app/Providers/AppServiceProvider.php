@@ -40,8 +40,5 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Auction::class, AuctionPolicy::class);
-
-        // Event → Listener wiring
-        Event::listen(BidPlaced::class, HandleBidPlaced::class);
     }
 }

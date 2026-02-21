@@ -31,24 +31,31 @@ class HandleBidPlaced implements ShouldQueue
         $bid     = $event->bid;
         $auction = $event->auction;
 
+        // Always broadcast price update for real-time UI
         broadcast(new NewBidOnListing($auction, (float) $bid->amount))->toOthers();
 
-        // 1. Outbid notification to the previous highest bidder
-        $this->notifyOutbidUser($bid, $auction);
-
-        // 2. Notify watchers
-        $this->notifyWatchers($bid, $auction);
-
-        // 3. Trigger auto-bid processing (only for manual bids to prevent loops)
-        if ($bid->bid_type === Bid::TYPE_MANUAL) {
-            ProcessAutoBids::dispatch($auction->id, $bid->user_id)->onQueue('bids');
+        // Skip outbid/watcher notifications for auto-bids — they fire rapidly
+        // in sequence and would spam the user. Only the initial manual bid
+        // that triggers the auto-bid chain should create notifications.
+        if ($bid->bid_type !== Bid::TYPE_MANUAL) {
+            return;
         }
+
+        // 1. Outbid notification to the previous highest bidder
+        $outbidUserId = $this->notifyOutbidUser($bid, $auction);
+
+        // 2. Notify watchers (skip the bidder AND the already-notified outbid user)
+        $this->notifyWatchers($bid, $auction, $outbidUserId);
+
+        // 3. Trigger auto-bid processing
+        ProcessAutoBids::dispatch($auction->id, $bid->user_id)->onQueue('bids');
     }
 
     /**
      * Find the previous highest bidder and notify them they've been outbid.
+     * Returns the outbid user's ID so we can skip them in watcher notifications.
      */
-    protected function notifyOutbidUser(Bid $bid, $auction): void
+    protected function notifyOutbidUser(Bid $bid, $auction): ?int
     {
         // Find the previous highest bid by a different user
         $previousBid = Bid::where('auction_id', $auction->id)
@@ -59,7 +66,7 @@ class HandleBidPlaced implements ShouldQueue
             ->first();
 
         if (! $previousBid || ! $previousBid->user) {
-            return;
+            return null;
         }
 
         try {
@@ -79,15 +86,19 @@ class HandleBidPlaced implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
         }
+
+        return $previousBid->user_id;
     }
 
     /**
      * Notify auction watchers who have outbid notifications enabled.
      */
-    protected function notifyWatchers(Bid $bid, $auction): void
+    protected function notifyWatchers(Bid $bid, $auction, ?int $outbidUserId = null): void
     {
+        $excludeIds = array_filter([$bid->user_id, $outbidUserId]);
+
         $watchers = AuctionWatcher::where('auction_id', $auction->id)
-            ->where('user_id', '!=', $bid->user_id)
+            ->whereNotIn('user_id', $excludeIds)
             ->where('notify_outbid', true)
             ->with('user')
             ->get();

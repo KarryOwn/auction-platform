@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -16,7 +17,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Auction extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, InteractsWithMedia, SoftDeletes;
 
 
     public const STATUS_DRAFT     = 'draft';
@@ -51,6 +52,8 @@ class Auction extends Model implements HasMedia
         'bid_count',
         'unique_bidder_count',
         'closed_at',
+        'payment_status',
+        'payment_deadline',
     ];
 
 
@@ -72,6 +75,7 @@ class Auction extends Model implements HasMedia
         'max_extensions'           => 'integer',
         'snipe_threshold_seconds'  => 'integer',
         'snipe_extension_seconds'  => 'integer',
+        'payment_deadline'         => 'datetime',
     ];
 
     public function registerMediaCollections(): void

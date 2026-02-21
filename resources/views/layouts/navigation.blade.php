@@ -38,6 +38,9 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('auctions.index')" :active="request()->routeIs('auctions.index')">
+                        {{ __('Browse Auctions') }}
+                    </x-nav-link>
 
                     @if(Auth::user()->isStaff())
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
@@ -84,8 +87,10 @@
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
+            <!-- Notification Bell & Settings Dropdown -->
+            <div class="hidden sm:flex sm:items-center sm:ms-6 sm:gap-2">
+                @include('components.notification-bell')
+
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -103,7 +108,23 @@
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
                         </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.bids')">
+                            {{ __('My Bids') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.won-auctions')">
+                            {{ __('Won Auctions') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.watchlist')">
+                            {{ __('Watchlist') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.wallet')">
+                            {{ __('Wallet') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.notification-preferences')">
+                            {{ __('Notification Settings') }}
+                        </x-dropdown-link>
 
+                        <div class="border-t border-gray-100"></div>
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

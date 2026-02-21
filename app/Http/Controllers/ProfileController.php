@@ -38,6 +38,32 @@ class ProfileController extends Controller
     }
 
     /**
+     * Upload a new avatar for the user.
+     */
+    public function uploadAvatar(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $request->user()
+            ->addMediaFromRequest('avatar')
+            ->toMediaCollection('avatar');
+
+        return Redirect::route('profile.edit')->with('status', 'avatar-updated');
+    }
+
+    /**
+     * Remove the user's avatar.
+     */
+    public function deleteAvatar(Request $request): RedirectResponse
+    {
+        $request->user()->clearMediaCollection('avatar');
+
+        return Redirect::route('profile.edit')->with('status', 'avatar-removed');
+    }
+
+    /**
      * Delete the user's account.
      */
     public function destroy(Request $request): RedirectResponse

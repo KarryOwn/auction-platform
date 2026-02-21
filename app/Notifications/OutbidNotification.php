@@ -21,11 +21,21 @@ class OutbidNotification extends Notification implements ShouldQueue
     ) {}
 
     /**
-     * Deliver via database, mail, and broadcast (private user channel).
+     * Deliver via channels based on user preferences.
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'mail', 'broadcast'];
+        $channels = ['database']; // always store in database
+
+        if ($notifiable->wantsNotification('outbid', 'email')) {
+            $channels[] = 'mail';
+        }
+
+        if ($notifiable->wantsNotification('outbid', 'push')) {
+            $channels[] = 'broadcast';
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -77,6 +87,9 @@ class OutbidNotification extends Notification implements ShouldQueue
             'outbid_amount'  => $this->outbidAmount,
             'your_amount'    => $this->yourAmount,
             'is_watcher'     => $this->isWatcher,
+            'message'        => $this->isWatcher
+                ? "New bid of \${$this->outbidAmount} on \"{$this->auctionTitle}\""
+                : "You've been outbid on \"{$this->auctionTitle}\" — new bid: \${$this->outbidAmount}",
         ];
     }
 }

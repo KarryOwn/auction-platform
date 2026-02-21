@@ -9,11 +9,23 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class User extends Authenticatable
+class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, InteractsWithMedia;
+
+    public const DEFAULT_NOTIFICATION_PREFERENCES = [
+        'outbid'          => ['email' => true, 'push' => true, 'database' => true],
+        'auction_won'     => ['email' => true, 'push' => true, 'database' => true],
+        'auction_ending'  => ['email' => false, 'push' => true, 'database' => true],
+        'wallet'          => ['email' => true, 'push' => false, 'database' => true],
+        'marketing'       => ['email' => false, 'push' => false, 'database' => false],
+    ];
 
     public const ROLE_USER      = 'user';
     public const ROLE_ADMIN     = 'admin';
@@ -27,13 +39,17 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
+        'bio',
+        'avatar_path',
         'role',
         'is_banned',
         'banned_at',
         'ban_reason',
         'wallet_balance',
+        'notification_preferences',
         'seller_verified_at',
         'seller_application_status',
         'seller_application_note',
@@ -62,14 +78,51 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'is_banned'         => 'boolean',
-            'banned_at'         => 'datetime',
-            'wallet_balance'    => 'decimal:2',
-            'seller_verified_at' => 'datetime',
-            'seller_applied_at' => 'datetime',
+            'email_verified_at'          => 'datetime',
+            'password'                   => 'hashed',
+            'is_banned'                  => 'boolean',
+            'banned_at'                  => 'datetime',
+            'wallet_balance'             => 'decimal:2',
+            'notification_preferences'   => 'array',
+            'seller_verified_at'         => 'datetime',
+            'seller_applied_at'          => 'datetime',
         ];
+    }
+
+    // ── Media (Avatar) ──────────────────────────
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumbnail')
+            ->fit(Fit::Crop, 128, 128)
+            ->nonQueued();
+
+        $this->addMediaConversion('profile')
+            ->fit(Fit::Crop, 256, 256)
+            ->nonQueued();
+    }
+
+    public function getAvatarUrl(string $conversion = 'profile'): ?string
+    {
+        $media = $this->getFirstMedia('avatar');
+
+        if ($media) {
+            $conversionPath = $media->getPath($conversion);
+            if (is_string($conversionPath) && file_exists($conversionPath)) {
+                return $media->getUrl($conversion);
+            }
+            return $media->getUrl();
+        }
+
+        return $this->avatar_path;
     }
 
     // ── Role Checks ─────────────────────────────
@@ -135,6 +188,11 @@ class User extends Authenticatable
     public function watchedAuctions(): HasMany
     {
         return $this->hasMany(AuctionWatcher::class);
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
     }
 
     public function wonAuctions(): HasMany
@@ -225,5 +283,26 @@ class User extends Authenticatable
     public function canAfford(float $amount): bool
     {
         return (float) $this->wallet_balance >= $amount;
+    }
+
+    /**
+     * Get the user's notification preference for a given event and channel.
+     */
+    public function wantsNotification(string $event, string $channel): bool
+    {
+        $prefs = $this->notification_preferences ?? self::DEFAULT_NOTIFICATION_PREFERENCES;
+
+        return $prefs[$event][$channel] ?? true;
+    }
+
+    /**
+     * Get merged notification preferences (user overrides on top of defaults).
+     */
+    public function getNotificationPreferences(): array
+    {
+        return array_replace_recursive(
+            self::DEFAULT_NOTIFICATION_PREFERENCES,
+            $this->notification_preferences ?? []
+        );
     }
 }
