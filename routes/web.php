@@ -26,6 +26,7 @@ use App\Http\Controllers\User\WonAuctionsController;
 use App\Http\Controllers\User\WatchlistController;
 use App\Http\Controllers\User\WalletController;
 use App\Http\Controllers\User\NotificationPreferenceController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {

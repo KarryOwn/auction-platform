@@ -1,5 +1,130 @@
 {{-- Notification Bell Component --}}
-<div x-data="notificationBell()" x-init="init()" class="relative">
+@php
+    $bellUser = auth()->user();
+    $initialNotifications = $bellUser
+        ? $bellUser->unreadNotifications->take(20)->map(fn ($n) => [
+            'id' => $n->id,
+            'data' => $n->data,
+            'read_at' => $n->read_at,
+            'created_at' => $n->created_at->toISOString(),
+        ])->values()->all()
+        : [];
+    $initialUnreadCount = $bellUser ? $bellUser->unreadNotifications()->count() : 0;
+@endphp
+
+<div x-data="{
+        open: false,
+        toast: null,
+        notifications: {{ Js::from($initialNotifications) }},
+        unreadCount: {{ $initialUnreadCount }},
+        markingRead: false,
+
+        init() {
+            // Check if we recently marked all as read — if so, override the server count
+            const markedAt = localStorage.getItem('notifications_marked_read_at');
+            if (markedAt) {
+                const elapsed = Date.now() - parseInt(markedAt, 10);
+                // If marked within last 10 seconds, trust the client state
+                if (elapsed < 10000) {
+                    this.unreadCount = 0;
+                    this.notifications.forEach(n => n.read_at = n.read_at || new Date().toISOString());
+                } else {
+                    localStorage.removeItem('notifications_marked_read_at');
+                }
+            }
+
+            if (window.Echo && window.userId) {
+                window.Echo.private('App.Models.User.' + window.userId)
+                    .notification((notification) => {
+                        this.notifications.unshift({
+                            id: notification.id || Date.now().toString(),
+                            data: notification,
+                            read_at: null,
+                            created_at: new Date().toISOString(),
+                        });
+                        this.unreadCount++;
+                        // Clear the marked-read cache since we have new notifications
+                        localStorage.removeItem('notifications_marked_read_at');
+
+                        // Laravel broadcasts set 'type' to the class FQCN
+                        // (e.g. 'App\\Notifications\\OutbidNotification'),
+                        // so we derive the notification kind from the data itself.
+                        const isOutbid = notification.outbid_amount !== undefined
+                            && !notification.is_watcher;
+
+                        this.toast = {
+                            title: isOutbid
+                                ? 'You\'ve been outbid!'
+                                : (notification.auction_title || 'New notification'),
+                            body: notification.message || '',
+                            auctionId: notification.auction_id || null,
+                        };
+
+                        if (isOutbid) {
+                            window.dispatchEvent(new CustomEvent('outbid-notification', {
+                                detail: {
+                                    auctionId: notification.auction_id,
+                                    newAmount: notification.outbid_amount,
+                                    type: 'outbid',
+                                }
+                            }));
+                        }
+                    });
+            }
+        },
+
+        toggle() {
+            this.open = !this.open;
+            if (this.open && this.unreadCount > 0) {
+                this.markAllRead();
+            }
+        },
+
+        markAllRead() {
+            this.notifications.forEach(n => n.read_at = n.read_at || new Date().toISOString());
+            this.unreadCount = 0;
+            this.markingRead = true;
+
+            // Save timestamp so next page load knows we just marked all read
+            localStorage.setItem('notifications_marked_read_at', Date.now().toString());
+
+            // Use axios first for reliable feedback
+            if (window.axios) {
+                window.axios.post('/notifications/mark-all-read')
+                    .then(() => { this.markingRead = false; })
+                    .catch(e => {
+                        console.error('Failed to mark notifications as read', e);
+                        this.markingRead = false;
+                    });
+            }
+
+            // Also register a beforeunload handler as safety net —
+            // if user navigates away before axios completes, sendBeacon will fire
+            const beaconHandler = () => {
+                if (this.markingRead) {
+                    const data = new FormData();
+                    data.append('_token', document.querySelector('meta[name=\'csrf-token\']').content);
+                    navigator.sendBeacon('/notifications/mark-all-read', data);
+                }
+                window.removeEventListener('beforeunload', beaconHandler);
+            };
+            window.addEventListener('beforeunload', beaconHandler);
+        },
+
+        handleClick(n) {
+            if (n.data.auction_id) {
+                window.location.href = '/auctions/' + n.data.auction_id;
+            }
+        },
+
+        timeAgo(dateStr) {
+            const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
+            if (seconds < 60) return 'just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+            return Math.floor(seconds / 86400) + 'd ago';
+        }
+    }" class="relative">
     <button @click="toggle()" class="relative p-1 text-gray-400 hover:text-gray-600 transition">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
@@ -66,101 +191,3 @@
     </div>
 </div>
 
-@php
-    $bellUser = auth()->user();
-    $initialNotifications = $bellUser
-        ? $bellUser->unreadNotifications->take(20)->map(fn ($n) => [
-            'id' => $n->id,
-            'data' => $n->data,
-            'read_at' => $n->read_at,
-            'created_at' => $n->created_at->toISOString(),
-        ])->values()->all()
-        : [];
-    $initialUnreadCount = $bellUser ? $bellUser->unreadNotifications()->count() : 0;
-@endphp
-
-@push('scripts')
-<script>
-    function notificationBell() {
-        return {
-            open: false,
-            toast: null,
-            notifications: @json($initialNotifications),
-            unreadCount: {{ $initialUnreadCount }},
-
-            init() {
-                if (window.Echo && window.userId) {
-                    window.Echo.private(`App.Models.User.${window.userId}`)
-                        .notification((notification) => {
-                            // Add to dropdown list
-                            this.notifications.unshift({
-                                id: notification.id || Date.now().toString(),
-                                data: notification,
-                                read_at: null,
-                                created_at: new Date().toISOString(),
-                            });
-                            this.unreadCount++;
-
-                            // Show toast popup
-                            this.toast = {
-                                title: notification.type === 'outbid'
-                                    ? "You've been outbid!"
-                                    : (notification.auction_title || 'New notification'),
-                                body: notification.message || '',
-                                auctionId: notification.auction_id || null,
-                            };
-
-                            // Dispatch global Alpine event so dashboard can react
-                            window.dispatchEvent(new CustomEvent('outbid-notification', {
-                                detail: {
-                                    auctionId: notification.auction_id,
-                                    newAmount: notification.outbid_amount,
-                                    type: notification.type,
-                                }
-                            }));
-                        });
-                }
-            },
-
-            toggle() {
-                this.open = !this.open;
-                if (this.open && this.unreadCount > 0) {
-                    this.markAllRead();
-                }
-            },
-
-            async markAllRead() {
-                this.notifications.forEach(n => n.read_at = n.read_at || new Date().toISOString());
-                this.unreadCount = 0;
-                try {
-                    const res = await fetch('/notifications/mark-all-read', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json',
-                        }
-                    });
-                    if (!res.ok) throw new Error('Request failed');
-                } catch (e) {
-                    console.error('Failed to mark notifications as read', e);
-                }
-            },
-
-            handleClick(n) {
-                if (n.data.auction_id) {
-                    window.location.href = `/auctions/${n.data.auction_id}`;
-                }
-            },
-
-            timeAgo(dateStr) {
-                const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
-                if (seconds < 60) return 'just now';
-                if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
-                if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
-                return Math.floor(seconds / 86400) + 'd ago';
-            }
-        };
-    }
-</script>
-@endpush
