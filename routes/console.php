@@ -25,3 +25,9 @@ Schedule::job(new CaptureAuctionSnapshots)
     ->name('capture-auction-snapshots')
     ->withoutOverlapping();
 
+// Notify watchers/bidders about auctions ending within 30 minutes.
+Schedule::command('auctions:notify-ending-soon')
+    ->everyMinute()
+    ->name('notify-ending-soon')
+    ->withoutOverlapping();
+

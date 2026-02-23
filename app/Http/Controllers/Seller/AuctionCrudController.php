@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Contracts\BiddingStrategy;
+use App\Events\AuctionCancelled;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAuctionRequest;
 use App\Http\Requests\UpdateAuctionRequest;
@@ -211,6 +212,8 @@ class AuctionCrudController extends Controller
         $this->biddingStrategy->cleanup($auction);
 
         AuditLog::record('auction.cancelled', Auction::class, $auction->id);
+
+        AuctionCancelled::dispatch($auction->fresh(), 'Cancelled by seller.');
 
         return redirect()->route('seller.auctions.index')
             ->with('status', 'Auction cancelled.');

@@ -14,14 +14,34 @@ class AuctionController extends Controller
         protected BiddingStrategy $biddingStrategy,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $auctions = Auction::where('status', Auction::STATUS_ACTIVE)
+        $query = Auction::where('status', Auction::STATUS_ACTIVE)
             ->where('end_time', '>', now())
             ->withCount('bids')
-            ->with('media')
-            ->orderBy('end_time', 'asc')
-            ->paginate(12);
+            ->with('media');
+
+        // Keyword search
+        if ($q = $request->input('q')) {
+            $query->where('title', 'ilike', "%{$q}%");
+        }
+
+        // Price range
+        if ($minPrice = $request->input('min_price')) {
+            $query->where('current_price', '>=', (float) $minPrice);
+        }
+        if ($maxPrice = $request->input('max_price')) {
+            $query->where('current_price', '<=', (float) $maxPrice);
+        }
+
+        // Sort
+        $sort = $request->input('sort', 'ending_soon');
+        $query->when($sort === 'ending_soon', fn ($q) => $q->orderBy('end_time', 'asc'))
+              ->when($sort === 'newest', fn ($q) => $q->orderByDesc('created_at'))
+              ->when($sort === 'price_asc', fn ($q) => $q->orderBy('current_price', 'asc'))
+              ->when($sort === 'price_desc', fn ($q) => $q->orderByDesc('current_price'));
+
+        $auctions = $query->paginate(12)->withQueryString();
 
         // Sync each auction's current_price from the bidding engine (Redis may be ahead of DB)
         foreach ($auctions as $auction) {

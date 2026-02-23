@@ -47,6 +47,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/bids', [BidHistoryController::class, 'index'])->name('user.bids');
     Route::get('/dashboard/won', [WonAuctionsController::class, 'index'])->name('user.won-auctions');
     Route::get('/dashboard/watchlist', [WatchlistController::class, 'index'])->name('user.watchlist');
+    Route::get('/dashboard/activity', [App\Http\Controllers\User\ActivityLogController::class, 'index'])->name('user.activity');
+
+    // Saved Searches
+    Route::get('/dashboard/saved-searches', [App\Http\Controllers\User\SavedSearchController::class, 'index'])->name('user.saved-searches');
+    Route::post('/dashboard/saved-searches', [App\Http\Controllers\User\SavedSearchController::class, 'store'])->name('user.saved-searches.store');
+    Route::delete('/dashboard/saved-searches/{savedSearch}', [App\Http\Controllers\User\SavedSearchController::class, 'destroy'])->name('user.saved-searches.destroy');
 
     // Wallet
     Route::get('/dashboard/wallet', [WalletController::class, 'show'])->name('user.wallet');

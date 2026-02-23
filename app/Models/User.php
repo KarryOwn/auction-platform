@@ -45,6 +45,9 @@ class User extends Authenticatable implements HasMedia
         'bio',
         'avatar_path',
         'role',
+        'google_id',
+        'facebook_id',
+        'github_id',
         'is_banned',
         'banned_at',
         'ban_reason',
@@ -203,6 +206,11 @@ class User extends Authenticatable implements HasMedia
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    public function savedSearches(): HasMany
+    {
+        return $this->hasMany(SavedSearch::class);
     }
 
     public function sellerApplication(): HasOne

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\AuctionCancelled;
 use App\Http\Controllers\Controller;
 use App\Models\Auction;
 use App\Models\AuditLog;
@@ -113,6 +114,8 @@ class AuctionManagementController extends Controller
                 'bid_count'       => $auction->bids()->count(),
             ],
         );
+
+        AuctionCancelled::dispatch($auction->fresh(), $request->input('reason'));
 
         return response()->json([
             'message' => "Auction #{$auction->id} has been force-cancelled.",

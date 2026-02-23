@@ -54,6 +54,7 @@ class Auction extends Model implements HasMedia
         'closed_at',
         'payment_status',
         'payment_deadline',
+        'ending_soon_notified',
     ];
 
 
@@ -76,6 +77,7 @@ class Auction extends Model implements HasMedia
         'snipe_threshold_seconds'  => 'integer',
         'snipe_extension_seconds'  => 'integer',
         'payment_deadline'         => 'datetime',
+        'ending_soon_notified'     => 'boolean',
     ];
 
     public function registerMediaCollections(): void
