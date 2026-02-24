@@ -6,12 +6,14 @@ use App\Contracts\BiddingStrategy;
 use App\Models\Auction;
 use App\Models\AuctionWatcher;
 use App\Models\AutoBid;
+use App\Services\CategoryService;
 use Illuminate\Http\Request;
 
 class AuctionController extends Controller
 {
     public function __construct(
         protected BiddingStrategy $biddingStrategy,
+        protected CategoryService $categoryService,
     ) {}
 
     public function index(Request $request)
@@ -19,7 +21,7 @@ class AuctionController extends Controller
         $query = Auction::where('status', Auction::STATUS_ACTIVE)
             ->where('end_time', '>', now())
             ->withCount('bids')
-            ->with('media');
+            ->with(['media', 'categories', 'tags', 'brand']);
 
         // Keyword search
         if ($q = $request->input('q')) {
@@ -32,6 +34,34 @@ class AuctionController extends Controller
         }
         if ($maxPrice = $request->input('max_price')) {
             $query->where('current_price', '<=', (float) $maxPrice);
+        }
+
+        // Category filter
+        if ($categorySlug = $request->input('category')) {
+            $category = \App\Models\Category::where('slug', $categorySlug)->first();
+            if ($category) {
+                $categoryIds = array_merge([$category->id], $category->descendant_ids);
+                $query->whereHas('categories', function ($q) use ($categoryIds) {
+                    $q->whereIn('categories.id', $categoryIds);
+                });
+            }
+        }
+
+        // Condition filter
+        if ($condition = $request->input('condition')) {
+            $query->where('condition', $condition);
+        }
+
+        // Brand filter
+        if ($brandId = $request->input('brand_id')) {
+            $query->where('brand_id', $brandId);
+        }
+
+        // Tag filter
+        if ($tag = $request->input('tag')) {
+            $query->whereHas('tags', function ($q) use ($tag) {
+                $q->where('slug', $tag);
+            });
         }
 
         // Sort
@@ -48,13 +78,24 @@ class AuctionController extends Controller
             $auction->current_price = $this->biddingStrategy->getCurrentPrice($auction);
         }
 
-        return view('auctions.index', compact('auctions'));
+        $rootCategories = $this->categoryService->getRootWithAuctionCounts();
+        $conditions = Auction::CONDITIONS;
+
+        return view('auctions.index', compact('auctions', 'rootCategories', 'conditions'));
     }
 
     public function show(Auction $auction)
     {
         $auction->loadCount('bids');
-        $auction->load(['seller:id,name,seller_slug', 'highestBid.user:id,name', 'media']);
+        $auction->load([
+            'seller:id,name,seller_slug',
+            'highestBid.user:id,name',
+            'media',
+            'categories',
+            'tags',
+            'brand',
+            'attributeValues.attribute',
+        ]);
 
         // Get the real-time price from the bidding engine (Redis may be ahead of DB)
         $auction->current_price = $this->biddingStrategy->getCurrentPrice($auction);

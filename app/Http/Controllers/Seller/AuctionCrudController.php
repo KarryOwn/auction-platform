@@ -9,6 +9,10 @@ use App\Http\Requests\StoreAuctionRequest;
 use App\Http\Requests\UpdateAuctionRequest;
 use App\Models\Auction;
 use App\Models\AuditLog;
+use App\Models\Brand;
+use App\Services\AttributeService;
+use App\Services\CategoryService;
+use App\Services\TagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +23,12 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class AuctionCrudController extends Controller
 {
-    public function __construct(private readonly BiddingStrategy $biddingStrategy) {}
+    public function __construct(
+        private readonly BiddingStrategy $biddingStrategy,
+        private readonly CategoryService $categoryService,
+        private readonly TagService $tagService,
+        private readonly AttributeService $attributeService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -69,6 +78,9 @@ class AuctionCrudController extends Controller
         return view('seller.auctions.create', [
             'defaultCurrency' => config('auction.currency', 'USD'),
             'supportedCurrencies' => config('auction.supported_currencies', ['USD']),
+            'categoryOptions' => $this->categoryService->getNestedSelectOptions(),
+            'brands' => Brand::orderBy('name')->get(),
+            'conditions' => Auction::CONDITIONS,
         ]);
     }
 
@@ -93,7 +105,34 @@ class AuctionCrudController extends Controller
             'end_time' => $validated['end_time'],
             'video_url' => $validated['video_url'] ?? null,
             'status' => Auction::STATUS_DRAFT,
+            'condition' => $validated['condition'],
+            'brand_id' => $validated['brand_id'] ?? null,
+            'sku' => $validated['sku'] ?? null,
+            'serial_number' => $validated['serial_number'] ?? null,
         ]);
+
+        // Sync categories
+        if (! empty($validated['categories'])) {
+            $primaryId = $validated['primary_category_id'] ?? $validated['categories'][0];
+            $syncData = [];
+            foreach ($validated['categories'] as $catId) {
+                $syncData[$catId] = ['is_primary' => $catId == $primaryId];
+            }
+            $auction->categories()->sync($syncData);
+        }
+
+        // Sync tags
+        if (! empty($validated['tags'])) {
+            $tagIds = $this->tagService->findOrCreateMany($validated['tags']);
+            $auction->tags()->sync($tagIds);
+        }
+
+        // Sync attribute values
+        if (! empty($validated['attributes'])) {
+            $categoryIds = $validated['categories'] ?? [];
+            $validatedAttrs = $this->attributeService->validateValues($validated['attributes'], $categoryIds);
+            $this->attributeService->syncAuctionAttributes($auction, $validatedAttrs);
+        }
 
         AuditLog::record('auction.created.draft', Auction::class, $auction->id, [
             'title' => $auction->title,
@@ -107,7 +146,7 @@ class AuctionCrudController extends Controller
     {
         $this->authorize('update', $auction);
 
-        $auction->load('media')->loadCount('bids');
+        $auction->load(['media', 'categories', 'tags', 'brand', 'attributeValues.attribute'])->loadCount('bids');
 
         return view('seller.auctions.edit', [
             'auction' => $auction,
@@ -115,6 +154,12 @@ class AuctionCrudController extends Controller
             'imageMaxCount' => (int) config('auction.images.max_per_auction', 10),
             'imageMaxSizeMb' => ((int) config('auction.images.max_size_kb', 5120)) / 1024,
             'acceptedTypes' => config('auction.images.allowed_types', []),
+            'categoryOptions' => $this->categoryService->getNestedSelectOptions(),
+            'brands' => Brand::orderBy('name')->get(),
+            'conditions' => Auction::CONDITIONS,
+            'categoryAttributes' => $auction->categories->isNotEmpty()
+                ? $this->attributeService->getForCategories($auction->categories->pluck('id')->all())
+                : collect(),
         ]);
     }
 
@@ -135,6 +180,10 @@ class AuctionCrudController extends Controller
             'snipe_extension_seconds',
             'max_extensions',
             'video_url',
+            'condition',
+            'brand_id',
+            'sku',
+            'serial_number',
         ]);
 
         if (array_key_exists('starting_price', $fillable) && $auction->isDraft()) {
@@ -142,6 +191,29 @@ class AuctionCrudController extends Controller
         }
 
         $auction->update($fillable);
+
+        // Sync categories
+        if (! empty($validated['categories'])) {
+            $primaryId = $validated['primary_category_id'] ?? $validated['categories'][0];
+            $syncData = [];
+            foreach ($validated['categories'] as $catId) {
+                $syncData[$catId] = ['is_primary' => $catId == $primaryId];
+            }
+            $auction->categories()->sync($syncData);
+        }
+
+        // Sync tags
+        if (array_key_exists('tags', $validated)) {
+            $tagIds = $this->tagService->findOrCreateMany($validated['tags'] ?? []);
+            $auction->tags()->sync($tagIds);
+        }
+
+        // Sync attribute values
+        if (! empty($validated['attributes'])) {
+            $categoryIds = $validated['categories'] ?? $auction->categories->pluck('id')->all();
+            $validatedAttrs = $this->attributeService->validateValues($validated['attributes'], $categoryIds);
+            $this->attributeService->syncAuctionAttributes($auction, $validatedAttrs);
+        }
 
         AuditLog::record('auction.updated', Auction::class, $auction->id, [
             'fields' => array_keys($fillable),

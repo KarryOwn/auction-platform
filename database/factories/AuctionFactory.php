@@ -130,4 +130,58 @@ class AuctionFactory extends Factory
             'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         ]);
     }
+
+    /**
+     * Auction with a specific condition.
+     */
+    public function withCondition(string $condition = 'new'): static
+    {
+        return $this->state(fn () => [
+            'condition' => $condition,
+        ]);
+    }
+
+    /**
+     * Auction with a brand.
+     */
+    public function withBrand(int $brandId): static
+    {
+        return $this->state(fn () => [
+            'brand_id' => $brandId,
+        ]);
+    }
+
+    /**
+     * Auction with a SKU.
+     */
+    public function withSku(string $sku = null): static
+    {
+        return $this->state(fn (array $attrs) => [
+            'sku' => $sku ?? strtoupper($this->faker->bothify('??-####-???')),
+        ]);
+    }
+
+    /**
+     * Auction with categories (attach after creation).
+     */
+    public function withCategories(array $categoryIds): static
+    {
+        return $this->afterCreating(function (Auction $auction) use ($categoryIds) {
+            $syncData = [];
+            foreach ($categoryIds as $i => $catId) {
+                $syncData[$catId] = ['is_primary' => $i === 0];
+            }
+            $auction->categories()->sync($syncData);
+        });
+    }
+
+    /**
+     * Auction with tags (attach after creation).
+     */
+    public function withTags(array $tagIds): static
+    {
+        return $this->afterCreating(function (Auction $auction) use ($tagIds) {
+            $auction->tags()->sync($tagIds);
+        });
+    }
 }

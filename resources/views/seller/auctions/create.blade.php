@@ -17,6 +17,63 @@
                                 <x-text-input id="title" name="title" type="text" class="mt-1 block w-full" :value="old('title')" required />
                                 <x-input-error class="mt-2" :messages="$errors->get('title')" />
                             </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <x-input-label for="categories" value="Categories (Select up to 3)" />
+                                    <select id="categories" name="categories[]" multiple class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-32" required>
+                                        @foreach($categoryOptions as $value => $label)
+                                            <option value="{{ $value }}" @selected(in_array($value, old('categories', [])))>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple. First selected is primary.</p>
+                                    <x-input-error class="mt-2" :messages="$errors->get('categories')" />
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <x-input-label for="condition" value="Condition" />
+                                        <select id="condition" name="condition" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                                            <option value="">Select Condition</option>
+                                            @foreach($conditions as $value => $label)
+                                                <option value="{{ $value }}" @selected(old('condition') === $value)>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                        <x-input-error class="mt-2" :messages="$errors->get('condition')" />
+                                    </div>
+                                    
+                                    <div>
+                                        <x-input-label for="brand_id" value="Brand (Optional)" />
+                                        <select id="brand_id" name="brand_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                            <option value="">No Brand / Unlisted</option>
+                                            @foreach($brands as $brand)
+                                                <option value="{{ $brand->id }}" @selected(old('brand_id') == $brand->id)>{{ $brand->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <x-input-error class="mt-2" :messages="$errors->get('brand_id')" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <x-input-label for="sku" value="SKU (Optional)" />
+                                    <x-text-input id="sku" name="sku" type="text" class="mt-1 block w-full" :value="old('sku')" />
+                                    <x-input-error class="mt-2" :messages="$errors->get('sku')" />
+                                </div>
+                                <div>
+                                    <x-input-label for="serial_number" value="Serial Number (Optional)" />
+                                    <x-text-input id="serial_number" name="serial_number" type="text" class="mt-1 block w-full" :value="old('serial_number')" />
+                                    <x-input-error class="mt-2" :messages="$errors->get('serial_number')" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <x-input-label for="tags" value="Tags (Comma separated)" />
+                                <x-text-input id="tags" name="tags" type="text" class="mt-1 block w-full" :value="old('tags')" placeholder="e.g. vintage, rare, electronics" />
+                                <x-input-error class="mt-2" :messages="$errors->get('tags')" />
+                            </div>
+
                             <div>
                                 <x-input-label for="description" value="Description" />
                                 <textarea id="description" name="description" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>{{ old('description') }}</textarea>

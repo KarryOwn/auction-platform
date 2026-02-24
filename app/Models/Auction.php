@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -55,6 +56,10 @@ class Auction extends Model implements HasMedia
         'payment_status',
         'payment_deadline',
         'ending_soon_notified',
+        'condition',
+        'brand_id',
+        'sku',
+        'serial_number',
     ];
 
 
@@ -78,6 +83,16 @@ class Auction extends Model implements HasMedia
         'snipe_extension_seconds'  => 'integer',
         'payment_deadline'         => 'datetime',
         'ending_soon_notified'     => 'boolean',
+        'brand_id'                 => 'integer',
+    ];
+
+    public const CONDITIONS = [
+        'new'         => 'New',
+        'like_new'    => 'Like New',
+        'used_good'   => 'Used - Good',
+        'used_fair'   => 'Used - Fair',
+        'refurbished' => 'Refurbished',
+        'for_parts'   => 'For Parts / Not Working',
     ];
 
     public function registerMediaCollections(): void
@@ -168,6 +183,41 @@ class Auction extends Model implements HasMedia
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class);
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'auction_category')
+            ->withPivot('is_primary');
+    }
+
+    public function primaryCategory(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class, 'auction_category')
+            ->wherePivot('is_primary', true);
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'auction_tag');
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function attributeValues(): HasMany
+    {
+        return $this->hasMany(AuctionAttributeValue::class);
+    }
+
+    /**
+     * Get the condition label.
+     */
+    public function getConditionLabelAttribute(): ?string
+    {
+        return self::CONDITIONS[$this->condition] ?? null;
     }
 
 

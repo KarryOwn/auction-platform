@@ -3,11 +3,16 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\BidController;
+use App\Http\Controllers\CategoryBrowseController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AuctionManagementController;
+use App\Http\Controllers\Admin\AttributeController as AdminAttributeController;
+use App\Http\Controllers\Admin\BrandController as AdminBrandController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\AuditLogController;
@@ -35,6 +40,10 @@ Route::get('/', function () {
 
 // Public user profiles
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('users.show');
+
+// Category browsing (public)
+Route::get('/categories', [CategoryBrowseController::class, 'index'])->name('categories.index');
+Route::get('/categories/{category:slug}', [CategoryBrowseController::class, 'show'])->name('categories.show');
 
 Route::middleware('auth')->group(function () {
     // Auction browsing (formerly /dashboard, now /auctions)
@@ -166,6 +175,39 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/seller-applications/{application}', [AdminSellerApplicationController::class, 'show'])->name('seller-applications.show');
     Route::post('/seller-applications/{application}/approve', [AdminSellerApplicationController::class, 'approve'])->name('seller-applications.approve');
     Route::post('/seller-applications/{application}/reject', [AdminSellerApplicationController::class, 'reject'])->name('seller-applications.reject');
+
+    // Category Management
+    Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
+    Route::get('/categories/create', [AdminCategoryController::class, 'create'])->name('categories.create');
+    Route::post('/categories', [AdminCategoryController::class, 'store'])->name('categories.store');
+    Route::get('/categories/{category}/edit', [AdminCategoryController::class, 'edit'])->name('categories.edit');
+    Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::patch('/categories/{category}/toggle', [AdminCategoryController::class, 'toggle'])->name('categories.toggle');
+    Route::post('/categories/reorder', [AdminCategoryController::class, 'reorder'])->name('categories.reorder');
+
+    // Brand Management
+    Route::get('/brands', [AdminBrandController::class, 'index'])->name('brands.index');
+    Route::get('/brands/create', [AdminBrandController::class, 'create'])->name('brands.create');
+    Route::post('/brands', [AdminBrandController::class, 'store'])->name('brands.store');
+    Route::get('/brands/{brand}/edit', [AdminBrandController::class, 'edit'])->name('brands.edit');
+    Route::put('/brands/{brand}', [AdminBrandController::class, 'update'])->name('brands.update');
+    Route::delete('/brands/{brand}', [AdminBrandController::class, 'destroy'])->name('brands.destroy');
+
+    // Tag Management
+    Route::get('/tags', [AdminTagController::class, 'index'])->name('tags.index');
+    Route::post('/tags', [AdminTagController::class, 'store'])->name('tags.store');
+    Route::put('/tags/{tag}', [AdminTagController::class, 'update'])->name('tags.update');
+    Route::delete('/tags/{tag}', [AdminTagController::class, 'destroy'])->name('tags.destroy');
+    Route::post('/tags/merge', [AdminTagController::class, 'merge'])->name('tags.merge');
+
+    // Attribute Management
+    Route::get('/attributes', [AdminAttributeController::class, 'index'])->name('attributes.index');
+    Route::get('/attributes/create', [AdminAttributeController::class, 'create'])->name('attributes.create');
+    Route::post('/attributes', [AdminAttributeController::class, 'store'])->name('attributes.store');
+    Route::get('/attributes/{attribute}/edit', [AdminAttributeController::class, 'edit'])->name('attributes.edit');
+    Route::put('/attributes/{attribute}', [AdminAttributeController::class, 'update'])->name('attributes.update');
+    Route::delete('/attributes/{attribute}', [AdminAttributeController::class, 'destroy'])->name('attributes.destroy');
 });
 
 require __DIR__.'/auth.php';

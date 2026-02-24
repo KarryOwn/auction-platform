@@ -11,6 +11,19 @@ use Illuminate\Validation\Validator;
 
 class UpdateAuctionRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('tags'))) {
+            $tags = collect(explode(',', $this->input('tags')))
+                ->map(fn (string $tag) => trim($tag))
+                ->filter()
+                ->values()
+                ->all();
+
+            $this->merge(['tags' => $tags]);
+        }
+    }
+
     public function authorize(): bool
     {
         /** @var Auction $auction */
@@ -22,6 +35,9 @@ class UpdateAuctionRequest extends FormRequest
     public function rules(): array
     {
         $currencies = config('auction.supported_currencies', [config('auction.currency', 'USD')]);
+        $maxCategories = config('auction.categories.max_per_auction', 3);
+        $maxTags = config('auction.tags.max_per_auction', 10);
+        $conditions = array_keys(config('auction.conditions', \App\Models\Auction::CONDITIONS));
 
         return [
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -36,6 +52,18 @@ class UpdateAuctionRequest extends FormRequest
             'snipe_extension_seconds' => ['sometimes', 'nullable', 'integer', 'between:15,300'],
             'max_extensions' => ['sometimes', 'nullable', 'integer', 'between:1,50'],
             'video_url' => ['nullable', 'url', app(ValidVideoUrl::class)],
+
+            // Product metadata
+            'categories' => ['sometimes', 'array', 'min:1', "max:{$maxCategories}"],
+            'categories.*' => ['integer', 'exists:categories,id'],
+            'primary_category_id' => ['sometimes', 'integer'],
+            'tags' => ['nullable', 'array', "max:{$maxTags}"],
+            'tags.*' => ['string', 'max:50', 'min:2'],
+            'condition' => ['sometimes', 'nullable', 'string', Rule::in($conditions)],
+            'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
+            'sku' => ['nullable', 'string', 'max:100'],
+            'serial_number' => ['nullable', 'string', 'max:100'],
+            'attributes' => ['nullable', 'array'],
         ];
     }
 

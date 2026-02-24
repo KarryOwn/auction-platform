@@ -1,34 +1,71 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ $auction->title }}
-            </h2>
-            <div class="flex items-center gap-3">
-                {{-- Status Badge --}}
-                @if($auction->isActive())
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                        <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span> Live
-                    </span>
-                @elseif($auction->status === \App\Models\Auction::STATUS_COMPLETED)
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">Ended</span>
-                @else
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">{{ ucfirst($auction->status) }}</span>
-                @endif
+        <div class="flex flex-col gap-2">
+            {{-- Category Breadcrumbs --}}
+            @php($primaryCategory = $auction->primaryCategory->first())
+            @if($primaryCategory)
+                <nav class="flex text-sm text-gray-500" aria-label="Breadcrumb">
+                    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                        <li class="inline-flex items-center">
+                            <a href="{{ route('categories.index') }}" class="hover:text-indigo-600 transition">Categories</a>
+                        </li>
+                        @foreach($primaryCategory->ancestors as $ancestor)
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                                    </svg>
+                                    <a href="{{ route('categories.show', $ancestor) }}" class="hover:text-indigo-600 transition">{{ $ancestor->name }}</a>
+                                </div>
+                            </li>
+                        @endforeach
+                        <li aria-current="page">
+                            <div class="flex items-center">
+                                <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                                </svg>
+                                <a href="{{ route('categories.show', $primaryCategory) }}" class="text-gray-700 font-medium hover:text-indigo-600 transition">{{ $primaryCategory->name }}</a>
+                            </div>
+                        </li>
+                    </ol>
+                </nav>
+            @endif
 
-                {{-- Watch Button --}}
-                @auth
-                <button id="watch-btn"
-                        onclick="toggleWatch()"
-                        class="inline-flex items-center px-3 py-1.5 border rounded-lg text-sm font-medium transition
-                               {{ $isWatching ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50' }}">
-                    <svg class="w-4 h-4 mr-1" fill="{{ $isWatching ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    <span id="watch-text">{{ $isWatching ? 'Watching' : 'Watch' }}</span>
-                </button>
-                @endauth
+            <div class="flex items-center justify-between">
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight flex items-center gap-3">
+                    {{ $auction->title }}
+                    @if($auction->condition)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {{ $auction->condition_label }}
+                        </span>
+                    @endif
+                </h2>
+                <div class="flex items-center gap-3">
+                    {{-- Status Badge --}}
+                    @if($auction->isActive())
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span> Live
+                        </span>
+                    @elseif($auction->status === \App\Models\Auction::STATUS_COMPLETED)
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">Ended</span>
+                    @else
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">{{ ucfirst($auction->status) }}</span>
+                    @endif
+
+                    {{-- Watch Button --}}
+                    @auth
+                    <button id="watch-btn"
+                            onclick="toggleWatch()"
+                            class="inline-flex items-center px-3 py-1.5 border rounded-lg text-sm font-medium transition
+                                   {{ $isWatching ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50' }}">
+                        <svg class="w-4 h-4 mr-1" fill="{{ $isWatching ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <span id="watch-text">{{ $isWatching ? 'Watching' : 'Watch' }}</span>
+                    </button>
+                    @endauth
+                </div>
             </div>
         </div>
     </x-slot>
@@ -96,6 +133,60 @@
                                 @endif
                             </div>
                         </div>
+
+                        {{-- Product Specifications --}}
+                        <div class="mt-8 border-t pt-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Specifications</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                @if($auction->brand)
+                                    <div class="flex justify-between py-2 border-b border-gray-100">
+                                        <span class="text-gray-500">Brand</span>
+                                        <span class="font-medium text-gray-900">{{ $auction->brand->name }}</span>
+                                    </div>
+                                @endif
+                                @if($auction->sku)
+                                    <div class="flex justify-between py-2 border-b border-gray-100">
+                                        <span class="text-gray-500">SKU</span>
+                                        <span class="font-medium text-gray-900">{{ $auction->sku }}</span>
+                                    </div>
+                                @endif
+                                @if($auction->serial_number)
+                                    <div class="flex justify-between py-2 border-b border-gray-100">
+                                        <span class="text-gray-500">Serial Number</span>
+                                        <span class="font-medium text-gray-900">{{ $auction->serial_number }}</span>
+                                    </div>
+                                @endif
+                                
+                                {{-- Dynamic Attributes --}}
+                                @foreach($auction->attributeValues as $attrValue)
+                                    <div class="flex justify-between py-2 border-b border-gray-100">
+                                        <span class="text-gray-500">{{ $attrValue->attribute->name }}</span>
+                                        <span class="font-medium text-gray-900">
+                                            {{ $attrValue->value }}
+                                            @if($attrValue->attribute->unit)
+                                                <span class="text-gray-500 text-sm ml-1">{{ $attrValue->attribute->unit }}</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Tags --}}
+                        @if($auction->tags->isNotEmpty())
+                            <div class="mt-6 pt-6 border-t">
+                                <h3 class="text-sm font-medium text-gray-500 mb-3">Tags</h3>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($auction->tags as $tag)
+                                        <a href="{{ route('auctions.index', ['tag' => $tag->slug]) }}" 
+                                           class="inline-flex items-center px-2.5 py-1 rounded-md text-sm transition hover:opacity-80"
+                                           style="background-color: {{ $tag->color ?? '#e5e7eb' }}20; color: {{ $tag->color ?? '#4b5563' }}; border: 1px solid {{ $tag->color ?? '#e5e7eb' }}40;">
+                                            {{ $tag->name }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
 
                         @auth
                             @if(auth()->id() !== $auction->user_id)
