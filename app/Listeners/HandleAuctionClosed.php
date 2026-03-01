@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\AuctionClosed;
+use App\Events\AuctionEndedForSeller;
 use App\Models\Bid;
 use App\Models\User;
 use App\Notifications\AuctionLostNotification;
@@ -40,7 +41,17 @@ class HandleAuctionClosed implements ShouldQueue
             $this->notifyWinner($auction, $winnerId);
         }
 
-        // 2. Notify all other bidders that they lost
+        // 2. Notify the seller in real-time
+        try {
+            AuctionEndedForSeller::dispatch($auction);
+        } catch (\Throwable $e) {
+            Log::warning('HandleAuctionClosed: AuctionEndedForSeller broadcast failed', [
+                'auction_id' => $auction->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+
+        // 3. Notify all other bidders that they lost
         $this->notifyLosers($auction, $winnerId);
     }
 

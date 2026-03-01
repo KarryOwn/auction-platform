@@ -12,7 +12,7 @@ use Laravel\Socialite\Facades\Socialite;
 
 class SocialAuthController extends Controller
 {
-    protected array $allowedProviders = ['google', 'facebook', 'github'];
+    protected array $allowedProviders = ['google', 'github'];
 
     /**
      * Redirect the user to the social provider's OAuth page.

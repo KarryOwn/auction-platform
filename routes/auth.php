@@ -37,10 +37,10 @@ Route::middleware('guest')->group(function () {
 
     // Social Login
     Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
-        ->where('provider', 'google|facebook|github')
+        ->where('provider', 'google|github')
         ->name('social.redirect');
     Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])
-        ->where('provider', 'google|facebook|github')
+        ->where('provider', 'google|github')
         ->name('social.callback');
 });
 

@@ -52,6 +52,17 @@ class CloseExpiredAuctions implements ShouldQueue
 
     protected function closeAuction(Auction $auction, BiddingStrategy $engine): void
     {
+        // Guard: if the engine (Redis) reports a higher price than the DB,
+        // there are still unprocessed bids in the queue.  Defer this close
+        // to the next scheduler run so ProcessWinningBid can finish first.
+        $enginePrice = $engine->getCurrentPrice($auction);
+        $dbPrice     = (float) $auction->current_price;
+
+        if ($enginePrice > $dbPrice) {
+            Log::warning("CloseExpiredAuctions: deferring auction #{$auction->id} — pending bids (engine: {$enginePrice}, DB: {$dbPrice})");
+            return;
+        }
+
         DB::transaction(function () use ($auction, $engine) {
             $auction = Auction::lockForUpdate()->findOrFail($auction->id);
 

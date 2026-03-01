@@ -5,7 +5,7 @@ namespace App\Notifications;
 use App\Models\SellerApplication;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 class SellerApplicationSubmittedNotification extends Notification implements ShouldQueue
@@ -16,24 +16,28 @@ class SellerApplicationSubmittedNotification extends Notification implements Sho
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return ['database', 'broadcast'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toBroadcast(object $notifiable): BroadcastMessage
     {
-        return (new MailMessage)
-            ->subject('New seller application submitted')
-            ->line("{$this->application->user->name} submitted a seller application.")
-            ->action('Review Application', url('/admin/seller-applications/'.$this->application->id));
+        return new BroadcastMessage($this->payload());
     }
 
     public function toArray(object $notifiable): array
+    {
+        return $this->payload();
+    }
+
+    protected function payload(): array
     {
         return [
             'type' => 'seller_application_submitted',
             'application_id' => $this->application->id,
             'user_id' => $this->application->user_id,
             'status' => $this->application->status,
+            'title' => 'Seller application submitted',
+            'message' => 'Your seller application has been submitted and is under review.',
         ];
     }
 }

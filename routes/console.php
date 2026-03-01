@@ -17,7 +17,12 @@ Artisan::command('inspire', function () {
 */
 
 // Close auctions whose end_time has passed — runs every minute.
-Schedule::job(new CloseExpiredAuctions)->everyMinute();
+Schedule::call(function (): void {
+    app()->call([app(CloseExpiredAuctions::class), 'handle']);
+})
+    ->everyMinute()
+    ->name('close-expired-auctions')
+    ->withoutOverlapping();
 
 // Capture periodic auction snapshots for analytics.
 Schedule::job(new CaptureAuctionSnapshots)

@@ -23,11 +23,11 @@ class AuctionLostNotification extends Notification implements ShouldQueue
     {
         $channels = ['database'];
 
-        if ($notifiable->wantsNotification('auction_won', 'email')) {
+        if ($notifiable->wantsNotification('auction_lost', 'email')) {
             $channels[] = 'mail';
         }
 
-        if ($notifiable->wantsNotification('auction_won', 'push')) {
+        if ($notifiable->wantsNotification('auction_lost', 'push')) {
             $channels[] = 'broadcast';
         }
 

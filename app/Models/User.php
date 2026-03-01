@@ -22,6 +22,7 @@ class User extends Authenticatable implements HasMedia
     public const DEFAULT_NOTIFICATION_PREFERENCES = [
         'outbid'          => ['email' => true, 'push' => true, 'database' => true],
         'auction_won'     => ['email' => true, 'push' => true, 'database' => true],
+        'auction_lost'    => ['email' => true, 'push' => true, 'database' => true],
         'auction_ending'  => ['email' => false, 'push' => true, 'database' => true],
         'wallet'          => ['email' => true, 'push' => false, 'database' => true],
         'marketing'       => ['email' => false, 'push' => false, 'database' => false],
@@ -46,7 +47,6 @@ class User extends Authenticatable implements HasMedia
         'avatar_path',
         'role',
         'google_id',
-        'facebook_id',
         'github_id',
         'is_banned',
         'banned_at',

@@ -14,18 +14,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Triggered after a manual bid is placed.
- * Resolves the full auto-bid competition in a loop: each iteration finds
- * the best qualifying auto-bid from a user OTHER than the current highest
- * bidder, places the minimum bid on their behalf, then repeats.
- *
- * The loop naturally terminates when no more auto-bids can afford the next
- * increment. A hard cap of 100 rounds provides additional safety.
- *
- * Implements ShouldBeUniqueUntilProcessing so only one job per auction
- * can sit in the queue at a time, preventing duplicate auto-bid runs.
- */
 class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -45,10 +33,7 @@ class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
         public int $triggeredByUserId,
     ) {}
 
-    /**
-     * Scope uniqueness to the auction so only one ProcessAutoBids
-     * job per auction can be queued/processing at a time.
-     */
+    // one auto bid job per auction
     public function uniqueId(): string
     {
         return (string) $this->auctionId;
