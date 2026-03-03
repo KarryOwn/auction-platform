@@ -16,6 +16,8 @@
         <script>window.userId = {{ auth()->id() }};</script>
         @endauth
 
+        <link href="https://cdn.jsdelivr.net/npm/tom-select@2.4.1/dist/css/tom-select.css" rel="stylesheet">
+        
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>

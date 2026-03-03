@@ -128,6 +128,8 @@ class CategorySeeder extends Seeder
                         'icon'       => $child['icon'],
                         'sort_order' => $childOrder,
                         'is_active'  => true,
+                        'depth'      => $parent->depth + 1,
+                        'path'       => $parent->path ? $parent->path . '/' . $parent->id : (string) $parent->id,
                     ]
                 );
 
@@ -135,6 +137,8 @@ class CategorySeeder extends Seeder
                     'icon'       => $child['icon'],
                     'sort_order' => $childOrder++,
                     'is_active'  => true,
+                    'depth'      => $parent->depth + 1,
+                    'path'       => $parent->path ? $parent->path . '/' . $parent->id : (string) $parent->id,
                 ]);
             }
         }

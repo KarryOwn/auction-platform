@@ -41,7 +41,7 @@ class StoreAuctionRequest extends FormRequest
             'starting_price' => ['required', 'numeric', 'min:0.01'],
             'reserve_price' => ['nullable', 'numeric', 'gt:starting_price'],
             'min_bid_increment' => ['nullable', 'numeric', 'min:0.01'],
-            'start_time' => ['nullable', 'date', 'after:now'],
+            'start_time' => ['nullable', 'date', 'after_or_equal:now'],
             'end_time' => ['required', 'date', 'after:start_time'],
             'currency' => ['nullable', 'string', Rule::in($currencies)],
             'snipe_threshold_seconds' => ['nullable', 'integer', 'between:15,300'],

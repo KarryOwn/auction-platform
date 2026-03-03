@@ -9,9 +9,9 @@
                 <p><strong>User:</strong> {{ $application->user->name }} ({{ $application->user->email }})</p>
                 <p><strong>Status:</strong> {{ ucfirst($application->status) }}</p>
                 <p><strong>Reason:</strong></p>
-                <p class="text-gray-700 whitespace-pre-line">{{ $application->reason }}</p>
+                <p class="text-gray-700 whitespace-pre-line break-all">{{ $application->reason }}</p>
                 <p><strong>Experience:</strong></p>
-                <p class="text-gray-700 whitespace-pre-line">{{ $application->experience ?: 'N/A' }}</p>
+                <p class="text-gray-700 whitespace-pre-line break-all">{{ $application->experience ?: 'N/A' }}</p>
             </div>
 
             @if($application->status === 'pending')

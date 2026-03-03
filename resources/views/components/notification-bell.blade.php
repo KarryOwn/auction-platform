@@ -55,9 +55,10 @@
                         this.toast = {
                             title: isOutbid
                                 ? 'You\'ve been outbid!'
-                                : (notification.auction_title || 'New notification'),
+                                : (notification.title || notification.auction_title || 'New notification'),
                             body: notification.message || '',
                             auctionId: notification.auction_id || null,
+                            conversationId: notification.conversation_id || null,
                         };
 
                         if (isOutbid) {
@@ -112,6 +113,10 @@
         },
 
         handleClick(n) {
+            if (n.data.conversation_id) {
+                window.location.href = '/messages/' + n.data.conversation_id;
+                return;
+            }
             if (n.data.auction_id) {
                 window.location.href = '/auctions/' + n.data.auction_id;
             }
@@ -154,9 +159,13 @@
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
                     </button>
                 </div>
-                <a x-show="toast.auctionId" :href="'/auctions/' + toast.auctionId"
+                <a x-show="!toast.conversationId && toast.auctionId" :href="'/auctions/' + toast.auctionId"
                    class="mt-2 inline-block text-xs font-medium text-indigo-600 hover:underline">
                     View Auction →
+                </a>
+                <a x-show="toast.conversationId" :href="'/messages/' + toast.conversationId"
+                   class="mt-2 inline-block text-xs font-medium text-indigo-600 hover:underline">
+                    View Message →
                 </a>
             </div>
         </template>
@@ -183,7 +192,7 @@
             </template>
             <template x-for="n in notifications" :key="n.id">
                 <div :class="n.read_at ? 'bg-white' : 'bg-blue-50'" class="p-3 hover:bg-gray-50 transition cursor-pointer" @click="handleClick(n)">
-                    <div class="text-sm text-gray-900" x-text="n.data.message || n.data.auction_title || 'Notification'"></div>
+                    <div class="text-sm text-gray-900" x-text="n.data.message || n.data.preview || n.data.auction_title || 'Notification'"></div>
                     <div class="text-xs text-gray-400 mt-1" x-text="timeAgo(n.created_at)"></div>
                 </div>
             </template>

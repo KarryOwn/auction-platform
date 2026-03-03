@@ -28,7 +28,7 @@
                 maxFileSize: '{{ $imageMaxSizeMb }}MB',
                 acceptedTypes: @js($acceptedTypes),
             })" x-init="init()">
-                <form method="POST" action="{{ route('seller.auctions.update', $auction) }}" class="space-y-6">
+                <form id="auction-form" method="POST" action="{{ route('seller.auctions.update', $auction) }}" class="space-y-6">
                     @csrf
                     @method('PATCH')
 
@@ -50,15 +50,22 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <x-input-label for="categories" value="Categories (Select up to 3)" />
-                                    <select id="categories" name="categories[]" multiple class="mt-1 block w-full border-gray-300 rounded-md shadow-sm h-32">
-                                        @php
-                                            $selectedCategories = old('categories', $auction->categories->pluck('id')->toArray());
-                                        @endphp
-                                        @foreach($categoryOptions as $value => $label)
-                                            <option value="{{ $value }}" @selected(in_array($value, $selectedCategories))>{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple. First selected is primary.</p>
+                                    <div x-data="categorySelect()">
+                                        <select x-ref="select" id="categories" name="categories[]" multiple class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" autocomplete="off">
+                                            @php
+                                                $selectedCategories = old('categories', $auction->categories->pluck('id')->toArray());
+                                            @endphp
+                                            @foreach($categoryOptions as $value => $label)
+                                                <option value="{{ $value }}" @selected(in_array($value, $selectedCategories))>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <style>
+                                        .ts-wrapper.multi.has-items .ts-control > input { display: none !important; }
+                                        .ts-wrapper.multi .ts-control { min-height: 42px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding: 0.25rem 0.5rem; }
+                                        .ts-wrapper .ts-dropdown .option.selected { opacity: 0.4; filter: blur(0.5px); pointer-events: none; }
+                                    </style>
+                                    <p class="text-xs text-gray-500 mt-1">First selected is primary.</p>
                                     <x-input-error class="mt-2" :messages="$errors->get('categories')" />
                                 </div>
                                 
@@ -229,6 +236,86 @@
     </div>
 
     <script>
+        (function() {
+            const pad = n => String(n).padStart(2, '0');
+            function utcToLocal(utcStr) {
+                if (!utcStr) return '';
+                const d = new Date(utcStr + 'Z');
+                if (isNaN(d)) return utcStr;
+                return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            }
+            function localToUtc(localStr) {
+                if (!localStr) return '';
+                const d = new Date(localStr);
+                if (isNaN(d)) return localStr;
+                return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+            }
+            // On load: convert UTC model values to local for display
+            document.querySelectorAll('#start_time, #end_time').forEach(input => {
+                if (input.value) input.value = utcToLocal(input.value);
+            });
+            // On submit: convert local values to UTC
+            const auctionForm = document.getElementById('auction-form');
+            if (auctionForm) {
+                auctionForm.addEventListener('submit', function() {
+                    auctionForm.querySelectorAll('#start_time, #end_time').forEach(input => {
+                        if (input.value) input.value = localToUtc(input.value);
+                    });
+                });
+            }
+        })();
+
+        window.categorySelect = function() {
+            return {
+                init() {
+                    new window.TomSelect(this.$refs.select, {
+                        plugins: ['remove_button', 'clear_button'],
+                        maxItems: 3,
+                        placeholder: 'Select categories...',
+                        hidePlaceholder: true,
+                        hideSelected: false,
+                        onInitialize: function() {
+                            this.rootMap = {};
+                            let currentRoot = null;
+                            const options = Array.from(this.input.options);
+                            options.forEach(opt => {
+                                const val = opt.value;
+                                const text = opt.text;
+                                if (!text.startsWith('—')) {
+                                    currentRoot = val;
+                                }
+                                this.rootMap[val] = currentRoot || val;
+                            });
+                        },
+                        onItemAdd: function(value) {
+                            const root = this.rootMap[value];
+                            const currentItems = [...this.items];
+                            for (let item of currentItems) {
+                                if (item !== value && this.rootMap[item] === root) {
+                                    this.removeItem(item);
+                                }
+                            }
+                        },
+                        render: {
+                            item: function(data, escape) {
+                                const parts = data.text.split('—');
+                                const text = parts.length > 1 ? parts[parts.length - 1].trim() : data.text;
+                                return '<div>' + escape(text) + '</div>';
+                            },
+                            option: function(data, escape) {
+                                const match = data.text.match(/^(—+)\s*(.*)/);
+                                if (match) {
+                                    const depth = match[1].length * 15;
+                                    return '<div style=\"padding-left: ' + (depth + 8) + 'px\">' + escape(match[2]) + '</div>';
+                                }
+                                return '<div class=\"font-semibold bg-gray-50\">' + escape(data.text) + '</div>';
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
         window.auctionEdit = function (options) {
             return {
                 pond: null,

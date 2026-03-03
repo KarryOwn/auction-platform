@@ -144,9 +144,21 @@ class Category extends Model
      */
     public function getDescendantIdsAttribute(): array
     {
-        return self::where('path', 'like', '%' . $this->id . '%')
-            ->pluck('id')
-            ->all();
+        $ids = [];
+        $parentIds = [$this->id];
+
+        while (! empty($parentIds)) {
+            $childIds = self::whereIn('parent_id', $parentIds)->pluck('id')->all();
+
+            if (empty($childIds)) {
+                break;
+            }
+
+            $ids = array_merge($ids, $childIds);
+            $parentIds = $childIds;
+        }
+
+        return $ids;
     }
 
     /**

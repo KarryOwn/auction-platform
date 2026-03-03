@@ -42,6 +42,7 @@
                         {{ __('Browse Auctions') }}
                     </x-nav-link>
 
+                    @auth
                     @if($authUser->isStaff())
                         <!-- Admin Dropdown -->
                         <x-dropdown align="left" width="48">
@@ -111,11 +112,26 @@
                             {{ __('Become a Seller') }}
                         </x-nav-link>
                     @endif
+                    @endauth
                 </div>
             </div>
 
             <!-- Right Actions -->
             <div class="hidden sm:flex sm:items-center sm:gap-4">
+                @auth
+                <!-- Messages -->
+                <a href="{{ $authUser->isVerifiedSeller() ? route('seller.messages.index') : route('messages.index') }}" 
+                   class="relative p-1 text-gray-400 hover:text-gray-600 transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    @if($unreadMessageCount > 0)
+                        <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                            {{ $unreadMessageCount > 99 ? '99+' : $unreadMessageCount }}
+                        </span>
+                    @endif
+                </a>
+
                 @include('components.notification-bell')
 
                 <!-- User Dropdown Menu -->
@@ -165,6 +181,12 @@
                         </form>
                     </x-slot>
                 </x-dropdown>
+                @else
+                <a href="{{ route('login') }}" class="text-sm font-medium text-gray-700 hover:text-indigo-600 transition">{{ __('Log in') }}</a>
+                @if (Route::has('register'))
+                    <a href="{{ route('register') }}" class="ml-4 inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-full text-sm font-medium text-white hover:bg-indigo-700 transition">{{ __('Register') }}</a>
+                @endif
+                @endauth
             </div>
 
             <!-- Hamburger Button (Mobile) -->
@@ -197,6 +219,7 @@
                 {{ __('Browse Auctions') }}
             </x-responsive-nav-link>
 
+            @auth
             @if($authUser->isStaff())
                 <div class="pt-4 pb-2">
                     <div class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Admin Portal</div>
@@ -224,8 +247,10 @@
             @else
                 <x-responsive-nav-link :href="route('seller.apply.form')" :active="request()->routeIs('seller.apply.*') || request()->routeIs('seller.application.status')">{{ __('Become a Seller') }}</x-responsive-nav-link>
             @endif
+            @endauth
         </div>
 
+        @auth
         <div class="pt-4 pb-4 border-t border-gray-200">
             <div class="px-4 flex items-center mb-4">
                 <div class="flex-shrink-0">
@@ -258,6 +283,17 @@
                 <x-responsive-nav-link :href="route('user.wallet')">
                     {{ __('Wallet') }}
                 </x-responsive-nav-link>
+
+                @if(!$authUser->isVerifiedSeller())
+                <x-responsive-nav-link :href="route('messages.index')">
+                    {{ __('Messages') }}
+                    @if($unreadMessageCount > 0)
+                        <span class="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
+                            {{ $unreadMessageCount }}
+                        </span>
+                    @endif
+                </x-responsive-nav-link>
+                @endif
                 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
@@ -269,5 +305,15 @@
                 </form>
             </div>
         </div>
+        @else
+        <div class="pt-4 pb-4 border-t border-gray-200">
+            <div class="space-y-1">
+                <x-responsive-nav-link :href="route('login')">{{ __('Log in') }}</x-responsive-nav-link>
+                @if (Route::has('register'))
+                    <x-responsive-nav-link :href="route('register')">{{ __('Register') }}</x-responsive-nav-link>
+                @endif
+            </div>
+        </div>
+        @endauth
     </div>
 </nav>

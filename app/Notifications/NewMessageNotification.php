@@ -18,7 +18,7 @@ class NewMessageNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast', 'mail'];
+        return ['database', 'broadcast'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -32,10 +32,15 @@ class NewMessageNotification extends Notification implements ShouldQueue
 
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
-        return new BroadcastMessage($this->toArray($notifiable));
+        return new BroadcastMessage($this->payload());
     }
 
     public function toArray(object $notifiable): array
+    {
+        return $this->payload();
+    }
+
+    protected function payload(): array
     {
         return [
             'type' => 'new_message',
@@ -44,6 +49,8 @@ class NewMessageNotification extends Notification implements ShouldQueue
             'sender_id' => $this->message->sender_id,
             'preview' => str($this->message->body)->limit(120),
             'created_at' => $this->message->created_at?->toIso8601String(),
+            'title' => 'New message received',
+            'message' => 'You received a new message.',
         ];
     }
 }
