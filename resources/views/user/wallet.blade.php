@@ -18,38 +18,84 @@
             {{-- Balance & Top-Up --}}
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    <div>
-                        <div class="text-sm font-medium text-gray-500">Current Balance</div>
-                        <div class="text-4xl font-bold text-green-600 mt-1">${{ number_format($user->wallet_balance, 2) }}</div>
+                    <div class="space-y-2">
+                        <div>
+                            <div class="text-sm font-medium text-gray-500">Total Balance</div>
+                            <div class="text-4xl font-bold text-green-600 mt-1">${{ number_format($user->wallet_balance, 2) }}</div>
+                        </div>
+                        <div class="flex gap-6 text-sm">
+                            <div>
+                                <span class="text-gray-500">Available:</span>
+                                <span class="font-semibold text-gray-800">${{ number_format($user->availableBalance(), 2) }}</span>
+                            </div>
+                            @if((float) $user->held_balance > 0)
+                                <div>
+                                    <span class="text-gray-500">Held in Escrow:</span>
+                                    <span class="font-semibold text-amber-600">${{ number_format($user->held_balance, 2) }}</span>
+                                </div>
+                            @endif
+                        </div>
                     </div>
 
-                    <form method="POST" action="{{ route('user.wallet.top-up') }}" class="flex items-end gap-3">
-                        @csrf
-                        <div>
-                            <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Top-Up Amount</label>
-                            <div class="flex gap-2 mb-2">
-                                @foreach([50, 100, 250, 500] as $preset)
-                                    <button type="button"
-                                            onclick="document.getElementById('amount').value = {{ $preset }}"
-                                            class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm font-medium text-gray-700 transition">
-                                        ${{ $preset }}
-                                    </button>
-                                @endforeach
+                    <div class="flex flex-col gap-3">
+                        <form method="POST" action="{{ route('user.wallet.top-up') }}" class="flex items-end gap-3">
+                            @csrf
+                            <div>
+                                <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Top-Up Amount</label>
+                                <div class="flex gap-2 mb-2">
+                                    @foreach([50, 100, 250, 500] as $preset)
+                                        <button type="button"
+                                                onclick="document.getElementById('amount').value = {{ $preset }}"
+                                                class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm font-medium text-gray-700 transition">
+                                            ${{ $preset }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                                <input type="number" name="amount" id="amount" min="1" max="50000" step="0.01"
+                                       placeholder="Custom amount"
+                                       value="{{ old('amount') }}"
+                                       class="rounded-md border-gray-300 shadow-sm text-sm w-40">
+                                @error('amount')
+                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
-                            <input type="number" name="amount" id="amount" min="1" max="50000" step="0.01"
-                                   placeholder="Custom amount"
-                                   value="{{ old('amount') }}"
-                                   class="rounded-md border-gray-300 shadow-sm text-sm w-40">
-                            @error('amount')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition">
-                            Top Up
-                        </button>
-                    </form>
+                            <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition">
+                                Top Up
+                            </button>
+                        </form>
+
+                        <form method="POST" action="{{ route('user.wallet.withdraw') }}" class="flex items-end gap-3">
+                            @csrf
+                            <div>
+                                <label for="withdraw_amount" class="block text-sm font-medium text-gray-700 mb-1">Withdraw Amount</label>
+                                <input type="number" name="amount" id="withdraw_amount" min="1" max="50000" step="0.01"
+                                       placeholder="Amount to withdraw"
+                                       class="rounded-md border-gray-300 shadow-sm text-sm w-40">
+                            </div>
+                            <button type="submit" class="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition">
+                                Withdraw
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
+
+            {{-- Active Escrow Holds --}}
+            @if($activeHolds->isNotEmpty())
+                <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Active Escrow Holds</h3>
+                    <div class="space-y-3">
+                        @foreach($activeHolds as $hold)
+                            <div class="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                                <div>
+                                    <span class="text-sm font-medium text-gray-900">{{ $hold->auction->title ?? "Auction #{$hold->auction_id}" }}</span>
+                                </div>
+                                <span class="text-sm font-semibold text-amber-700">${{ number_format($hold->amount, 2) }} held</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             {{-- Transaction History --}}
             <div class="bg-white shadow-sm sm:rounded-lg">
@@ -70,6 +116,8 @@
                                 <option value="bid_hold" @selected(request('type') === 'bid_hold')>Bid Holds</option>
                                 <option value="bid_release" @selected(request('type') === 'bid_release')>Bid Releases</option>
                                 <option value="withdrawal" @selected(request('type') === 'withdrawal')>Withdrawals</option>
+                                <option value="refund" @selected(request('type') === 'refund')>Refunds</option>
+                                <option value="seller_credit" @selected(request('type') === 'seller_credit')>Seller Credits</option>
                             </select>
                         </div>
                         <div>

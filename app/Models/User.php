@@ -52,6 +52,7 @@ class User extends Authenticatable implements HasMedia
         'banned_at',
         'ban_reason',
         'wallet_balance',
+        'held_balance',
         'notification_preferences',
         'seller_verified_at',
         'seller_application_status',
@@ -86,6 +87,7 @@ class User extends Authenticatable implements HasMedia
             'is_banned'                  => 'boolean',
             'banned_at'                  => 'datetime',
             'wallet_balance'             => 'decimal:2',
+            'held_balance'               => 'decimal:2',
             'notification_preferences'   => 'array',
             'seller_verified_at'         => 'datetime',
             'seller_applied_at'          => 'datetime',
@@ -198,6 +200,21 @@ class User extends Authenticatable implements HasMedia
         return $this->hasMany(WalletTransaction::class);
     }
 
+    public function escrowHolds(): HasMany
+    {
+        return $this->hasMany(EscrowHold::class);
+    }
+
+    public function invoicesAsBuyer(): HasMany
+    {
+        return $this->hasMany(Invoice::class, 'buyer_id');
+    }
+
+    public function invoicesAsSeller(): HasMany
+    {
+        return $this->hasMany(Invoice::class, 'seller_id');
+    }
+
     public function wonAuctions(): HasMany
     {
         return $this->hasMany(Auction::class, 'winner_id');
@@ -286,11 +303,19 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Whether the user can afford to bid at the given amount (wallet check).
+     * Get the user's available (non-held) balance.
+     */
+    public function availableBalance(): float
+    {
+        return round((float) $this->wallet_balance - (float) $this->held_balance, 2);
+    }
+
+    /**
+     * Whether the user can afford a given amount from available (non-held) balance.
      */
     public function canAfford(float $amount): bool
     {
-        return (float) $this->wallet_balance >= $amount;
+        return $this->availableBalance() >= $amount;
     }
 
     /**

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Jobs\CloseExpiredAuctions;
 use App\Jobs\CaptureAuctionSnapshots;
+use App\Jobs\CleanupStaleEscrowHolds;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -34,5 +35,11 @@ Schedule::job(new CaptureAuctionSnapshots)
 Schedule::command('auctions:notify-ending-soon')
     ->everyMinute()
     ->name('notify-ending-soon')
+    ->withoutOverlapping();
+
+// Cleanup stale escrow holds on completed/cancelled auctions (safety net).
+Schedule::job(new CleanupStaleEscrowHolds)
+    ->daily()
+    ->name('cleanup-stale-escrow-holds')
     ->withoutOverlapping();
 

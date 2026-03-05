@@ -7,6 +7,7 @@ use App\Models\AuctionWatcher;
 use App\Models\Bid;
 use App\Models\User;
 use App\Notifications\AuctionCancelledNotification;
+use App\Services\EscrowService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -14,9 +15,10 @@ use Illuminate\Support\Facades\Log;
 /**
  * Handles the AuctionCancelled event:
  *
- * 1. Notifies watchers who opted in to cancellation alerts
- * 2. Notifies all unique bidders
- * 3. Deduplicates so no user gets two notifications
+ * 1. Releases all escrow holds for bidders
+ * 2. Notifies watchers who opted in to cancellation alerts
+ * 3. Notifies all unique bidders
+ * 4. Deduplicates so no user gets two notifications
  */
 class HandleAuctionCancelled implements ShouldQueue
 {
@@ -25,10 +27,27 @@ class HandleAuctionCancelled implements ShouldQueue
     public string $queue = 'notifications';
     public int $tries = 3;
 
+    public function __construct(
+        protected EscrowService $escrowService,
+    ) {}
+
     public function handle(AuctionCancelled $event): void
     {
         $auction = $event->auction;
         $reason  = $event->reason;
+
+        // Release all escrow holds for this auction
+        try {
+            $this->escrowService->releaseAllForAuction($auction);
+            Log::info('HandleAuctionCancelled: all escrow holds released', [
+                'auction_id' => $auction->id,
+            ]);
+        } catch (\Throwable $e) {
+            Log::critical('HandleAuctionCancelled: escrow release FAILED', [
+                'auction_id' => $auction->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
 
         // Collect watcher user IDs where notify_cancelled = true
         $watcherUserIds = AuctionWatcher::where('auction_id', $auction->id)

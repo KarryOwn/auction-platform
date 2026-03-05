@@ -9,6 +9,7 @@ use App\Exceptions\BidValidationException;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Models\User;
+use App\Services\EscrowService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,11 +18,12 @@ class PessimisticSqlEngine implements BiddingStrategy
     public function __construct(
         protected BidValidator $validator,
         protected BidRateLimiter $rateLimiter,
+        protected EscrowService $escrowService,
     ) {}
 
     public function placeBid(Auction $auction, User $user, float $amount, array $meta = []): Bid
     {
-        // Pre-flight validation (before acquiring lock)
+        // Pre-flight validation (before acquiring lock) — includes wallet check
         $this->validator->validate($auction, $user, $amount);
         $this->rateLimiter->check($user, $auction);
 
@@ -42,6 +44,9 @@ class PessimisticSqlEngine implements BiddingStrategy
             if ($amount < $minimumBid) {
                 throw BidValidationException::bidTooLow((float) $locked->current_price, $minimumBid);
             }
+
+            // Hold funds in escrow (atomic within this transaction)
+            $this->escrowService->holdForBid($user, $locked, $amount);
 
             $previousPrice = (float) $locked->current_price;
             $isSnipeBid    = $locked->isInSnipeWindow();

@@ -4,6 +4,7 @@ namespace App\Services\Bidding;
 
 use App\Exceptions\BidValidationException;
 use App\Models\Auction;
+use App\Models\EscrowHold;
 use App\Models\User;
 
 class BidValidator
@@ -20,6 +21,7 @@ class BidValidator
         $this->ensureAuctionNotEnded($auction);
         $this->ensureNotSelfBid($auction, $user);
         $this->ensureBidHighEnough($auction, $amount);
+        $this->ensureSufficientFunds($user, $auction, $amount);
     }
 
     protected function ensureUserNotBanned(User $user): void
@@ -58,6 +60,30 @@ class BidValidator
             throw BidValidationException::bidTooLow(
                 (float) $auction->current_price,
                 $minimumBid,
+            );
+        }
+    }
+
+    /**
+     * Ensure the user has sufficient available balance for the incremental hold.
+     * If the user already has an active hold on this auction, only the difference
+     * between the new bid and the existing hold is required.
+     */
+    protected function ensureSufficientFunds(User $user, Auction $auction, float $amount): void
+    {
+        $existingHold = EscrowHold::where('user_id', $user->id)
+            ->where('auction_id', $auction->id)
+            ->where('status', EscrowHold::STATUS_ACTIVE)
+            ->value('amount');
+
+        $existingAmount  = $existingHold ? (float) $existingHold : 0.0;
+        $incrementalCost = round($amount - $existingAmount, 2);
+
+        // If incrementalCost <= 0, user already has enough held (raising bid within existing hold)
+        if ($incrementalCost > 0 && ! $user->canAfford($incrementalCost)) {
+            throw BidValidationException::insufficientFunds(
+                required:  $incrementalCost,
+                available: $user->availableBalance(),
             );
         }
     }

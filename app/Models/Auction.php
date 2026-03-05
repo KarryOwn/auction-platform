@@ -212,6 +212,16 @@ class Auction extends Model implements HasMedia
         return $this->hasMany(AuctionAttributeValue::class);
     }
 
+    public function escrowHolds(): HasMany
+    {
+        return $this->hasMany(EscrowHold::class);
+    }
+
+    public function invoice(): HasOne
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
     /**
      * Get the condition label.
      */

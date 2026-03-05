@@ -12,11 +12,13 @@ class WalletTransaction extends Model
 {
     use HasFactory;
 
-    public const TYPE_DEPOSIT     = 'deposit';
-    public const TYPE_WITHDRAWAL  = 'withdrawal';
-    public const TYPE_BID_HOLD    = 'bid_hold';
-    public const TYPE_BID_RELEASE = 'bid_release';
-    public const TYPE_PAYMENT     = 'payment';
+    public const TYPE_DEPOSIT       = 'deposit';
+    public const TYPE_WITHDRAWAL    = 'withdrawal';
+    public const TYPE_BID_HOLD      = 'bid_hold';
+    public const TYPE_BID_RELEASE   = 'bid_release';
+    public const TYPE_PAYMENT       = 'payment';
+    public const TYPE_REFUND        = 'refund';
+    public const TYPE_SELLER_CREDIT = 'seller_credit';
 
     protected $fillable = [
         'user_id',
@@ -53,6 +55,11 @@ class WalletTransaction extends Model
         return $query->where('type', self::TYPE_DEPOSIT);
     }
 
+    public function scopeHolds(Builder $query): Builder
+    {
+        return $query->where('type', self::TYPE_BID_HOLD);
+    }
+
     public function scopePayments(Builder $query): Builder
     {
         return $query->where('type', self::TYPE_PAYMENT);
@@ -67,11 +74,20 @@ class WalletTransaction extends Model
 
     public function isCredit(): bool
     {
-        return in_array($this->type, [self::TYPE_DEPOSIT, self::TYPE_BID_RELEASE]);
+        return in_array($this->type, [
+            self::TYPE_DEPOSIT,
+            self::TYPE_BID_RELEASE,
+            self::TYPE_REFUND,
+            self::TYPE_SELLER_CREDIT,
+        ]);
     }
 
     public function isDebit(): bool
     {
-        return in_array($this->type, [self::TYPE_WITHDRAWAL, self::TYPE_BID_HOLD, self::TYPE_PAYMENT]);
+        return in_array($this->type, [
+            self::TYPE_WITHDRAWAL,
+            self::TYPE_BID_HOLD,
+            self::TYPE_PAYMENT,
+        ]);
     }
 }

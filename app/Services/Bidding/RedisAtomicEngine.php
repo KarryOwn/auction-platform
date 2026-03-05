@@ -10,6 +10,7 @@ use App\Jobs\ProcessWinningBid;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Models\User;
+use App\Services\EscrowService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
@@ -35,13 +36,19 @@ class RedisAtomicEngine implements BiddingStrategy
     public function __construct(
         protected BidValidator $validator,
         protected BidRateLimiter $rateLimiter,
+        protected EscrowService $escrowService,
     ) {}
 
     public function placeBid(Auction $auction, User $user, float $amount, array $meta = []): Bid
     {
-        // Pre-flight validation
+        // Pre-flight validation (includes wallet balance check)
         $this->validator->validate($auction, $user, $amount);
         $this->rateLimiter->check($user, $auction);
+
+        // Hold funds BEFORE attempting the atomic price update.
+        // If the Lua CAS fails, we release the incremental hold.
+        $holdBefore = $this->escrowService->getActiveHoldAmount($user, $auction);
+        $escrowHold = $this->escrowService->holdForBid($user, $auction, $amount);
 
         $priceKey     = "auction:{$auction->id}:price";
         $minIncrement = (float) $auction->min_bid_increment;
@@ -57,6 +64,9 @@ class RedisAtomicEngine implements BiddingStrategy
         $result = Redis::eval(self::LUA_BID, 1, $priceKey, (string) $amount, (string) $minIncrement);
 
         if ($result === '0' || $result === 0) {
+            // Bid rejected — roll back the escrow to previous level
+            $this->rollbackEscrow($user, $auction, $holdBefore);
+
             $current    = (float) Redis::get($priceKey);
             $minimumBid = round($current + $minIncrement, 2);
             throw BidValidationException::bidTooLow($current, $minimumBid);
@@ -104,6 +114,28 @@ class RedisAtomicEngine implements BiddingStrategy
         )->onQueue('bids');
 
         return $bid;
+    }
+
+    /**
+     * Roll back escrow to the previous hold level after a failed bid.
+     */
+    protected function rollbackEscrow(User $user, Auction $auction, float $previousHoldAmount): void
+    {
+        try {
+            if ($previousHoldAmount > 0) {
+                // Restore to previous hold amount
+                $this->escrowService->holdForBid($user, $auction, $previousHoldAmount);
+            } else {
+                // No previous hold — release entirely
+                $this->escrowService->releaseForUser($user, $auction);
+            }
+        } catch (\Throwable $e) {
+            Log::error('RedisAtomicEngine: escrow rollback failed', [
+                'user_id'    => $user->id,
+                'auction_id' => $auction->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
     }
 
     public function getCurrentPrice(Auction $auction): float

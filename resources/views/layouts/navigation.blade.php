@@ -63,6 +63,7 @@
                                 <x-dropdown-link :href="route('admin.users.index')">{{ __('Manage Users') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.reports.index')">{{ __('Reports') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.audit-logs.index')">{{ __('Audit Logs') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.payments.index')">{{ __('Payments') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.seller-applications.index')">
                                     {{ __('Seller Applications') }}
                                     @if($pendingSellerApplications > 0)
@@ -164,6 +165,9 @@
                         <x-dropdown-link :href="route('user.wallet')">
                             {{ __('Wallet') }}
                         </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.invoices')">
+                            {{ __('Invoices') }}
+                        </x-dropdown-link>
                         <x-dropdown-link :href="route('user.notification-preferences')">
                             {{ __('Notification Settings') }}
                         </x-dropdown-link>
@@ -227,6 +231,7 @@
                     <x-responsive-nav-link :href="route('admin.auctions.index')" :active="request()->routeIs('admin.auctions.*')">{{ __('Manage Auctions') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">{{ __('Manage Users') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">{{ __('Reports') }}</x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.payments.index')" :active="request()->routeIs('admin.payments.*')">{{ __('Payments') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.seller-applications.index')" :active="request()->routeIs('admin.seller-applications.*')">{{ __('Seller Applications') }}</x-responsive-nav-link>
                 </div>
             @endif
@@ -282,6 +287,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('user.wallet')">
                     {{ __('Wallet') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('user.invoices')">
+                    {{ __('Invoices') }}
                 </x-responsive-nav-link>
 
                 @if(!$authUser->isVerifiedSeller())

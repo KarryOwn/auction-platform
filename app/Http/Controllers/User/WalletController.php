@@ -4,12 +4,16 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\WalletTransaction;
+use App\Services\WalletService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WalletController extends Controller
 {
+    public function __construct(
+        protected WalletService $walletService,
+    ) {}
+
     public function show(Request $request)
     {
         $user = $request->user();
@@ -29,7 +33,9 @@ class WalletController extends Controller
 
         $transactions = $query->paginate(20)->withQueryString();
 
-        return view('user.wallet', compact('user', 'transactions'));
+        $activeHolds = $user->escrowHolds()->active()->with('auction:id,title')->get();
+
+        return view('user.wallet', compact('user', 'transactions', 'activeHolds'));
     }
 
     public function topUp(Request $request)
@@ -38,26 +44,37 @@ class WalletController extends Controller
             'amount' => 'required|numeric|min:1|max:50000',
         ]);
 
-        $user = $request->user();
+        $user   = $request->user();
         $amount = (float) $validated['amount'];
 
-        // For now, directly credit the wallet (placeholder for Stripe integration)
-        // When Stripe is installed, this would create a Checkout Session and redirect.
-        DB::transaction(function () use ($user, $amount) {
-            $user->increment('wallet_balance', $amount);
-            $user->refresh();
-
-            WalletTransaction::create([
-                'user_id'       => $user->id,
-                'type'          => WalletTransaction::TYPE_DEPOSIT,
-                'amount'        => $amount,
-                'balance_after' => $user->wallet_balance,
-                'description'   => 'Wallet top-up',
-            ]);
-        });
+        // directly credit the wallet 
+        $this->walletService->deposit($user, $amount, 'Wallet top-up');
 
         return redirect()->route('user.wallet')
             ->with('success', 'Wallet topped up by $' . number_format($amount, 2));
+    }
+
+    public function withdraw(Request $request)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:1|max:50000',
+        ]);
+
+        $user   = $request->user();
+        $amount = (float) $validated['amount'];
+
+        if (! $user->canAfford($amount)) {
+            return back()->withErrors([
+                'amount' => 'Insufficient available balance. You have $'
+                    . number_format($user->availableBalance(), 2)
+                    . ' available (excluding held funds).',
+            ]);
+        }
+
+        $this->walletService->withdraw($user, $amount, 'Wallet withdrawal');
+
+        return redirect()->route('user.wallet')
+            ->with('success', 'Withdrew $' . number_format($amount, 2) . ' from wallet.');
     }
 
     public function exportTransactions(Request $request): StreamedResponse

@@ -17,6 +17,9 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplicationController;
+use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Admin\RefundController as AdminRefundController;
+use App\Http\Controllers\User\InvoiceController;
 use App\Http\Controllers\Seller\AnalyticsController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
 use App\Http\Controllers\Seller\InsightController;
@@ -66,7 +69,13 @@ Route::middleware('auth')->group(function () {
     // Wallet
     Route::get('/dashboard/wallet', [WalletController::class, 'show'])->name('user.wallet');
     Route::post('/dashboard/wallet/top-up', [WalletController::class, 'topUp'])->name('user.wallet.top-up');
+    Route::post('/dashboard/wallet/withdraw', [WalletController::class, 'withdraw'])->name('user.wallet.withdraw');
     Route::get('/dashboard/wallet/export', [WalletController::class, 'exportTransactions'])->name('user.wallet.export');
+
+    // Invoices
+    Route::get('/dashboard/invoices', [InvoiceController::class, 'index'])->name('user.invoices');
+    Route::get('/dashboard/invoices/{invoice}', [InvoiceController::class, 'show'])->name('user.invoices.show');
+    Route::get('/dashboard/invoices/{invoice}/download', [InvoiceController::class, 'download'])->name('user.invoices.download');
 
     // Notification Preferences
     Route::get('/dashboard/notifications', [NotificationPreferenceController::class, 'edit'])->name('user.notification-preferences');
@@ -169,6 +178,14 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
 
     // Audit Logs
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+
+    // Payment Management
+    Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');
+    Route::get('/payments/transactions', [AdminPaymentController::class, 'transactions'])->name('payments.transactions');
+
+    // Refunds
+    Route::get('/auctions/{auction}/refund', [AdminRefundController::class, 'show'])->name('auctions.refund');
+    Route::post('/auctions/{auction}/refund', [AdminRefundController::class, 'process'])->name('auctions.refund.process');
 
     // Seller Applications
     Route::get('/seller-applications', [AdminSellerApplicationController::class, 'index'])->name('seller-applications.index');

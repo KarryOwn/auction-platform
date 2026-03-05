@@ -50,6 +50,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform Fee (Percentage)
+    |--------------------------------------------------------------------------
+    |
+    | The percentage of the winning bid amount charged as a platform fee.
+    | The seller receives (100 - fee)% of the winning bid.
+    |
+    */
+    'platform_fee_percent' => (float) env('AUCTION_PLATFORM_FEE_PERCENT', 5.0),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment Deadline (Hours)
+    |--------------------------------------------------------------------------
+    |
+    | Hours after auction close before payment deadline expires.
+    | With auto-capture enabled, this serves as a reference only.
+    |
+    */
+    'payment_deadline_hours' => (int) env('AUCTION_PAYMENT_DEADLINE_HOURS', 48),
+
+    /*
+    |--------------------------------------------------------------------------
     | Minimum Bid Increment
     |--------------------------------------------------------------------------
     */
