@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Notifications\PayoutPaidNotification;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Webhook;
@@ -27,10 +29,17 @@ class StripeWebhookController extends Controller
             return response()->json(['error' => 'Invalid signature'], 400);
         }
 
+        // Connected account ID for Connect webhooks (e.g., payout.paid, payout.failed)
+        $connectedAccountId = $request->header('Stripe-Account');
+
         match ($event->type) {
-            'checkout.session.completed' => $this->handleCheckoutCompleted($event->data->object),
+            'checkout.session.completed'  => $this->handleCheckoutCompleted($event->data->object),
             'payment_intent.payment_failed' => $this->handlePaymentFailed($event->data->object),
-            default => null,
+            'account.updated'             => $this->handleAccountUpdated($event->data->object),
+            'transfer.created'            => null, // acknowledged, no action needed
+            'payout.paid'                 => $this->handlePayoutPaid($event->data->object, $connectedAccountId),
+            'payout.failed'               => $this->handlePayoutFailed($event->data->object, $connectedAccountId),
+            default                       => null,
         };
 
         return response()->json(['received' => true]);
@@ -81,5 +90,72 @@ class StripeWebhookController extends Controller
             'user_metadata'  => $intent->metadata->toArray(),
         ]);
         // Optionally notify user via notification
+    }
+
+    protected function handleAccountUpdated(\Stripe\Account $account): void
+    {
+        $user = User::where('stripe_connect_account_id', $account->id)->first();
+        if (! $user) return;
+
+        if ($account->charges_enabled && ! $user->stripe_connect_onboarded) {
+            $user->update(['stripe_connect_onboarded' => true]);
+            Log::info('StripeWebhook: connect account onboarded', ['user_id' => $user->id]);
+        }
+    }
+
+    protected function handlePayoutPaid(\Stripe\Payout $payout, ?string $accountId): void
+    {
+        if (! $accountId) return;
+
+        $user = User::where('stripe_connect_account_id', $accountId)->first();
+        if (! $user) return;
+
+        $amount = (float) ($payout->amount / 100);
+
+        // Deduct from wallet_balance and release hold simultaneously
+        DB::transaction(function () use ($user, $amount, $payout) {
+            $locked = User::lockForUpdate()->find($user->id);
+            $locked->decrement('wallet_balance', $amount);
+            $locked->decrement('held_balance', $amount);
+            $locked->refresh();
+
+            WalletTransaction::create([
+                'user_id'       => $user->id,
+                'type'          => WalletTransaction::TYPE_WITHDRAWAL,
+                'amount'        => $amount,
+                'balance_after' => $locked->wallet_balance,
+                'description'   => 'Withdrawal paid — bank transfer complete',
+                'stripe_session_id' => $payout->id,
+            ]);
+        });
+
+        $user->notify(new PayoutPaidNotification($amount));
+
+        Log::info('StripeWebhook: payout paid, wallet deducted', [
+            'user_id' => $user->id,
+            'amount'  => $amount,
+        ]);
+    }
+
+    protected function handlePayoutFailed(\Stripe\Payout $payout, ?string $accountId): void
+    {
+        if (! $accountId) return;
+
+        $user = User::where('stripe_connect_account_id', $accountId)->first();
+        if (! $user) return;
+
+        $amount = (float) ($payout->amount / 100);
+
+        // Release the hold — money stays in wallet
+        $this->walletService->release(
+            $user,
+            $amount,
+            'Withdrawal hold released — payout failed',
+        );
+
+        Log::warning('StripeWebhook: payout failed, hold released', [
+            'user_id' => $user->id,
+            'amount'  => $amount,
+        ]);
     }
 }

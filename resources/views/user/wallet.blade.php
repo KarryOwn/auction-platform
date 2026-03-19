@@ -68,18 +68,48 @@
                             </button>
                         </form>
 
-                        <form method="POST" action="{{ route('user.wallet.withdraw') }}" class="flex items-end gap-3">
-                            @csrf
-                            <div>
-                                <label for="withdraw_amount" class="block text-sm font-medium text-gray-700 mb-1">Withdraw Amount</label>
-                                <input type="number" name="amount" id="withdraw_amount" min="1" max="50000" step="0.01"
-                                       placeholder="Amount to withdraw"
-                                       class="rounded-md border-gray-300 shadow-sm text-sm w-40">
+                        {{-- Stripe Connect Bank Account Section --}}
+                        @if(! $user->hasConnectedBank())
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-amber-900">Connect a bank account to withdraw funds</p>
+                                    <p class="text-xs text-amber-700 mt-0.5">Powered by Stripe. Takes about 2 minutes.</p>
+                                </div>
+                                <a href="{{ route('wallet.connect.onboard') }}"
+                                   class="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition">
+                                    Connect Bank
+                                </a>
                             </div>
-                            <button type="submit" class="px-5 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition">
-                                Withdraw
-                            </button>
-                        </form>
+                        @else
+                            <div class="flex items-center gap-2 text-sm text-green-700 mb-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                                </svg>
+                                Bank account connected —
+                                <a href="{{ route('wallet.connect.dashboard') }}" class="underline text-green-800">manage in Stripe</a>
+                            </div>
+
+                            <form method="POST" action="{{ route('user.wallet.withdraw') }}" class="flex items-end gap-3">
+                                @csrf
+                                <div>
+                                    <label for="withdraw_amount" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Withdraw Amount
+                                        <span class="text-gray-400 font-normal">(available: ${{ number_format($user->availableBalance(), 2) }})</span>
+                                    </label>
+                                    <input type="number" name="amount" id="withdraw_amount"
+                                           min="1" max="{{ $user->availableBalance() }}" step="0.01"
+                                           placeholder="Amount to withdraw"
+                                           class="rounded-md border-gray-300 shadow-sm text-sm w-48">
+                                    @error('amount')
+                                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <button type="submit"
+                                        class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+                                    Withdraw to Bank
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
             </div>

@@ -53,6 +53,8 @@ class User extends Authenticatable implements HasMedia
         'ban_reason',
         'wallet_balance',
         'held_balance',
+        'stripe_connect_account_id',
+        'stripe_connect_onboarded',
         'notification_preferences',
         'seller_verified_at',
         'seller_application_status',
@@ -88,6 +90,7 @@ class User extends Authenticatable implements HasMedia
             'banned_at'                  => 'datetime',
             'wallet_balance'             => 'decimal:2',
             'held_balance'               => 'decimal:2',
+            'stripe_connect_onboarded'   => 'boolean',
             'notification_preferences'   => 'array',
             'seller_verified_at'         => 'datetime',
             'seller_applied_at'          => 'datetime',
@@ -316,6 +319,15 @@ class User extends Authenticatable implements HasMedia
     public function canAfford(float $amount): bool
     {
         return $this->availableBalance() >= $amount;
+    }
+
+    /**
+     * Whether the user has connected a bank account via Stripe Connect.
+     */
+    public function hasConnectedBank(): bool
+    {
+        return $this->stripe_connect_onboarded
+            && ! empty($this->stripe_connect_account_id);
     }
 
     /**

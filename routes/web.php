@@ -34,7 +34,9 @@ use App\Http\Controllers\User\WonAuctionsController;
 use App\Http\Controllers\User\WatchlistController;
 use App\Http\Controllers\User\WalletController;
 use App\Http\Controllers\User\NotificationPreferenceController;
+use App\Http\Controllers\User\WithdrawalController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\StripeConnectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -77,8 +79,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/wallet/stripe/checkout', [WalletController::class, 'stripeCheckout'])->name('user.wallet.stripe.checkout');
     Route::get('/dashboard/wallet/stripe/success', [WalletController::class, 'stripeSuccess'])->name('user.wallet.stripe.success');
     Route::get('/dashboard/wallet/stripe/cancel', fn () => redirect()->route('user.wallet')->with('error', 'Payment cancelled.'))->name('user.wallet.stripe.cancel');
-    Route::post('/dashboard/wallet/withdraw', [WalletController::class, 'withdraw'])->name('user.wallet.withdraw');
+    Route::post('/dashboard/wallet/withdraw', [WithdrawalController::class, 'store'])->name('user.wallet.withdraw');
     Route::get('/dashboard/wallet/export', [WalletController::class, 'exportTransactions'])->name('user.wallet.export');
+
+    // Stripe Connect (bank account onboarding)
+    Route::get('/dashboard/wallet/connect', [StripeConnectController::class, 'onboard'])->name('wallet.connect.onboard');
+    Route::get('/dashboard/wallet/connect/return', [StripeConnectController::class, 'return'])->name('wallet.connect.return');
+    Route::get('/dashboard/wallet/connect/dashboard', [StripeConnectController::class, 'dashboard'])->name('wallet.connect.dashboard');
 
     // Invoices
     Route::get('/dashboard/invoices', [InvoiceController::class, 'index'])->name('user.invoices');
