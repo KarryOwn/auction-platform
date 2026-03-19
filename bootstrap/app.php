@@ -24,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'track.auction.view' => \App\Http\Middleware\TrackAuctionView::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'stripe/webhook',
+        ]);
+
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\EnsureNotBanned::class,
         ]);

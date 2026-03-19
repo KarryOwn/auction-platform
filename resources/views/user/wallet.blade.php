@@ -38,7 +38,7 @@
                     </div>
 
                     <div class="flex flex-col gap-3">
-                        <form method="POST" action="{{ route('user.wallet.top-up') }}" class="flex items-end gap-3">
+                        <form method="POST" action="{{ route('user.wallet.stripe.checkout') }}" class="flex items-end gap-3">
                             @csrf
                             <div>
                                 <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Top-Up Amount</label>
@@ -59,8 +59,12 @@
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
-                            <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition">
-                                Top Up
+                            <button type="submit"
+                                    class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition flex items-center gap-2">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
+                                </svg>
+                                Pay with Stripe
                             </button>
                         </form>
 

@@ -34,12 +34,17 @@ use App\Http\Controllers\User\WonAuctionsController;
 use App\Http\Controllers\User\WatchlistController;
 use App\Http\Controllers\User\WalletController;
 use App\Http\Controllers\User\NotificationPreferenceController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Stripe Webhook (outside all middleware — no CSRF)
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])
+     ->name('stripe.webhook');
 
 // Public user profiles
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('users.show');
@@ -69,6 +74,9 @@ Route::middleware('auth')->group(function () {
     // Wallet
     Route::get('/dashboard/wallet', [WalletController::class, 'show'])->name('user.wallet');
     Route::post('/dashboard/wallet/top-up', [WalletController::class, 'topUp'])->name('user.wallet.top-up');
+    Route::post('/dashboard/wallet/stripe/checkout', [WalletController::class, 'stripeCheckout'])->name('user.wallet.stripe.checkout');
+    Route::get('/dashboard/wallet/stripe/success', [WalletController::class, 'stripeSuccess'])->name('user.wallet.stripe.success');
+    Route::get('/dashboard/wallet/stripe/cancel', fn () => redirect()->route('user.wallet')->with('error', 'Payment cancelled.'))->name('user.wallet.stripe.cancel');
     Route::post('/dashboard/wallet/withdraw', [WalletController::class, 'withdraw'])->name('user.wallet.withdraw');
     Route::get('/dashboard/wallet/export', [WalletController::class, 'exportTransactions'])->name('user.wallet.export');
 

@@ -10,6 +10,7 @@ use App\Services\Bidding\PessimisticSqlEngine;
 use App\Services\Bidding\RedisAtomicEngine;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Stripe\Stripe;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Bootstrap Stripe with the secret key
+        Stripe::setApiKey(config('services.stripe.secret'));
+
         // Bidding engine binding (swap to PessimisticSqlEngine for non-Redis setups)
         // $this->app->bind(BiddingStrategy::class, PessimisticSqlEngine::class);
         $this->app->bind(BiddingStrategy::class, RedisAtomicEngine::class);
