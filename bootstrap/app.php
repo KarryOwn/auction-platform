@@ -13,7 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withCommands([
-    App\Console\Commands\StressTest::class,
+        App\Console\Commands\StressTest::class,
+        App\Console\Commands\MigrateSqliteToPgsql::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

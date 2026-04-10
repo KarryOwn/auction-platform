@@ -33,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
                 windowSeconds: (int) config('auction.rate_limit.window_seconds', 60),
             );
         });
+
+        // Price prediction service singleton
+        $this->app->singleton(\App\Services\AttributePricePredictionService::class);
     }
 
     /**

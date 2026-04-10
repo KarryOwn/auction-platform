@@ -84,7 +84,7 @@ class AuctionController extends Controller
         return view('auctions.index', compact('auctions', 'rootCategories', 'conditions'));
     }
 
-    public function show(Auction $auction)
+    public function show(Auction $auction, \App\Services\AttributePricePredictionService $predictionService)
     {
         $auction->loadCount('bids');
         $auction->load([
@@ -119,11 +119,26 @@ class AuctionController extends Controller
             ->take(10)
             ->get();
 
+        $prediction = null;
+        if ($auction->primaryCategory->isNotEmpty()) {
+            $inputAttrs = $auction->attributeValues->mapWithKeys(function ($attrVal) {
+                return [$attrVal->attribute->slug => $attrVal->value];
+            })->toArray();
+            
+            $prediction = $predictionService->predict(
+                categoryId: $auction->primaryCategory->first()->id,
+                inputAttrs: $inputAttrs,
+                brandId: $auction->brand_id,
+                condition: $auction->condition
+            );
+        }
+
         return view('auctions.show', compact(
             'auction',
             'isWatching',
             'autoBid',
             'recentBids',
+            'prediction'
         ));
     }
 

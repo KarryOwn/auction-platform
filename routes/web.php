@@ -150,6 +150,8 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::post('/messages/{conversation}/read', [SellerMessageController::class, 'markRead'])->name('messages.read');
 
     Route::post('/insights/price-suggestion', [InsightController::class, 'suggestPrice'])->name('insights.price-suggestion');
+    Route::post('/insights/predict', [InsightController::class, 'predict'])->name('insights.predict');
+    Route::get('/insights/category-attributes', [InsightController::class, 'categoryAttributes'])->name('insights.category-attributes');
     Route::get('/auctions/{auction}/insights', [InsightController::class, 'auctionInsights'])->name('auctions.insights');
 
     Route::get('/auctions', [AuctionCrudController::class, 'index'])->name('auctions.index');

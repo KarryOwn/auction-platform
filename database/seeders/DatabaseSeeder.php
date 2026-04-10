@@ -71,6 +71,7 @@ class DatabaseSeeder extends Seeder
             BrandSeeder::class,
             TagSeeder::class,
             AttributeSeeder::class,
+            PriceModelSeeder::class,
         ]);
 
         $this->command->info('Creating 50 auctions...');

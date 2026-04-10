@@ -111,11 +111,17 @@
                     <div class="bg-white shadow-sm sm:rounded-lg p-6">
                         <p class="text-gray-700 leading-relaxed mb-6">{{ $auction->description }}</p>
 
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Starting Price</span>
                                 <span class="text-lg font-bold text-gray-800">${{ number_format($auction->starting_price, 2) }}</span>
                             </div>
+                            @if($prediction && ($prediction['predicted_price'] ?? 0) > 0)
+                            <div class="bg-gray-50 rounded-lg p-3 text-center">
+                                <span class="block text-xs text-gray-500 uppercase tracking-wide text-indigo-600">Expected Price</span>
+                                <span class="text-lg font-bold text-indigo-600">${{ number_format($prediction['predicted_price'], 2) }}</span>
+                            </div>
+                            @endif
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Bids</span>
                                 <span id="bid-count" class="text-lg font-bold text-gray-800">{{ $auction->bids_count ?? $auction->bid_count ?? 0 }}</span>
