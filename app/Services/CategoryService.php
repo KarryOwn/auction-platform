@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Attribute;
+use App\Models\Auction;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 class CategoryService
 {
     private const CACHE_TTL = 3600; // 1 hour
+    private const ROOT_COUNTS_CACHE_KEY = 'categories:root_with_counts:v2';
 
     /**
      * Get the full nested category tree.
@@ -47,14 +48,13 @@ class CategoryService
      */
     public function getRootWithAuctionCounts(): Collection
     {
-        return Cache::remember('categories:root_with_counts', self::CACHE_TTL, function () {
-            return Category::root()
+        return Cache::remember(self::ROOT_COUNTS_CACHE_KEY, self::CACHE_TTL, function () {
+            $categories = Category::root()
                 ->active()
                 ->ordered()
-                ->withCount(['auctions' => function (Builder $q) {
-                    $q->where('status', 'active')->where('end_time', '>', now());
-                }])
                 ->get();
+
+            return $this->attachLiveAuctionCounts($categories);
         });
     }
 
@@ -63,14 +63,34 @@ class CategoryService
      */
     public function getWithAuctionCounts(?int $parentId = null): Collection
     {
-        return Category::query()
+        $categories = Category::query()
             ->where('parent_id', $parentId)
             ->active()
             ->ordered()
-            ->withCount(['auctions' => function (Builder $q) {
-                $q->where('status', 'active')->where('end_time', '>', now());
-            }])
             ->get();
+
+        return $this->attachLiveAuctionCounts($categories);
+    }
+
+    /**
+     * Attach live auction counts for each category, including descendant categories.
+     */
+    private function attachLiveAuctionCounts(Collection $categories): Collection
+    {
+        foreach ($categories as $category) {
+            $categoryIds = array_merge([$category->id], $category->descendant_ids);
+
+            $count = Auction::query()
+                ->active()
+                ->whereHas('categories', function (Builder $query) use ($categoryIds) {
+                    $query->whereIn('categories.id', $categoryIds);
+                })
+                ->count();
+
+            $category->setAttribute('auctions_count', $count);
+        }
+
+        return $categories;
     }
 
     /**
@@ -137,6 +157,7 @@ class CategoryService
         Cache::forget('categories:tree:active');
         Cache::forget('categories:tree:all');
         Cache::forget('categories:root_with_counts');
+        Cache::forget(self::ROOT_COUNTS_CACHE_KEY);
 
         // Clear attribute caches for all categories
         Category::all()->each(function (Category $category) {
