@@ -48,7 +48,7 @@
                         {{-- Search --}}
                         <div>
                             <label class="text-sm font-medium text-gray-700">Search</label>
-                            <input type="text" name="q" value="{{ request('q') }}" placeholder="Search in {{ $category->name }}..."
+                            <input type="text" name="q" value="{{ request('q') }}" placeholder="Search items or seller in {{ $category->name }}..."
                                    class="mt-1 w-full rounded-md border-gray-300 shadow-sm text-sm">
                         </div>
 

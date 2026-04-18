@@ -24,8 +24,13 @@ class AuctionManagementController extends Controller
             $query->where('status', $status);
         }
 
-        if ($search = $request->input('search')) {
-            $query->where('title', 'ilike', "%{$search}%");
+        if ($search = trim((string) $request->input('search', ''))) {
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('title', 'ilike', "%{$search}%")
+                    ->orWhereHas('seller', function ($sellerQuery) use ($search) {
+                        $sellerQuery->where('name', 'ilike', "%{$search}%");
+                    });
+            });
         }
 
         $auctions = $query->orderByDesc('created_at')->paginate(25)->withQueryString();

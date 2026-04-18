@@ -114,14 +114,53 @@ class AuctionFactory extends Factory
     public function withImages(int $count = 3): static
     {
         return $this->afterCreating(function (Auction $auction) use ($count) {
-            $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7ZxV0AAAAASUVORK5CYII=');
-
             for ($index = 1; $index <= $count; $index++) {
-                $auction->addMediaFromString($png)
+                $auction->addMediaFromString($this->createSeedImagePng())
                     ->usingFileName("seed-{$auction->id}-{$index}.png")
                     ->toMediaCollection('images');
             }
         });
+    }
+
+    private function createSeedImagePng(): string
+    {
+        $width = 1200;
+        $height = 900;
+
+        $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            throw new \RuntimeException('Unable to initialize seed image canvas.');
+        }
+
+        $baseColor = imagecolorallocate(
+            $image,
+            random_int(50, 160),
+            random_int(70, 190),
+            random_int(90, 220)
+        );
+        $accentColor = imagecolorallocate(
+            $image,
+            random_int(180, 255),
+            random_int(130, 230),
+            random_int(80, 200)
+        );
+        $textColor = imagecolorallocate($image, 255, 255, 255);
+
+        imagefilledrectangle($image, 0, 0, $width, $height, $baseColor);
+        imagefilledellipse($image, (int) ($width * 0.28), (int) ($height * 0.34), 520, 520, $accentColor);
+        imagefilledellipse($image, (int) ($width * 0.78), (int) ($height * 0.72), 420, 420, $accentColor);
+        imagestring($image, 5, 30, 30, 'Seeded Auction Image', $textColor);
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+        imagedestroy($image);
+
+        if (! is_string($png) || $png === '') {
+            throw new \RuntimeException('Failed to generate seed image PNG data.');
+        }
+
+        return $png;
     }
 
     public function withVideo(): static

@@ -24,8 +24,13 @@ class AuctionController extends Controller
             ->with(['media', 'categories', 'tags', 'brand']);
 
         // Keyword search
-        if ($q = $request->input('q')) {
-            $query->where('title', 'ilike', "%{$q}%");
+        if ($q = trim((string) $request->input('q', ''))) {
+            $query->where(function ($searchQuery) use ($q) {
+                $searchQuery->where('title', 'ilike', "%{$q}%")
+                    ->orWhereHas('seller', function ($sellerQuery) use ($q) {
+                        $sellerQuery->where('name', 'ilike', "%{$q}%");
+                    });
+            });
         }
 
         // Price range

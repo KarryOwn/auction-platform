@@ -1,0 +1,166 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Models\Auction;
+use App\Models\Brand;
+use App\Models\Category;
+use App\Models\Tag;
+use App\Models\User;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+
+/**
+ * Scheduled job that creates one random active auction.
+ *
+ * Intended to run every 5 minutes via the scheduler.
+ */
+class CreateRandomAuction implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 2;
+
+    public function handle(): void
+    {
+        $leafCategoryIds = Category::query()
+            ->active()
+            ->whereDoesntHave('children')
+            ->pluck('id');
+
+        if ($leafCategoryIds->isEmpty()) {
+            $leafCategoryIds = Category::query()
+                ->whereDoesntHave('children')
+                ->pluck('id');
+        }
+
+        if ($leafCategoryIds->isEmpty()) {
+            Log::warning('CreateRandomAuction: skipped, no leaf categories available');
+            return;
+        }
+
+        $seller = $this->resolveSeller();
+
+        $startingPrice = $this->randomMoney(2000, 150000);
+        $reservePrice = random_int(1, 100) <= 70
+            ? round($startingPrice * (random_int(110, 170) / 100), 2)
+            : null;
+        $endTime = now()->addMinutes(random_int(45, 360));
+
+        $auction = Auction::create([
+            'user_id' => $seller->id,
+            'title' => $this->buildTitle(),
+            'description' => $this->buildDescription(),
+            'starting_price' => $startingPrice,
+            'current_price' => $startingPrice,
+            'reserve_price' => $reservePrice,
+            'reserve_met' => false,
+            'min_bid_increment' => $this->randomMoney(50, 2000),
+            'snipe_threshold_seconds' => 30,
+            'snipe_extension_seconds' => 30,
+            'max_extensions' => 10,
+            'currency' => config('auction.currency', 'USD'),
+            'start_time' => now(),
+            'end_time' => $endTime,
+            'status' => Auction::STATUS_ACTIVE,
+            'condition' => $this->randomCondition(),
+            'brand_id' => Brand::query()->inRandomOrder()->value('id'),
+            'sku' => strtoupper('AUTO-' . Str::random(8)),
+        ]);
+
+        $categoryCount = min($leafCategoryIds->count(), random_int(1, 2));
+        $selectedCategoryIds = $leafCategoryIds->shuffle()->take($categoryCount)->values();
+
+        $categorySync = [];
+        foreach ($selectedCategoryIds as $index => $categoryId) {
+            $categorySync[$categoryId] = ['is_primary' => $index === 0];
+        }
+        $auction->categories()->sync($categorySync);
+
+        $availableTagCount = Tag::query()->count();
+        if ($availableTagCount > 0) {
+            $tagCount = min($availableTagCount, random_int(1, 3));
+            $tagIds = Tag::query()->inRandomOrder()->limit($tagCount)->pluck('id')->all();
+            $auction->tags()->sync($tagIds);
+        }
+
+        Log::info('CreateRandomAuction: created', [
+            'auction_id' => $auction->id,
+            'seller_id' => $seller->id,
+            'status' => $auction->status,
+            'end_time' => $auction->end_time?->toDateTimeString(),
+        ]);
+    }
+
+    private function resolveSeller(): User
+    {
+        $seller = User::query()
+            ->active()
+            ->verifiedSellers()
+            ->inRandomOrder()
+            ->first();
+
+        if ($seller instanceof User) {
+            return $seller;
+        }
+
+        $suffix = strtolower(Str::random(10));
+
+        $created = User::create([
+            'name' => 'Auto Seller ' . strtoupper(Str::random(4)),
+            'email' => "auto-seller-{$suffix}@example.test",
+            'password' => Hash::make(Str::random(40)),
+            'role' => User::ROLE_SELLER,
+            'seller_verified_at' => now(),
+            'seller_application_status' => 'approved',
+            'seller_slug' => "auto-seller-{$suffix}",
+        ]);
+
+        Log::info('CreateRandomAuction: created fallback verified seller', [
+            'seller_id' => $created->id,
+        ]);
+
+        return $created;
+    }
+
+    private function buildTitle(): string
+    {
+        $prefixes = ['Limited', 'Premium', 'Collector', 'Classic', 'Flagship', 'Vintage'];
+        $items = ['Smartphone', 'Laptop', 'Watch', 'Camera', 'Sneakers', 'Console', 'Tablet', 'Headset'];
+
+        return $prefixes[array_rand($prefixes)]
+            . ' '
+            . $items[array_rand($items)]
+            . ' '
+            . strtoupper(Str::random(5));
+    }
+
+    private function buildDescription(): string
+    {
+        $notes = [
+            'Auto-generated listing for marketplace activity simulation.',
+            'Fresh random auction generated by scheduler.',
+            'System-created listing with randomized pricing and metadata.',
+        ];
+
+        return $notes[array_rand($notes)] . ' Generated at ' . now()->toDateTimeString() . '.';
+    }
+
+    private function randomCondition(): string
+    {
+        $conditions = array_keys(Auction::CONDITIONS);
+
+        return $conditions[array_rand($conditions)];
+    }
+
+    private function randomMoney(int $minCents, int $maxCents): float
+    {
+        return round(random_int($minCents, $maxCents) / 100, 2);
+    }
+}

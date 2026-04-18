@@ -20,9 +20,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Flush auction-related Redis keys so stale prices don't persist
-        $this->command->info('Flushing Redis auction keys...');
-        $this->flushAuctionKeys();
+        // Flush Redis so stale cache/queue/auction data does not survive fresh seeds
+        $this->command->info('Flushing Redis connections...');
+        $this->flushRedisConnections();
 
         // User::factory(10)->create();
         User::updateOrCreate(
@@ -74,13 +74,13 @@ class DatabaseSeeder extends Seeder
             PriceModelSeeder::class,
         ]);
 
-        $this->command->info('Creating 50 auctions...');
+        $this->command->info('Creating 50 auctions with pictures...');
         $leafCategories = Category::whereDoesntHave('children')->pluck('id')->all();
         $brandIds = Brand::pluck('id')->all();
         $tagIds = Tag::pluck('id')->all();
         $conditions = array_keys(Auction::CONDITIONS);
 
-        Auction::factory(50)->create([
+        Auction::factory(50)->withImages(1)->create([
             'status'   => 'active',
             'end_time' => now()->addHour(),
         ])->each(function (Auction $auction) use ($leafCategories, $brandIds, $tagIds, $conditions) {
@@ -105,29 +105,18 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Remove all auction:* keys from Redis to prevent stale price data
-     * after a database refresh.
+     * Flush all configured Redis connections for this app after DB refresh.
      */
-    private function flushAuctionKeys(): void
+    private function flushRedisConnections(): void
     {
-        $prefix = config('database.redis.options.prefix', '');
-        $pattern = $prefix . 'auction:*';
-        $cursor = null;
+        $connections = collect(config('database.redis', []))
+            ->except(['client', 'options'])
+            ->filter(fn ($connectionConfig) => is_array($connectionConfig))
+            ->keys();
 
-        do {
-            $result = Redis::scan($cursor, ['match' => $pattern, 'count' => 200]);
-
-            // Redis::scan returns false when iteration is complete or no keys found
-            if ($result === false) {
-                break;
-            }
-
-            [$cursor, $keys] = $result;
-
-            if (! empty($keys)) {
-                $unprefixed = array_map(fn ($k) => str_replace($prefix, '', $k), $keys);
-                Redis::del($unprefixed);
-            }
-        } while ($cursor);
+        foreach ($connections as $connection) {
+            Redis::connection($connection)->flushdb();
+            $this->command->line(" - Cleared Redis [{$connection}] database");
+        }
     }
 }

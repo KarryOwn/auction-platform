@@ -28,8 +28,8 @@
                     @if(request('status'))
                         <input type="hidden" name="status" value="{{ request('status') }}">
                     @endif
-                    <input type="text" name="search" value="{{ request('search') }}"
-                           placeholder="Search auctions by title..."
+                          <input type="text" name="search" value="{{ request('search') }}"
+                              placeholder="Search auctions by title or seller..."
                            class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">Search</button>
                     @if(request('search'))

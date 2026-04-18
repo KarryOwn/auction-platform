@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use App\Jobs\CreateRandomAuction;
 use App\Jobs\CloseExpiredAuctions;
 use App\Jobs\CaptureAuctionSnapshots;
 use App\Jobs\CleanupStaleEscrowHolds;
@@ -41,5 +42,11 @@ Schedule::command('auctions:notify-ending-soon')
 Schedule::job(new CleanupStaleEscrowHolds)
     ->daily()
     ->name('cleanup-stale-escrow-holds')
+    ->withoutOverlapping();
+
+// Generate a random active auction for demo activity.
+Schedule::job(new CreateRandomAuction)
+    ->everyFiveMinutes()
+    ->name('create-random-auction')
     ->withoutOverlapping();
 
