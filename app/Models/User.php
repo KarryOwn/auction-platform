@@ -178,6 +178,16 @@ class User extends Authenticatable implements HasMedia
     }
 
 
+    public function getPreferencesAttribute()
+    {
+        return UserPreference::forUser($this->id);
+    }
+
+    public function userPreference(): HasOne
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
     public function auctions(): HasMany
     {
         return $this->hasMany(Auction::class);

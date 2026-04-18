@@ -216,7 +216,6 @@
             if (!confirm('Are you sure you want to force-cancel this auction? This cannot be undone.')) return;
 
             const reason = this.querySelector('[name="reason"]').value;
-            const msgEl = document.getElementById('action-message');
 
             try {
                 const resp = await fetch('{{ route("admin.auctions.force-cancel", $auction) }}', {
@@ -229,16 +228,14 @@
                     body: JSON.stringify({ reason }),
                 });
                 const data = await resp.json();
-                msgEl.className = resp.ok
-                    ? 'mt-4 p-3 rounded bg-green-100 text-green-800 text-sm'
-                    : 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
-                msgEl.textContent = data.message;
-                msgEl.classList.remove('hidden');
-                if (resp.ok) setTimeout(() => location.reload(), 1500);
+                if (resp.ok) {
+                    window.toast.success(data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    window.toast.error(data.message || 'Error cancelling auction.');
+                }
             } catch (err) {
-                msgEl.className = 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
-                msgEl.textContent = 'Request failed.';
-                msgEl.classList.remove('hidden');
+                window.toast.error('Request failed.');
             }
         });
 
@@ -247,7 +244,6 @@
             e.preventDefault();
             const minutes = this.querySelector('[name="minutes"]').value;
             const reason = this.querySelector('[name="reason"]').value;
-            const msgEl = document.getElementById('action-message');
 
             try {
                 const resp = await fetch('{{ route("admin.auctions.extend", $auction) }}', {
@@ -260,16 +256,14 @@
                     body: JSON.stringify({ minutes: parseInt(minutes), reason }),
                 });
                 const data = await resp.json();
-                msgEl.className = resp.ok
-                    ? 'mt-4 p-3 rounded bg-green-100 text-green-800 text-sm'
-                    : 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
-                msgEl.textContent = data.message;
-                msgEl.classList.remove('hidden');
-                if (resp.ok) setTimeout(() => location.reload(), 1500);
+                if (resp.ok) {
+                    window.toast.success(data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    window.toast.error(data.message || 'Error extending auction.');
+                }
             } catch (err) {
-                msgEl.className = 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
-                msgEl.textContent = 'Request failed.';
-                msgEl.classList.remove('hidden');
+                window.toast.error('Request failed.');
             }
         });
     </script>

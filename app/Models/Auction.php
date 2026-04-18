@@ -45,6 +45,9 @@ class Auction extends Model implements HasMedia
         'currency',
         'is_featured',
         'featured_until',
+        'featured_position',
+        'views_count',
+        'unique_viewers_count',
         'start_time',
         'end_time',
         'status',
@@ -75,6 +78,9 @@ class Auction extends Model implements HasMedia
         'winning_bid_amount'       => 'decimal:2',
         'reserve_met'              => 'boolean',
         'is_featured'              => 'boolean',
+        'featured_position'        => 'integer',
+        'views_count'              => 'integer',
+        'unique_viewers_count'     => 'integer',
         'bid_count'                => 'integer',
         'unique_bidder_count'      => 'integer',
         'extension_count'          => 'integer',
@@ -94,6 +100,25 @@ class Auction extends Model implements HasMedia
         'refurbished' => 'Refurbished',
         'for_parts'   => 'For Parts / Not Working',
     ];
+
+    public function getIsCurrentlyFeaturedAttribute(): bool
+    {
+        return $this->is_featured && ($this->featured_until === null || $this->featured_until->isFuture());
+    }
+
+    public function scopeFeatured(Builder $query): Builder
+    {
+        return $query->where('is_featured', true)
+            ->where(function (Builder $q) {
+                $q->whereNull('featured_until')
+                  ->orWhere('featured_until', '>', now());
+            });
+    }
+
+    public function scopePopular(Builder $query): Builder
+    {
+        return $query->orderByRaw('(COALESCE(bids_count, bid_count, 0) + COALESCE(views_count, 0) * 0.1) DESC');
+    }
 
     public function registerMediaCollections(): void
     {
@@ -247,15 +272,6 @@ class Auction extends Model implements HasMedia
         return $query->active()
                      ->where('end_time', '<=', now()->addMinutes($minutes))
                      ->orderBy('end_time', 'asc');
-    }
-
-    public function scopeFeatured(Builder $query): Builder
-    {
-        return $query->where('is_featured', true)
-                     ->where(function (Builder $q) {
-                         $q->whereNull('featured_until')
-                           ->orWhere('featured_until', '>', now());
-                     });
     }
 
     public function scopeReserveMet(Builder $query): Builder

@@ -1,4 +1,7 @@
 import './bootstrap';
+import './bid-events';
+import './bid-ui';
+import './toast';
 import './filepond-setup';
 
 import Alpine from 'alpinejs';

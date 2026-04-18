@@ -216,19 +216,10 @@
     @push('scripts')
     <script>
         const csrfToken = '{{ csrf_token() }}';
-        const msgEl = document.getElementById('action-message');
-
-        function showMessage(text, success) {
-            msgEl.className = success
-                ? 'mt-4 p-3 rounded bg-green-100 text-green-800 text-sm'
-                : 'mt-4 p-3 rounded bg-red-100 text-red-800 text-sm';
-            msgEl.textContent = text;
-            msgEl.classList.remove('hidden');
-        }
 
         async function banUser() {
             const reason = document.getElementById('ban-reason')?.value;
-            if (!reason) { alert('Please enter a ban reason.'); return; }
+            if (!reason) { window.toast.error('Please enter a ban reason.'); return; }
             if (!confirm('Ban this user?')) return;
 
             try {
@@ -238,9 +229,13 @@
                     body: JSON.stringify({ reason }),
                 });
                 const data = await resp.json();
-                showMessage(data.message, resp.ok);
-                if (resp.ok) setTimeout(() => location.reload(), 1500);
-            } catch { showMessage('Request failed.', false); }
+                if (resp.ok) {
+                    window.toast.success(data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    window.toast.error(data.message || 'Error banning user');
+                }
+            } catch { window.toast.error('Request failed.'); }
         }
 
         async function unbanUser() {
@@ -253,9 +248,13 @@
                     body: JSON.stringify({}),
                 });
                 const data = await resp.json();
-                showMessage(data.message, resp.ok);
-                if (resp.ok) setTimeout(() => location.reload(), 1500);
-            } catch { showMessage('Request failed.', false); }
+                if (resp.ok) {
+                    window.toast.success(data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    window.toast.error(data.message || 'Error unbanning user');
+                }
+            } catch { window.toast.error('Request failed.'); }
         }
 
         async function changeRole() {
@@ -269,9 +268,13 @@
                     body: JSON.stringify({ role }),
                 });
                 const data = await resp.json();
-                showMessage(data.message, resp.ok);
-                if (resp.ok) setTimeout(() => location.reload(), 1500);
-            } catch { showMessage('Request failed.', false); }
+                if (resp.ok) {
+                    window.toast.success(data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    window.toast.error(data.message || 'Error changing role');
+                }
+            } catch { window.toast.error('Request failed.'); }
         }
     </script>
     @endpush

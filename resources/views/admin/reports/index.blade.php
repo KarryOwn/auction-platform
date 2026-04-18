@@ -167,12 +167,12 @@
                     const actionsCell = row.querySelector('td:last-child');
                     actionsCell.innerHTML = '<span class="text-xs text-gray-400">Resolved</span>';
 
-                    alert(data.message);
+                    window.toast.success(data.message);
                 } else {
-                    alert(data.message || 'Failed to review report.');
+                    window.toast.error(data.message || 'Failed to review report.');
                 }
             } catch {
-                alert('Request failed.');
+                window.toast.error('Request failed.');
             }
         }
     </script>
