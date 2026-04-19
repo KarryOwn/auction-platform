@@ -7,14 +7,14 @@
 
     <div class="py-8 bg-gray-50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="flex flex-col lg:flex-row gap-8">
+            <div class="flex flex-col lg:flex-row gap-8" x-data="auctionIndexFilters()">
                 
                 {{-- Left Sidebar: Filters --}}
                 <aside class="w-full lg:w-1/4 flex-shrink-0">
-                    <form method="GET" action="{{ route('auctions.index') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-6">
+                    <form method="GET" action="{{ route('auctions.index') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-6" @submit.prevent="submitFilters($event)" role="search" aria-label="Filter auctions">
                         <div class="flex items-center justify-between mb-5">
                             <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Filters</h3>
-                            <a href="{{ route('auctions.index') }}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Clear All</a>
+                            <a href="{{ route('auctions.index') }}" class="inline-flex items-center h-11 px-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium">Clear All</a>
                         </div>
 
                         {{-- Search Filter --}}
@@ -100,40 +100,105 @@
                         </div>
                     @endif
 
-                    {{-- Active Filters & Result Count Summary --}}
-                    <div class="flex flex-wrap items-center justify-between mb-4">
-                        <p class="text-gray-600 text-sm">
-                            Showing <span class="font-bold text-gray-900">{{ $auctions->firstItem() ?? 0 }}-{{ $auctions->lastItem() ?? 0 }}</span> of <span class="font-bold text-gray-900">{{ $auctions->total() }}</span> results
-                        </p>
-                    </div>
-
-                    {{-- Auction Grid --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        @foreach ($auctions as $auction)
-                            <x-auction.card :auction="$auction" />
-                        @endforeach
-                    </div>
-
-                    {{-- Empty State --}}
-                    @if($auctions->isEmpty())
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center mt-6">
-                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4">
-                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-900 mb-2">No auctions found</h3>
-                            <p class="text-gray-500 text-sm max-w-sm mx-auto">We couldn't find any live auctions matching your filters. Try adjusting your search parameters or clearing filters.</p>
-                            <a href="{{ route('auctions.index') }}" class="mt-6 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                                Clear All Filters
-                            </a>
+                    <template x-if="loading">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            @for($i = 0; $i < 6; $i++)
+                                <x-skeleton.auction-card />
+                            @endfor
                         </div>
-                    @endif
+                    </template>
 
-                    {{-- Pagination --}}
-                    <div class="mt-8">
-                        {{ $auctions->links() }}
+                    <div id="auction-results" x-show="!loading" x-cloak>
+                        {{-- Active Filters & Result Count Summary --}}
+                        <div class="flex flex-wrap items-center justify-between mb-4">
+                            <p class="text-gray-600 text-sm">
+                                Showing <span class="font-bold text-gray-900">{{ $auctions->firstItem() ?? 0 }}-{{ $auctions->lastItem() ?? 0 }}</span> of <span class="font-bold text-gray-900">{{ $auctions->total() }}</span> results
+                            </p>
+                        </div>
+
+                        {{-- Auction Grid --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" aria-label="Auction listings, {{ $auctions->total() }} results">
+                            @foreach ($auctions as $auction)
+                                <x-auction.card :auction="$auction" />
+                            @endforeach
+                        </div>
+
+                        {{-- Empty State --}}
+                        @if($auctions->isEmpty())
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center mt-6">
+                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4">
+                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                                </div>
+                                <h3 class="text-lg font-bold text-gray-900 mb-2">No auctions found</h3>
+                                <p class="text-gray-500 text-sm max-w-sm mx-auto">We couldn't find any live auctions matching your filters. Try adjusting your search parameters or clearing filters.</p>
+                                <a href="{{ route('auctions.index') }}" class="mt-6 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                                    Clear All Filters
+                                </a>
+                            </div>
+                        @endif
+
+                        {{-- Pagination --}}
+                        <div class="mt-8">
+                            {{ $auctions->links() }}
+                        </div>
                     </div>
                 </main>
             </div>
         </div>
     </div>
 </x-app-layout>
+
+@push('scripts')
+<script>
+    function auctionIndexFilters() {
+        return {
+            loading: false,
+            async submitFilters(event) {
+                const form = event.target;
+                const url = new URL(form.action);
+                const formData = new FormData(form);
+
+                for (const [key, value] of formData.entries()) {
+                    if (value !== null && String(value).trim() !== '') {
+                        url.searchParams.set(key, value);
+                    }
+                }
+
+                url.searchParams.delete('page');
+                this.loading = true;
+
+                try {
+                    const response = await fetch(url.toString(), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        window.location.href = url.toString();
+                        return;
+                    }
+
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const nextResults = doc.querySelector('#auction-results');
+                    const currentResults = document.querySelector('#auction-results');
+
+                    if (!nextResults || !currentResults) {
+                        window.location.href = url.toString();
+                        return;
+                    }
+
+                    currentResults.innerHTML = nextResults.innerHTML;
+                    window.history.pushState({}, '', url.toString());
+                } catch (_) {
+                    window.location.href = url.toString();
+                } finally {
+                    this.loading = false;
+                }
+            },
+        };
+    }
+</script>
+@endpush

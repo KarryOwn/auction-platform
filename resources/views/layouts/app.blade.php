@@ -25,6 +25,12 @@
         @stack('head')
     </head>
     <body class="font-sans text-gray-900 bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-indigo-600 focus:rounded-lg focus:shadow-lg">
+            Skip to main content
+        </a>
+
+        <div id="page-progress" class="fixed left-0 top-0 z-[120] h-0.5 w-0 bg-indigo-600 opacity-0 transition-all duration-300 pointer-events-none"></div>
+
         <!-- Global Toast Container -->
         <div
             class="fixed bottom-4 right-4 z-[100] flex flex-col gap-3 max-w-sm w-full pointer-events-none"
@@ -86,7 +92,7 @@
             @endisset
 
             <!-- Page Content -->
-            <main>
+            <main id="main-content">
                 {{ $slot }}
             </main>
         </div>

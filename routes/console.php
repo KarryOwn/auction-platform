@@ -50,3 +50,14 @@ Schedule::job(new CreateRandomAuction)
     ->name('create-random-auction')
     ->withoutOverlapping();
 
+// Warm cache keys used on discovery/homepage paths.
+Schedule::command('cache:warm --key=featured_auctions')
+    ->everyFiveMinutes()
+    ->name('warm-featured-auctions-cache')
+    ->withoutOverlapping();
+
+Schedule::command('cache:warm --key=category_tree --key=root_categories')
+    ->hourly()
+    ->name('warm-category-tree-and-roots-cache')
+    ->withoutOverlapping();
+

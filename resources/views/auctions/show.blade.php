@@ -56,7 +56,7 @@
                     @auth
                     <button id="watch-btn"
                             onclick="toggleWatch()"
-                            class="inline-flex items-center px-3 py-1.5 border rounded-lg text-sm font-medium transition
+                            class="inline-flex items-center min-h-11 px-3 py-2 border rounded-lg text-sm font-medium transition
                                    {{ $isWatching ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50' }}">
                         <svg class="w-4 h-4 mr-1" fill="{{ $isWatching ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -74,7 +74,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             @php($galleryImages = $auction->getGalleryImages())
-            <div class="bg-white shadow-sm sm:rounded-lg p-6" x-data="{ images: @js($galleryImages), activeImage: @js($galleryImages[0]['full_url'] ?? null) }">
+            <div class="bg-white shadow-sm sm:rounded-lg p-6" x-data="{ images: @js($galleryImages), activeImage: @js($galleryImages[0]['full_url'] ?? null) }" aria-label="Auction images">
                 @if(!empty($galleryImages))
                     <div class="aspect-[16/10] rounded-lg overflow-hidden bg-gray-100 mb-4">
                         <img :src="activeImage" class="w-full h-full object-contain" alt="{{ $auction->title }}">
@@ -447,7 +447,7 @@
                     <div class="bg-white shadow-sm sm:rounded-lg p-6">
                         <div class="text-center mb-6">
                             <span class="block text-sm text-gray-500 uppercase tracking-wide">Current Price</span>
-                            <span id="price-display" class="text-5xl font-black text-green-600 transition-colors duration-300">
+                            <span id="price-display" class="text-5xl font-black text-green-600 transition-colors duration-300" aria-live="polite" aria-atomic="true">
                                 ${{ number_format($auction->current_price, 2) }}
                             </span>
                             @if($auction->highestBid && $auction->highestBid->user)
@@ -459,7 +459,7 @@
 
                         <div class="bg-gray-50 rounded-lg p-4 text-center mb-6">
                             <span class="block text-xs text-gray-500 uppercase tracking-wide">Time Remaining</span>
-                            <span id="countdown" class="text-2xl font-bold text-gray-800" data-end="{{ $auction->end_time->toIso8601String() }}">
+                            <span id="countdown" class="text-2xl font-bold text-gray-800" data-end="{{ $auction->end_time->toIso8601String() }}" role="status">
                                 {{ $auction->timeRemaining() }}
                             </span>
                             @if($auction->extension_count > 0)
@@ -484,7 +484,7 @@
                             <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-sm"></div>
                             <div id="success-message" class="hidden bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg mb-4 text-sm"></div>
 
-                            <form id="bid-form" class="space-y-4">
+                            <form id="bid-form" class="space-y-4" aria-describedby="countdown">
                                 <div>
                                     <label for="bid-amount" class="block text-sm font-medium text-gray-700 mb-1">
                                         Your Bid <span class="text-gray-400">(min $<span id="min-bid">{{ number_format($auction->minimumNextBid(), 2) }}</span>)</span>
@@ -510,14 +510,16 @@
                                         <input type="number" id="bid-amount" step="0.01"
                                                min="{{ $auction->minimumNextBid() }}"
                                                value="{{ $auction->minimumNextBid() }}"
-                                               class="pl-8 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xl font-semibold">
+                                                 class="pl-8 block w-full h-14 md:h-auto rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg md:text-xl font-semibold">
                                     </div>
                                 </div>
 
                                 <button type="submit" id="bid-btn"
+                                        aria-label="Place bid on {{ $auction->title }}"
                                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
                                     Place Bid
                                 </button>
+                                <p class="text-xs text-gray-400 text-center mt-1">Press B to focus bid input</p>
                             </form>
                         @else
                             <div class="bg-gray-100 rounded-lg p-4 text-center text-gray-500">

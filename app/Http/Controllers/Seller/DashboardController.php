@@ -56,8 +56,8 @@ class DashboardController extends Controller
         $activeListings = Auction::query()
             ->where('user_id', $seller->id)
             ->whereIn('status', [Auction::STATUS_ACTIVE, Auction::STATUS_DRAFT])
+            ->with(['media'])
             ->withCount('bids')
-            ->with('media')
             ->orderBy('end_time')
             ->get();
 

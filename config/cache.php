@@ -15,7 +15,9 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_STORE', 'failover'),
+
+    // BidFlow warmed keys: category_tree, featured_auctions, root_categories, live_auction_count.
 
     /*
     |--------------------------------------------------------------------------
@@ -94,7 +96,9 @@ return [
         'failover' => [
             'driver' => 'failover',
             'stores' => [
+                'redis',
                 'database',
+                'file',
                 'array',
             ],
         ],

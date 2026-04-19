@@ -51,7 +51,7 @@ use Illuminate\Support\Facades\Cache;
 
 Route::get('/', function () {
     $liveCount = Cache::remember('live_auction_count', 60, fn() => Auction::where('status','active')->count());
-    $featuredAuctions = Cache::remember('featured_auctions_hero', 120, fn() => 
+    $featuredAuctions = Cache::remember('featured_auctions', 300, fn() => 
         Auction::featured()->with('media')->take(8)->get()
     );
     $endingSoonAuctions = Cache::remember('ending_soon_auctions', 60, fn() => 

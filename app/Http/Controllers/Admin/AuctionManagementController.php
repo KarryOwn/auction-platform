@@ -18,7 +18,7 @@ class AuctionManagementController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Auction::with('seller:id,name,email')->withCount('bids');
+        $query = Auction::with(['seller'])->withCount('bids');
 
         if ($status = $request->input('status')) {
             $query->where('status', $status);

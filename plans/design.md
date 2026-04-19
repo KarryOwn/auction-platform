@@ -1885,7 +1885,7 @@ Output: all 6 modified controller files showing ONLY the changed query lines wit
 - [ ] `bids_count` available on Auction model via withCount (no `bid_count` ambiguity)
 - [ ] Slow query logging added in AppServiceProvider (local only)
 
-**Test command:** `php artisan route:list | head -5 && grep -rn "->with\[" app/Http/Controllers/ | wc -l`
+**Test command:** `sail artisan route:list | head -5 && grep -rn "->with\[" app/Http/Controllers/ | wc -l`
 
 **Commit message:** `perf: fix N+1 queries across auction, admin, and seller controllers with eager loading`
 
@@ -2102,7 +2102,7 @@ Output: WarmCache command, routes/console.php additions, Auction model boot() ch
 - [ ] `featured_auctions` cache invalidated when Auction.is_featured changes
 - [ ] Scheduled in console.php with correct frequency
 
-**Test command:** `php artisan cache:warm && php artisan schedule:list | grep "cache:warm"`
+**Test command:** `sail artisan cache:warm && php artisan schedule:list | grep "cache:warm"`
 
 **Commit message:** `perf: add cache warming command, scheduled invalidation, and production optimization`
 

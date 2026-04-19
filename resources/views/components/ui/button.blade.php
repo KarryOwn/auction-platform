@@ -9,9 +9,9 @@
     };
 
     $sizeClasses = match ($size) {
-        'sm' => 'text-xs px-3 py-1.5 rounded-md gap-1.5',
-        'lg' => 'text-base px-6 py-3 rounded-xl gap-2.5',
-        default => 'text-sm px-4 py-2 rounded-lg gap-2',
+        'sm' => 'btn-sm text-xs px-3 py-1.5 rounded-md gap-1.5 min-h-[36px]',
+        'lg' => 'text-base px-6 py-3 rounded-xl gap-2.5 min-h-[52px]',
+        default => 'text-sm px-4 py-2 rounded-lg gap-2 min-h-[44px]',
     };
 
     $stateClasses = '';
@@ -26,7 +26,7 @@
 @endphp
 
 @if($isAnchor)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }} @if($disabled) tabindex="-1" aria-disabled="true" @endif @if($loading) aria-busy="true" @endif>
+    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }} @if($disabled) tabindex="-1" aria-disabled="true" @endif @if($loading) aria-busy="true" aria-label="Loading..." @endif>
         @if($loading)
             <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -40,7 +40,7 @@
         {{ $slot }}
     </a>
 @else
-    <button type="{{ $type }}" {{ $attributes->merge(['class' => $classes]) }} @if($disabled || $loading) disabled @endif @if($loading) aria-busy="true" @endif>
+    <button type="{{ $type }}" {{ $attributes->merge(['class' => $classes]) }} @if($disabled || $loading) disabled @endif @if($disabled) aria-disabled="true" @endif @if($loading) aria-busy="true" aria-label="Loading..." @endif>
         @if($loading)
             <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

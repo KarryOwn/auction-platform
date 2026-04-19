@@ -18,10 +18,9 @@ class AuctionController extends Controller
 
     public function index(Request $request)
     {
-        $query = Auction::where('status', Auction::STATUS_ACTIVE)
-            ->where('end_time', '>', now())
-            ->withCount('bids')
-            ->with(['media', 'categories', 'tags', 'brand']);
+        $query = Auction::active()
+            ->with(['primaryCategory', 'media', 'brand', 'tags'])
+            ->withCount('bids');
 
         // Keyword search
         if ($q = trim((string) $request->input('q', ''))) {
@@ -93,13 +92,14 @@ class AuctionController extends Controller
     {
         $auction->loadCount('bids');
         $auction->load([
-            'seller:id,name,seller_slug',
-            'highestBid.user:id,name',
-            'media',
+            'seller',
             'categories',
-            'tags',
+            'media',
             'brand',
+            'tags',
             'attributeValues.attribute',
+            'highestBid.user',
+            'winner',
         ]);
 
         // Get the real-time price from the bidding engine (Redis may be ahead of DB)

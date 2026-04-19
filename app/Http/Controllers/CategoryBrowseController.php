@@ -40,7 +40,7 @@ class CategoryBrowseController extends Controller
             ->whereHas('categories', function ($q) use ($categoryIds) {
                 $q->whereIn('categories.id', $categoryIds);
             })
-            ->with(['media', 'brand', 'categories', 'tags'])
+            ->with(['primaryCategory', 'media', 'brand', 'tags'])
             ->withCount('bids');
 
         // Filters

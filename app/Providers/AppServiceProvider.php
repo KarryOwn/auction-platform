@@ -8,7 +8,9 @@ use App\Policies\AuctionPolicy;
 use App\Services\Bidding\BidRateLimiter;
 use App\Services\Bidding\PessimisticSqlEngine;
 use App\Services\Bidding\RedisAtomicEngine;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Stripe\Stripe;
 
@@ -44,5 +46,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Auction::class, AuctionPolicy::class);
+
+        if (app()->isLocal()) {
+            DB::listen(function ($query) {
+                if (str_contains($query->sql, 'select') && $query->time > 100) {
+                    Log::warning('Slow query detected', ['sql' => $query->sql, 'time' => $query->time]);
+                }
+            });
+        }
     }
 }

@@ -16,6 +16,7 @@ use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Illuminate\Support\Facades\Cache;
 
 class Auction extends Model implements HasMedia
 {
@@ -108,6 +109,10 @@ class Auction extends Model implements HasMedia
             if ($auction->wasChanged('status') && $auction->status === self::STATUS_ACTIVE) {
                 ProcessKeywordAlerts::dispatch($auction->id)
                     ->delay(now()->addSeconds(5));
+            }
+
+            if ($auction->wasChanged('is_featured')) {
+                Cache::forget('featured_auctions');
             }
         });
     }

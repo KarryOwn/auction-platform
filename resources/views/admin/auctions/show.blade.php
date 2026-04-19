@@ -79,7 +79,7 @@
                                         <span class="text-xs text-gray-500" x-text="featuredUntil ? `until ${featuredUntil}` : ''"></span>
                                     </div>
                                     <div>
-                                        <button type="button" class="px-3 py-1.5 rounded-md bg-red-50 text-red-700 text-xs hover:bg-red-100" :disabled="isSubmitting" @click="removeFeature">
+                                        <button type="button" class="inline-flex items-center justify-center min-h-11 p-2 px-3 rounded-md bg-red-50 text-red-700 text-xs hover:bg-red-100" :disabled="isSubmitting" @click="removeFeature">
                                             Remove feature
                                         </button>
                                     </div>
@@ -88,7 +88,7 @@
 
                             <template x-if="!featured">
                                 <div class="space-y-2">
-                                    <button type="button" class="px-3 py-1.5 rounded-md bg-amber-50 text-amber-800 text-xs hover:bg-amber-100" @click="showFeatureForm = !showFeatureForm">
+                                    <button type="button" class="inline-flex items-center justify-center min-h-11 p-2 px-3 rounded-md bg-amber-50 text-amber-800 text-xs hover:bg-amber-100" @click="showFeatureForm = !showFeatureForm">
                                         Feature this auction
                                     </button>
 
@@ -108,7 +108,7 @@
                                             <input x-model.number="position" type="number" min="1" max="20" class="mt-1 w-full rounded-md border-gray-300 text-sm" placeholder="1-20">
                                         </label>
                                         <button type="button"
-                                                class="px-3 py-1.5 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-60"
+                                                class="inline-flex items-center justify-center min-h-11 p-2 px-3 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-60"
                                                 :disabled="isSubmitting"
                                                 @click="submitFeature">
                                             Confirm
@@ -189,7 +189,7 @@
                                 <textarea name="reason" rows="2" placeholder="Reason for cancellation (required)"
                                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
                                           required></textarea>
-                                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">
+                                <button type="submit" class="inline-flex items-center justify-center min-h-11 p-2 px-4 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">
                                     Force Cancel
                                 </button>
                             </form>
@@ -205,7 +205,7 @@
                                 <textarea name="reason" rows="2" placeholder="Reason for extension (required)"
                                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                           required></textarea>
-                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
+                                <button type="submit" class="inline-flex items-center justify-center min-h-11 p-2 px-4 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
                                     Extend Time
                                 </button>
                             </form>

@@ -15,7 +15,7 @@ class UserManagementController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::query()->withCount(['auctions', 'bids']);
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -32,8 +32,7 @@ class UserManagementController extends Controller
             $query->where('is_banned', true);
         }
 
-        $users = $query->withCount(['auctions', 'bids'])
-            ->orderByDesc('created_at')
+        $users = $query->orderByDesc('created_at')
             ->paginate(25)
             ->withQueryString();
 

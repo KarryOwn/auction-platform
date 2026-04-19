@@ -15,3 +15,8 @@
     animation-delay: 4s;
   }
 }
+
+/* Ensure touch targets meet 44px minimum */
+@media (pointer: coarse) {
+  .btn-sm { min-height: 44px; }
+}

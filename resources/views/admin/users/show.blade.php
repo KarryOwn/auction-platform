@@ -90,7 +90,7 @@
                 <div class="flex flex-wrap gap-4 items-end">
                     {{-- Ban / Unban --}}
                     @if($user->isBanned())
-                        <button onclick="unbanUser()" class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">
+                        <button onclick="unbanUser()" class="inline-flex items-center justify-center min-h-11 p-2 px-4 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">
                             Unban User
                         </button>
                     @elseif(!$user->isAdmin())
@@ -100,7 +100,7 @@
                                 <input type="text" id="ban-reason" placeholder="Reason for ban"
                                        class="rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm">
                             </div>
-                            <button onclick="banUser()" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">
+                            <button onclick="banUser()" class="inline-flex items-center justify-center min-h-11 p-2 px-4 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">
                                 Ban User
                             </button>
                         </div>
@@ -117,7 +117,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <button onclick="changeRole()" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
+                            <button onclick="changeRole()" class="inline-flex items-center justify-center min-h-11 p-2 px-4 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
                                 Update Role
                             </button>
                         </div>

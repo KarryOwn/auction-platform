@@ -59,6 +59,11 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "post-deploy": [
+            "@php artisan cache:warm",
+            "@php artisan route:cache",
+            "@php artisan view:cache"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
