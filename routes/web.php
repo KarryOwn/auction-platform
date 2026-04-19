@@ -137,6 +137,7 @@ Route::middleware('auth')->group(function () {
 
     // Auction detail & actions
     Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->middleware('track.auction.view')->name('auctions.show');
+    Route::get('/auctions/{auction}/live-state', [AuctionController::class, 'liveState'])->name('auctions.live-state');
     Route::get('/auctions/{auction}/rate', [AuctionRatingController::class, 'create'])->name('auctions.rate');
     Route::post('/auctions/{auction}/rate', [AuctionRatingController::class, 'store'])->name('auctions.rate.store');
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');

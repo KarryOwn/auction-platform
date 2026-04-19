@@ -321,7 +321,7 @@
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Bids</h3>
                         <div id="bid-history" class="divide-y divide-gray-100">
                             @forelse($recentBids as $bid)
-                                <div class="flex items-center justify-between py-3 bid-entry">
+                                <div class="flex items-center justify-between py-3 bid-entry" data-bid-id="{{ $bid->id }}">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-semibold text-sm">
                                             {{ strtoupper(substr($bid->user->name ?? '?', 0, 1)) }}
@@ -342,7 +342,7 @@
                                     </div>
                                 </div>
                             @empty
-                                <p class="text-gray-400 text-sm py-4 text-center">No bids yet. Be the first!</p>
+                                <p class="empty-state text-gray-400 text-sm py-4 text-center">No bids yet. Be the first!</p>
                             @endforelse
                         </div>
                     </div>
@@ -508,6 +508,7 @@
                                     <div class="relative">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-lg">$</span>
                                         <input type="number" id="bid-amount" step="0.01"
+                                                 data-increment="{{ (float) $auction->min_bid_increment }}"
                                                min="{{ $auction->minimumNextBid() }}"
                                                value="{{ $auction->minimumNextBid() }}"
                                                  class="pl-8 block w-full h-14 md:h-auto rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg md:text-xl font-semibold">
@@ -551,6 +552,7 @@
                                     <p class="text-sm text-blue-800">
                                         Active up to <span class="font-bold">${{ number_format($autoBid->max_amount, 2) }}</span>
                                     </p>
+                                    <p class="text-xs text-blue-700 mt-1">Up to 3 automatic bids per activation.</p>
                                     <button onclick="cancelAutoBid()" class="mt-2 text-xs text-red-600 hover:text-red-800 font-medium underline">
                                         Cancel Auto-Bid
                                     </button>
@@ -569,7 +571,7 @@
                                 Enable Auto-Bid
                             </button>
                         </form>
-                        <p class="text-xs text-gray-400 mt-2">The system will automatically bid on your behalf up to your limit.</p>
+                        <p class="text-xs text-gray-400 mt-2">The system will automatically bid on your behalf up to your limit (max 3 auto-bids per activation).</p>
                     </div>
                     @endif
                     @endauth
@@ -738,6 +740,7 @@
                     document.getElementById('auto-bid-status').innerHTML = `
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                             <p class="text-sm text-blue-800">Active up to <span class="font-bold">$${parseFloat(maxAmount).toFixed(2)}</span></p>
+                            <p class="text-xs text-blue-700 mt-1">Up to 3 automatic bids per activation.</p>
                             <button onclick="cancelAutoBid()" class="mt-2 text-xs text-red-600 hover:text-red-800 font-medium underline">Cancel Auto-Bid</button>
                         </div>`;
                     document.getElementById('auto-bid-form').classList.add('hidden');
@@ -768,9 +771,130 @@
 
     {{-- Real-Time WebSocket Events --}}
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            window.BidEventBus.subscribe({{ $auction->id }});
-        });
+        (function () {
+            const auctionId = {{ $auction->id }};
+
+            function trySubscribe() {
+                if (window.__auctionRealtimeSubscribed === auctionId) {
+                    return true;
+                }
+
+                if (window.BidEventBus && typeof window.BidEventBus.subscribe === 'function') {
+                    window.BidEventBus.subscribe(auctionId);
+                    window.__auctionRealtimeSubscribed = auctionId;
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (!trySubscribe()) {
+                document.addEventListener('DOMContentLoaded', trySubscribe, { once: true });
+                window.addEventListener('load', trySubscribe, { once: true });
+
+                // Last-resort retry for slow bundle hydration.
+                setTimeout(trySubscribe, 300);
+            }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            const auctionId = {{ $auction->id }};
+            const endpoint = "{{ route('auctions.live-state', $auction) }}";
+            let lastSeenBidId = Number(document.querySelector('#bid-history .bid-entry')?.dataset?.bidId || 0);
+
+            async function syncLiveState() {
+                try {
+                    const response = await fetch(endpoint, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const data = await response.json();
+                    const currentPrice = Number(data.current_price ?? data.new_price);
+
+                    if (Number.isFinite(currentPrice)) {
+                        window.dispatchEvent(new CustomEvent('price:updated', {
+                            detail: {
+                                auctionId,
+                                newPrice: currentPrice,
+                                new_price: currentPrice,
+                                next_minimum: data.next_minimum,
+                            },
+                        }));
+                    }
+
+                    if (data.bid_count !== undefined) {
+                        const countEl = document.getElementById('bid-count');
+                        if (countEl) {
+                            countEl.textContent = String(data.bid_count);
+                        }
+                    }
+
+                    if (data.highest_bidder_name) {
+                        const bidderEl = document.getElementById('highest-bidder');
+                        if (bidderEl) {
+                            bidderEl.textContent = data.highest_bidder_name;
+                        }
+                    }
+
+                    if (!Array.isArray(data.recent_bids) || data.recent_bids.length === 0) {
+                        return;
+                    }
+
+                    const newestId = Number(data.recent_bids[0]?.id || 0);
+                    if (!Number.isFinite(newestId) || newestId <= lastSeenBidId) {
+                        return;
+                    }
+
+                    data.recent_bids
+                        .slice()
+                        .reverse()
+                        .forEach((bid) => {
+                            const bidId = Number(bid.id || 0);
+                            if (!Number.isFinite(bidId) || bidId <= lastSeenBidId) {
+                                return;
+                            }
+
+                            window.dispatchEvent(new CustomEvent('bid:placed', {
+                                detail: {
+                                    auctionId,
+                                    bid_id: bidId,
+                                    amount: bid.amount,
+                                    bid_type: bid.bid_type,
+                                    is_snipe_bid: bid.is_snipe_bid,
+                                    user_name: bid.bidder_name,
+                                    bidder_name: bid.bidder_name,
+                                    bid_count: data.bid_count,
+                                    bids_count: data.bid_count,
+                                    next_minimum: data.next_minimum,
+                                    created_at_human: bid.created_at_human,
+                                },
+                            }));
+                        });
+
+                    lastSeenBidId = newestId;
+                } catch (_) {
+                    // No-op fallback failure; websocket may still be healthy.
+                }
+            }
+
+            setTimeout(syncLiveState, 1500);
+            setInterval(syncLiveState, 4000);
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    syncLiveState();
+                }
+            });
+        })();
     </script>
 
     <script>

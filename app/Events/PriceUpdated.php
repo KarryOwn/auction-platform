@@ -5,9 +5,6 @@ namespace App\Events;
 use App\Models\Auction;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -16,15 +13,18 @@ class PriceUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $auctionId;
-    public $newPrice;
+    public int $auctionId;
+    public float $newPrice;
+    public float $nextMinimum;
+
     /**
      * Create a new event instance.
      */
     public function __construct(Auction $auction)
     {
-        $this->auctionId = $auction->id;
-        $this->newPrice = $auction->current_price;
+        $this->auctionId = (int) $auction->id;
+        $this->newPrice = (float) $auction->current_price;
+        $this->nextMinimum = (float) $auction->minimumNextBid();
     }
 
     /**
@@ -42,5 +42,18 @@ class PriceUpdated implements ShouldBroadcastNow
     public function broadcastAs(): string
     {
         return 'price-updated';
+    }
+
+    /**
+     * Data broadcast to the client.
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'auction_id' => $this->auctionId,
+            'new_price' => $this->newPrice,
+            'newPrice' => $this->newPrice,
+            'next_minimum' => $this->nextMinimum,
+        ];
     }
 }

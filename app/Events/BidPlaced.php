@@ -19,9 +19,11 @@ class BidPlaced implements ShouldBroadcastNow
     public string $bidderName;
     public float  $amount;
     public float  $previousAmount;
+    public float  $nextMinimum;
     public string $bidType;
     public bool   $isSnipeBid;
     public int    $bidCount;
+    public string $createdAtHuman;
 
     public function __construct(
         public Bid     $bid,
@@ -32,9 +34,11 @@ class BidPlaced implements ShouldBroadcastNow
         $this->bidderName     = $bid->user?->name ?? 'Unknown';
         $this->amount         = (float) $bid->amount;
         $this->previousAmount = (float) ($bid->previous_amount ?? 0);
+        $this->nextMinimum    = (float) $auction->minimumNextBid();
         $this->bidType        = $bid->bid_type ?? 'manual';
         $this->isSnipeBid     = (bool) $bid->is_snipe_bid;
         $this->bidCount       = (int) $auction->bid_count;
+        $this->createdAtHuman = $bid->created_at?->diffForHumans() ?? 'just now';
     }
 
     /**
@@ -64,11 +68,15 @@ class BidPlaced implements ShouldBroadcastNow
             'auction_id'      => $this->auctionId,
             'bidder_id'       => $this->bidderId,
             'bidder_name'     => $this->bidderName,
+            'user_name'       => $this->bidderName,
             'amount'          => $this->amount,
             'previous_amount' => $this->previousAmount,
+            'next_minimum'    => $this->nextMinimum,
             'bid_type'        => $this->bidType,
             'is_snipe_bid'    => $this->isSnipeBid,
             'bid_count'       => $this->bidCount,
+            'bids_count'      => $this->bidCount,
+            'created_at_human' => $this->createdAtHuman,
             'end_time'        => $this->auction->end_time->toIso8601String(),
         ];
     }

@@ -54,9 +54,12 @@ class BidValidator
 
     protected function ensureBidHighEnough(Auction $auction, float $amount): void
     {
+        $amount = round($amount, 2);
         $minimumBid = $auction->minimumNextBid();
+        $amountCents = (int) round($amount * 100);
+        $minimumBidCents = (int) round($minimumBid * 100);
 
-        if ($amount < $minimumBid) {
+        if ($amountCents < $minimumBidCents) {
             throw BidValidationException::bidTooLow(
                 (float) $auction->current_price,
                 $minimumBid,

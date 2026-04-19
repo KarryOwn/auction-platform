@@ -24,10 +24,14 @@ class RedisAtomicEngine implements BiddingStrategy
         local current_price  = tonumber(redis.call('get', KEYS[1]) or "0")
         local bid_amount     = tonumber(ARGV[1])
         local min_increment  = tonumber(ARGV[2])
+        local current_cents  = math.floor((current_price * 100) + 0.5)
+        local bid_cents      = math.floor((bid_amount * 100) + 0.5)
+        local increment_cents = math.floor((min_increment * 100) + 0.5)
 
-        if bid_amount >= (current_price + min_increment) then
-            redis.call('set', KEYS[1], tostring(bid_amount))
-            return tostring(bid_amount)
+        if bid_cents >= (current_cents + increment_cents) then
+            local normalized_bid = bid_cents / 100
+            redis.call('set', KEYS[1], string.format("%.2f", normalized_bid))
+            return string.format("%.2f", normalized_bid)
         else
             return "0"
         end
@@ -41,6 +45,8 @@ class RedisAtomicEngine implements BiddingStrategy
 
     public function placeBid(Auction $auction, User $user, float $amount, array $meta = []): Bid
     {
+        $amount = round($amount, 2);
+
         // Pre-flight validation (includes wallet balance check)
         $this->validator->validate($auction, $user, $amount);
         $this->rateLimiter->check($user, $auction);

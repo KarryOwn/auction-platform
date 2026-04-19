@@ -61,8 +61,11 @@ class BidValidationException extends RuntimeException
 
     public static function bidTooLow(float $currentPrice, float $minimumBid): static
     {
+        $minimumBid = round($minimumBid, 2);
+        $currentPrice = round($currentPrice, 2);
+
         return new static(
-            "Bid must be at least \${$minimumBid}. Current price is \${$currentPrice}.",
+            'Bid must be at least $'.number_format($minimumBid, 2).'. Current price is $'.number_format($currentPrice, 2).'.',
             self::BID_TOO_LOW,
             ['current_price' => $currentPrice, 'minimum_bid' => $minimumBid],
         );

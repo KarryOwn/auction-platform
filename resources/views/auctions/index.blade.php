@@ -7,11 +7,11 @@
 
     <div class="py-8 bg-gray-50 min-h-screen">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="flex flex-col lg:flex-row gap-8" x-data="auctionIndexFilters()">
+            <div class="flex flex-col lg:flex-row gap-8">
                 
                 {{-- Left Sidebar: Filters --}}
                 <aside class="w-full lg:w-1/4 flex-shrink-0">
-                    <form method="GET" action="{{ route('auctions.index') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-6" @submit.prevent="submitFilters($event)" role="search" aria-label="Filter auctions">
+                    <form method="GET" action="{{ route('auctions.index') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-6" role="search" aria-label="Filter auctions">
                         <div class="flex items-center justify-between mb-5">
                             <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Filters</h3>
                             <a href="{{ route('auctions.index') }}" class="inline-flex items-center h-11 px-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium">Clear All</a>
@@ -100,15 +100,7 @@
                         </div>
                     @endif
 
-                    <template x-if="loading">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            @for($i = 0; $i < 6; $i++)
-                                <x-skeleton.auction-card />
-                            @endfor
-                        </div>
-                    </template>
-
-                    <div id="auction-results" x-show="!loading" x-cloak>
+                    <div id="auction-results">
                         {{-- Active Filters & Result Count Summary --}}
                         <div class="flex flex-wrap items-center justify-between mb-4">
                             <p class="text-gray-600 text-sm">
@@ -147,58 +139,3 @@
         </div>
     </div>
 </x-app-layout>
-
-@push('scripts')
-<script>
-    function auctionIndexFilters() {
-        return {
-            loading: false,
-            async submitFilters(event) {
-                const form = event.target;
-                const url = new URL(form.action);
-                const formData = new FormData(form);
-
-                for (const [key, value] of formData.entries()) {
-                    if (value !== null && String(value).trim() !== '') {
-                        url.searchParams.set(key, value);
-                    }
-                }
-
-                url.searchParams.delete('page');
-                this.loading = true;
-
-                try {
-                    const response = await fetch(url.toString(), {
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                    });
-
-                    if (!response.ok) {
-                        window.location.href = url.toString();
-                        return;
-                    }
-
-                    const html = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const nextResults = doc.querySelector('#auction-results');
-                    const currentResults = document.querySelector('#auction-results');
-
-                    if (!nextResults || !currentResults) {
-                        window.location.href = url.toString();
-                        return;
-                    }
-
-                    currentResults.innerHTML = nextResults.innerHTML;
-                    window.history.pushState({}, '', url.toString());
-                } catch (_) {
-                    window.location.href = url.toString();
-                } finally {
-                    this.loading = false;
-                }
-            },
-        };
-    }
-</script>
-@endpush

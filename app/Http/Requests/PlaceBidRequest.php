@@ -25,7 +25,7 @@ class PlaceBidRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999.99'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:999999999.99'],
         ];
     }
 
@@ -43,7 +43,7 @@ class PlaceBidRequest extends FormRequest
                 /** @var Auction $auction */
                 $auction = $this->route('auction');
                 $user    = $this->user();
-                $amount  = (float) $this->validated()['amount'];
+                $amount  = round((float) $this->validated()['amount'], 2);
 
                 if (! $auction->isActive()) {
                     $validator->errors()->add('auction', 'This auction is no longer active.');
@@ -56,10 +56,13 @@ class PlaceBidRequest extends FormRequest
                 }
 
                 $minimumBid = $auction->minimumNextBid();
-                if ($amount < $minimumBid) {
+                $amountCents = (int) round($amount * 100);
+                $minimumBidCents = (int) round($minimumBid * 100);
+
+                if ($amountCents < $minimumBidCents) {
                     $validator->errors()->add(
                         'amount',
-                        "Your bid must be at least \${$minimumBid}. The current price is \${$auction->current_price}."
+                        'Your bid must be at least $'.number_format($minimumBid, 2).'. The current price is $'.number_format((float) $auction->current_price, 2).'.'
                     );
                 }
             },

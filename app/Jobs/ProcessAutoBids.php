@@ -47,6 +47,12 @@ class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
             return;
         }
 
+        // Clean up any stale records that already consumed all trigger slots.
+        AutoBid::where('auction_id', $this->auctionId)
+            ->where('is_active', true)
+            ->whereColumn('auto_bids_used', '>=', 'max_auto_bids')
+            ->update(['is_active' => false]);
+
         // Resolve the ACTUAL current highest bidder from the database,
         // not the triggeredByUserId. This prevents double-bidding on
         // job retries where an auto-bid was already placed in a prior attempt.
@@ -70,6 +76,7 @@ class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
             $autoBid = AutoBid::where('auction_id', $this->auctionId)
                 ->where('user_id', '!=', $lastBidderId)
                 ->where('is_active', true)
+                ->whereColumn('auto_bids_used', '<', 'max_auto_bids')
                 ->where('max_amount', '>=', $nextBid)
                 ->orderByDesc('max_amount')
                 ->with('user')
@@ -93,6 +100,7 @@ class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
                 ]);
 
                 $autoBid->markTriggered();
+                $autoBid->refresh();
                 $lastBidderId = $autoBid->user_id;
 
                 Log::info('ProcessAutoBids: auto-bid placed', [
@@ -100,8 +108,20 @@ class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
                     'auction_id'  => $this->auctionId,
                     'user_id'     => $autoBid->user_id,
                     'amount'      => $nextBid,
+                    'used'        => (int) $autoBid->auto_bids_used,
+                    'max'         => (int) $autoBid->max_auto_bids,
                     'round'       => $round + 1,
                 ]);
+
+                if (! $autoBid->is_active) {
+                    Log::info('ProcessAutoBids: auto-bid deactivated after reaching usage cap', [
+                        'auto_bid_id' => $autoBid->id,
+                        'auction_id'  => $this->auctionId,
+                        'user_id'     => $autoBid->user_id,
+                        'used'        => (int) $autoBid->auto_bids_used,
+                        'max'         => (int) $autoBid->max_auto_bids,
+                    ]);
+                }
             } catch (\Throwable $e) {
                 Log::warning('ProcessAutoBids: failed to place auto-bid', [
                     'auto_bid_id' => $autoBid->id,

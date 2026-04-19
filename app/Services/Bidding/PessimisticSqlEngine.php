@@ -23,6 +23,8 @@ class PessimisticSqlEngine implements BiddingStrategy
 
     public function placeBid(Auction $auction, User $user, float $amount, array $meta = []): Bid
     {
+        $amount = round($amount, 2);
+
         // Pre-flight validation (before acquiring lock) — includes wallet check
         $this->validator->validate($auction, $user, $amount);
         $this->rateLimiter->check($user, $auction);
@@ -41,7 +43,9 @@ class PessimisticSqlEngine implements BiddingStrategy
                 throw BidValidationException::auctionEnded();
             }
             $minimumBid = $locked->minimumNextBid();
-            if ($amount < $minimumBid) {
+            $amountCents = (int) round($amount * 100);
+            $minimumBidCents = (int) round($minimumBid * 100);
+            if ($amountCents < $minimumBidCents) {
                 throw BidValidationException::bidTooLow((float) $locked->current_price, $minimumBid);
             }
 

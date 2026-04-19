@@ -169,6 +169,42 @@ class AuctionController extends Controller
     }
 
     /**
+     * Get a compact live snapshot for realtime UI fallback sync.
+     */
+    public function liveState(Auction $auction)
+    {
+        $auction->loadCount('bids');
+        $auction->load(['highestBid.user']);
+
+        $auction->current_price = $this->biddingStrategy->getCurrentPrice($auction);
+
+        $recentBids = $auction->bids()
+            ->with('user:id,name')
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn ($bid) => [
+                'id' => (int) $bid->id,
+                'amount' => (float) $bid->amount,
+                'bid_type' => $bid->bid_type ?? 'manual',
+                'is_snipe_bid' => (bool) $bid->is_snipe_bid,
+                'bidder_name' => $bid->user?->name ?? 'Unknown',
+                'created_at_human' => $bid->created_at?->diffForHumans() ?? 'just now',
+            ])
+            ->values();
+
+        return response()->json([
+            'auction_id' => (int) $auction->id,
+            'current_price' => (float) $auction->current_price,
+            'new_price' => (float) $auction->current_price,
+            'next_minimum' => (float) $auction->minimumNextBid(),
+            'bid_count' => (int) ($auction->bids_count ?? $auction->bid_count ?? 0),
+            'highest_bidder_name' => $auction->highestBid?->user?->name,
+            'recent_bids' => $recentBids,
+        ]);
+    }
+
+    /**
      * Toggle watch status for an auction.
      */
     public function toggleWatch(Request $request, Auction $auction)
@@ -214,6 +250,9 @@ class AuctionController extends Controller
                 'max_amount'     => $validated['max_amount'],
                 'bid_increment'  => $auction->min_bid_increment,
                 'is_active'      => true,
+                'max_auto_bids'  => AutoBid::DEFAULT_MAX_AUTO_BIDS,
+                'auto_bids_used' => 0,
+                'last_triggered_at' => null,
             ],
         );
 

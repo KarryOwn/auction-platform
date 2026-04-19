@@ -12,12 +12,16 @@ class AutoBid extends Model
 {
     use HasFactory;
 
+    public const DEFAULT_MAX_AUTO_BIDS = 3;
+
     protected $fillable = [
         'auction_id',
         'user_id',
         'max_amount',
         'bid_increment',
         'is_active',
+        'max_auto_bids',
+        'auto_bids_used',
         'last_triggered_at',
     ];
 
@@ -25,6 +29,8 @@ class AutoBid extends Model
         'max_amount'        => 'decimal:2',
         'bid_increment'     => 'decimal:2',
         'is_active'         => 'boolean',
+        'max_auto_bids'     => 'integer',
+        'auto_bids_used'    => 'integer',
         'last_triggered_at' => 'datetime',
     ];
 
@@ -68,10 +74,27 @@ class AutoBid extends Model
     }
 
     /**
+     * Whether this auto-bid still has remaining trigger slots.
+     */
+    public function hasRemainingTriggers(): bool
+    {
+        $max = max(1, (int) ($this->max_auto_bids ?? self::DEFAULT_MAX_AUTO_BIDS));
+
+        return (int) ($this->auto_bids_used ?? 0) < $max;
+    }
+
+    /**
      * Mark this auto-bid as just triggered.
      */
     public function markTriggered(): void
     {
-        $this->update(['last_triggered_at' => now()]);
+        $max = max(1, (int) ($this->max_auto_bids ?? self::DEFAULT_MAX_AUTO_BIDS));
+        $used = (int) ($this->auto_bids_used ?? 0) + 1;
+
+        $this->update([
+            'last_triggered_at' => now(),
+            'auto_bids_used' => $used,
+            'is_active' => $used < $max,
+        ]);
     }
 }
