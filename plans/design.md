@@ -1755,7 +1755,7 @@ Output: controller additions, route additions, and both view modifications.
 - [ ] Removing feature clears all three fields (is_featured, featured_until, featured_position)
 - [ ] Both admin views updated
 
-**Test command:** `php artisan route:list | grep "feature"`
+**Test command:** `sail artisan route:list | grep "feature"`
 
 **Commit message:** `feat(admin): add feature auction management with duration, position, and audit logging`
 
@@ -1767,7 +1767,7 @@ Output: controller additions, route additions, and both view modifications.
 
 **Agent context:**
 ```
-TASK: Create a dispute resolution system in BidFlow (Laravel 11).
+TASK: Create a dispute resolution system in BidFlow (Laravel 12).
 
 1. Migration: database/migrations/YYYY_MM_DD_create_disputes_table.php
    Table: disputes
@@ -1824,7 +1824,7 @@ Output all files completely.
 - [ ] AuditLog entry created on resolution
 - [ ] Status filter tabs show counts
 
-**Test command:** `php artisan route:list | grep "disputes" && php artisan migrate --pretend 2>&1 | tail -5`
+**Test command:** `sail artisan route:list | grep "disputes" && sail artisan migrate --pretend 2>&1 | tail -5`
 
 **Commit message:** `feat(admin): add dispute resolution system with queue, evidence, and decision workflow`
 

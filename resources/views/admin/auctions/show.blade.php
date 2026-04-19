@@ -63,6 +63,61 @@
                             </span>
                         </dd>
 
+                        <dt class="text-sm font-medium text-gray-500">Feature Status</dt>
+                        <dd class="text-sm" x-data="adminFeatureManager({
+                            featureUrl: '{{ route('admin.auctions.feature', $auction) }}',
+                            unfeatureUrl: '{{ route('admin.auctions.unfeature', $auction) }}',
+                            csrf: '{{ csrf_token() }}',
+                            initialFeatured: @js((bool) $auction->is_featured),
+                            initialFeaturedUntil: @js($auction->featured_until?->format('M d, Y H:i')),
+                            initialPosition: @js($auction->featured_position),
+                        })">
+                            <template x-if="featured">
+                                <div class="space-y-2">
+                                    <div class="inline-flex items-center gap-2">
+                                        <span class="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">★ Featured</span>
+                                        <span class="text-xs text-gray-500" x-text="featuredUntil ? `until ${featuredUntil}` : ''"></span>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="px-3 py-1.5 rounded-md bg-red-50 text-red-700 text-xs hover:bg-red-100" :disabled="isSubmitting" @click="removeFeature">
+                                            Remove feature
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="!featured">
+                                <div class="space-y-2">
+                                    <button type="button" class="px-3 py-1.5 rounded-md bg-amber-50 text-amber-800 text-xs hover:bg-amber-100" @click="showFeatureForm = !showFeatureForm">
+                                        Feature this auction
+                                    </button>
+
+                                    <div x-show="showFeatureForm" x-cloak class="p-3 rounded-md border border-gray-200 bg-gray-50 space-y-2 max-w-xs">
+                                        <label class="block text-xs text-gray-600">
+                                            Duration
+                                            <select x-model.number="duration" class="mt-1 w-full rounded-md border-gray-300 text-sm">
+                                                <option value="24">24 hours</option>
+                                                <option value="48">48 hours</option>
+                                                <option value="72">72 hours</option>
+                                                <option value="168">1 week</option>
+                                                <option value="720">30 days</option>
+                                            </select>
+                                        </label>
+                                        <label class="block text-xs text-gray-600">
+                                            Position (optional)
+                                            <input x-model.number="position" type="number" min="1" max="20" class="mt-1 w-full rounded-md border-gray-300 text-sm" placeholder="1-20">
+                                        </label>
+                                        <button type="button"
+                                                class="px-3 py-1.5 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-60"
+                                                :disabled="isSubmitting"
+                                                @click="submitFeature">
+                                            Confirm
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </dd>
+
                         <dt class="text-sm font-medium text-gray-500">Starting Price</dt>
                         <dd class="text-sm text-gray-900">${{ number_format($auction->starting_price, 2) }}</dd>
 
@@ -210,6 +265,94 @@
 
     @push('scripts')
     <script>
+        if (!window.adminFeatureManager) {
+            window.adminFeatureManager = function (config) {
+                return {
+                    featured: Boolean(config.initialFeatured),
+                    featuredUntil: config.initialFeaturedUntil,
+                    position: config.initialPosition ?? '',
+                    duration: 24,
+                    showFeatureForm: false,
+                    isSubmitting: false,
+                    notifySuccess(message) {
+                        if (window.toast && typeof window.toast.success === 'function') {
+                            window.toast.success(message);
+                        }
+                    },
+                    notifyError(message) {
+                        if (window.toast && typeof window.toast.error === 'function') {
+                            window.toast.error(message);
+                        }
+                    },
+                    async submitFeature() {
+                        this.isSubmitting = true;
+
+                        try {
+                            const response = await fetch(config.featureUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': config.csrf,
+                                    'Accept': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    duration_hours: this.duration,
+                                    position: this.position || null,
+                                }),
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                this.notifyError(data.message || 'Failed to feature auction.');
+                                return;
+                            }
+
+                            this.featured = true;
+                            this.featuredUntil = data.data?.featured_until_human || null;
+                            this.position = data.data?.featured_position || null;
+                            this.showFeatureForm = false;
+                            this.notifySuccess(data.message || 'Auction featured.');
+                        } catch (error) {
+                            this.notifyError('Request failed.');
+                        } finally {
+                            this.isSubmitting = false;
+                        }
+                    },
+                    async removeFeature() {
+                        this.isSubmitting = true;
+
+                        try {
+                            const response = await fetch(config.unfeatureUrl, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': config.csrf,
+                                    'Accept': 'application/json',
+                                },
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                this.notifyError(data.message || 'Failed to remove feature.');
+                                return;
+                            }
+
+                            this.featured = false;
+                            this.featuredUntil = null;
+                            this.position = null;
+                            this.showFeatureForm = false;
+                            this.notifySuccess(data.message || 'Feature removed.');
+                        } catch (error) {
+                            this.notifyError('Request failed.');
+                        } finally {
+                            this.isSubmitting = false;
+                        }
+                    },
+                };
+            };
+        }
+
         // Force Cancel
         document.getElementById('force-cancel-form')?.addEventListener('submit', async function(e) {
             e.preventDefault();

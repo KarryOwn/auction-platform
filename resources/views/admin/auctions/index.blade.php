@@ -87,8 +87,57 @@
                                         <div class="text-xs text-orange-500">{{ $auction->end_time->diffForHumans() }}</div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <a href="{{ route('admin.auctions.show', $auction) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm" x-data="adminFeatureManager({
+                                    featureUrl: '{{ route('admin.auctions.feature', $auction) }}',
+                                    unfeatureUrl: '{{ route('admin.auctions.unfeature', $auction) }}',
+                                    csrf: '{{ csrf_token() }}',
+                                    initialFeatured: @js((bool) $auction->is_featured),
+                                    initialFeaturedUntil: @js($auction->featured_until?->format('M d, Y H:i')),
+                                    initialPosition: @js($auction->featured_position),
+                                })">
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ route('admin.auctions.show', $auction) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+
+                                        <template x-if="featured">
+                                            <span class="inline-flex items-center gap-1">
+                                                <span class="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">★ Featured</span>
+                                                <button type="button" class="text-red-600 hover:text-red-800" :disabled="isSubmitting" @click="removeFeature">Remove</button>
+                                            </span>
+                                        </template>
+
+                                        <template x-if="!featured">
+                                            <button type="button" class="text-amber-700 hover:text-amber-900" @click="showFeatureForm = !showFeatureForm">
+                                                Feature
+                                            </button>
+                                        </template>
+                                    </div>
+
+                                    <div x-show="featured && featuredUntil" class="mt-1 text-xs text-gray-500" x-cloak>
+                                        Until <span x-text="featuredUntil"></span>
+                                    </div>
+
+                                    <div x-show="showFeatureForm && !featured" x-cloak class="mt-2 p-3 rounded-md border border-gray-200 bg-gray-50 space-y-2 min-w-56">
+                                        <label class="block text-xs text-gray-600">
+                                            Duration
+                                            <select x-model.number="duration" class="mt-1 w-full rounded-md border-gray-300 text-sm">
+                                                <option value="24">24 hours</option>
+                                                <option value="48">48 hours</option>
+                                                <option value="72">72 hours</option>
+                                                <option value="168">1 week</option>
+                                                <option value="720">30 days</option>
+                                            </select>
+                                        </label>
+                                        <label class="block text-xs text-gray-600">
+                                            Position (optional)
+                                            <input x-model.number="position" type="number" min="1" max="20" class="mt-1 w-full rounded-md border-gray-300 text-sm" placeholder="1-20">
+                                        </label>
+                                        <button type="button"
+                                                class="px-3 py-1.5 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-60"
+                                                :disabled="isSubmitting"
+                                                @click="submitFeature">
+                                            Confirm
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -107,4 +156,96 @@
 
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        if (!window.adminFeatureManager) {
+            window.adminFeatureManager = function (config) {
+                return {
+                    featured: Boolean(config.initialFeatured),
+                    featuredUntil: config.initialFeaturedUntil,
+                    position: config.initialPosition ?? '',
+                    duration: 24,
+                    showFeatureForm: false,
+                    isSubmitting: false,
+                    notifySuccess(message) {
+                        if (window.toast && typeof window.toast.success === 'function') {
+                            window.toast.success(message);
+                        }
+                    },
+                    notifyError(message) {
+                        if (window.toast && typeof window.toast.error === 'function') {
+                            window.toast.error(message);
+                        }
+                    },
+                    async submitFeature() {
+                        this.isSubmitting = true;
+
+                        try {
+                            const response = await fetch(config.featureUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': config.csrf,
+                                    'Accept': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    duration_hours: this.duration,
+                                    position: this.position || null,
+                                }),
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                this.notifyError(data.message || 'Failed to feature auction.');
+                                return;
+                            }
+
+                            this.featured = true;
+                            this.featuredUntil = data.data?.featured_until_human || null;
+                            this.position = data.data?.featured_position || null;
+                            this.showFeatureForm = false;
+                            this.notifySuccess(data.message || 'Auction featured.');
+                        } catch (error) {
+                            this.notifyError('Request failed.');
+                        } finally {
+                            this.isSubmitting = false;
+                        }
+                    },
+                    async removeFeature() {
+                        this.isSubmitting = true;
+
+                        try {
+                            const response = await fetch(config.unfeatureUrl, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': config.csrf,
+                                    'Accept': 'application/json',
+                                },
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                this.notifyError(data.message || 'Failed to remove feature.');
+                                return;
+                            }
+
+                            this.featured = false;
+                            this.featuredUntil = null;
+                            this.position = null;
+                            this.showFeatureForm = false;
+                            this.notifySuccess(data.message || 'Feature removed.');
+                        } catch (error) {
+                            this.notifyError('Request failed.');
+                        } finally {
+                            this.isSubmitting = false;
+                        }
+                    },
+                };
+            };
+        }
+    </script>
+    @endpush
 </x-app-layout>

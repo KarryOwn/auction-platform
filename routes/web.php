@@ -5,6 +5,7 @@ use App\Http\Controllers\AuctionController;
 use App\Http\Controllers\AuctionRatingController;
 use App\Http\Controllers\AuctionQuestionController;
 use App\Http\Controllers\AuctionReportController;
+use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\BidController;
 use App\Http\Controllers\CategoryBrowseController;
 use App\Http\Controllers\ConversationController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\SellerApplicationController as AdminSellerApplicationController;
 use App\Http\Controllers\Admin\PaymentController as AdminPaymentController;
@@ -143,6 +145,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/auctions/{auction}/watch', [AuctionController::class, 'toggleWatch'])->name('auctions.watch');
     Route::post('/auctions/{auction}/auto-bid', [AuctionController::class, 'setAutoBid'])->name('auctions.auto-bid');
     Route::delete('/auctions/{auction}/auto-bid', [AuctionController::class, 'cancelAutoBid'])->name('auctions.cancel-auto-bid');
+    Route::get('/auctions/{auction}/disputes/create', [DisputeController::class, 'create'])->name('disputes.create');
+    Route::post('/auctions/{auction}/disputes', [DisputeController::class, 'store'])->name('disputes.store');
     Route::patch('/questions/{question}/answer', [AuctionQuestionController::class, 'answer'])->name('questions.answer');
     Route::delete('/questions/{question}', [AuctionQuestionController::class, 'destroy'])->name('questions.destroy');
 
@@ -209,11 +213,14 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     // Dashboard & Live Monitoring
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/metrics/live', [DashboardController::class, 'liveMetrics'])->name('metrics.live');
+    Route::get('/metrics/fraud-alerts', [DashboardController::class, 'fraudAlerts'])->name('metrics.fraud-alerts');
     Route::get('/metrics/throughput', [DashboardController::class, 'bidThroughput'])->name('metrics.throughput');
 
     // Auction Management
     Route::get('/auctions', [AuctionManagementController::class, 'index'])->name('auctions.index');
     Route::get('/auctions/{auction}', [AuctionManagementController::class, 'show'])->name('auctions.show');
+    Route::post('/auctions/{auction}/feature', [AuctionManagementController::class, 'feature'])->name('auctions.feature');
+    Route::delete('/auctions/{auction}/feature', [AuctionManagementController::class, 'unfeature'])->name('auctions.unfeature');
     Route::post('/auctions/{auction}/force-cancel', [AuctionManagementController::class, 'forceCancel'])->name('auctions.force-cancel');
     Route::post('/auctions/{auction}/extend', [AuctionManagementController::class, 'extend'])->name('auctions.extend');
 
@@ -227,6 +234,11 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::patch('/reports/{report}', [ReportController::class, 'review'])->name('reports.review');
+
+    // Disputes
+    Route::get('/disputes', [AdminDisputeController::class, 'index'])->name('disputes.index');
+    Route::get('/disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
+    Route::patch('/disputes/{dispute}', [AdminDisputeController::class, 'update'])->name('disputes.update');
 
     // Audit Logs
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

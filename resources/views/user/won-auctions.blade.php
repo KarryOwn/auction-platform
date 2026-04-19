@@ -59,6 +59,22 @@
                                     <a href="{{ route('auctions.show', $auction) }}" class="mt-3 w-full inline-flex justify-center items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
                                         Pay Now
                                     </a>
+                                @elseif($auction->status === \App\Models\Auction::STATUS_COMPLETED && $auction->payment_status === 'paid')
+                                    <div class="mt-3 grid grid-cols-1 gap-2">
+                                        <a href="{{ route('auctions.show', $auction) }}" class="w-full inline-flex justify-center items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+                                            View Auction
+                                        </a>
+
+                                        @if(($auction->disputes_count ?? 0) > 0)
+                                            <span class="w-full inline-flex justify-center items-center px-4 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium border border-amber-200">
+                                                Dispute Opened
+                                            </span>
+                                        @else
+                                            <a href="{{ route('disputes.create', $auction) }}" class="w-full inline-flex justify-center items-center px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition">
+                                                Open Dispute
+                                            </a>
+                                        @endif
+                                    </div>
                                 @else
                                     <a href="{{ route('auctions.show', $auction) }}" class="mt-3 w-full inline-flex justify-center items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
                                         View Auction

@@ -162,6 +162,70 @@ class AuctionManagementController extends Controller
         ]);
     }
 
+    /**
+     * Mark an auction as featured for a given duration.
+     */
+    public function feature(Request $request, Auction $auction): JsonResponse
+    {
+        $validated = $request->validate([
+            'duration_hours' => ['required', 'integer', 'min:1', 'max:720'],
+            'position' => ['nullable', 'integer', 'min:1', 'max:20'],
+        ]);
+
+        $featuredUntil = now()->addHours((int) $validated['duration_hours']);
+
+        $auction->update([
+            'is_featured' => true,
+            'featured_until' => $featuredUntil,
+            'featured_position' => $validated['position'] ?? null,
+        ]);
+
+        AuditLog::record(
+            action: 'auction.featured',
+            targetType: 'auction',
+            targetId: $auction->id,
+            metadata: [
+                'duration_hours' => (int) $validated['duration_hours'],
+                'featured_until' => $featuredUntil->toIso8601String(),
+                'featured_position' => $validated['position'] ?? null,
+            ],
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Auction featured until '.$featuredUntil->format('M d, Y H:i'),
+            'data' => [
+                'is_featured' => true,
+                'featured_until_iso' => $featuredUntil->toIso8601String(),
+                'featured_until_human' => $featuredUntil->format('M d, Y H:i'),
+                'featured_position' => $auction->featured_position,
+            ],
+        ]);
+    }
+
+    /**
+     * Remove featured state from an auction.
+     */
+    public function unfeature(Auction $auction): JsonResponse
+    {
+        $auction->update([
+            'is_featured' => false,
+            'featured_until' => null,
+            'featured_position' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Feature removed from auction.',
+            'data' => [
+                'is_featured' => false,
+                'featured_until_iso' => null,
+                'featured_until_human' => null,
+                'featured_position' => null,
+            ],
+        ]);
+    }
+
     // Detect supicious activity 
     private function detectSuspiciousActivity(Auction $auction): array
     {

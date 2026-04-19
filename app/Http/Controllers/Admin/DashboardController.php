@@ -88,6 +88,44 @@ class DashboardController extends Controller
     }
 
     /**
+     * Recent fraud/suspicious activity alerts for admin dashboard.
+     */
+    public function fraudAlerts(): JsonResponse
+    {
+        $alerts = ReportedAuction::query()
+            ->with(['auction:id,title'])
+            ->where('created_at', '>=', now()->subHours(2))
+            ->whereIn('reason', [
+                'Seller fraud',
+                'Counterfeit or fake item',
+                'Prohibited item',
+                'Item description inaccurate',
+                'Other',
+            ])
+            ->latest('created_at')
+            ->limit(10)
+            ->get()
+            ->map(function (ReportedAuction $report) {
+                $severity = match ($report->reason) {
+                    'Seller fraud' => 'critical',
+                    'Counterfeit or fake item', 'Prohibited item' => 'high',
+                    default => 'warning',
+                };
+
+                return [
+                    'auction_id' => $report->auction_id,
+                    'auction_title' => $report->auction?->title,
+                    'severity' => $severity,
+                    'detail' => $report->description ?: $report->reason,
+                    'detected_at' => optional($report->created_at)->toIso8601String(),
+                ];
+            })
+            ->values();
+
+        return response()->json(['data' => $alerts]);
+    }
+
+    /**
      * Count Redis auction price keys.
      */
     private function getRedisAuctionCount(): int

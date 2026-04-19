@@ -226,6 +226,11 @@ class Auction extends Model implements HasMedia
         return $this->hasMany(AuctionQuestion::class);
     }
 
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class);
+    }
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 'auction_category')

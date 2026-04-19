@@ -13,7 +13,7 @@ class WonAuctionsController extends Controller
 
         $tab = $request->input('tab', 'pending');
 
-        $query = $user->wonAuctions()->with('media')->latest('closed_at');
+        $query = $user->wonAuctions()->with('media')->withCount('disputes')->latest('closed_at');
 
         if ($tab === 'pending') {
             $query->where('payment_status', 'pending');
