@@ -1,0 +1,8 @@
+<?php
+$content = file_get_contents('app/Models/User.php');
+
+$insert = "\n    public function keywordAlerts()\n    {\n        return \$this->hasMany(KeywordAlert::class);\n    }\n";
+
+$content = str_replace("public function bids()", $insert . "    public function bids()", $content);
+
+file_put_contents('app/Models/User.php', $content);

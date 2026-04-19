@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Jobs\ProcessKeywordAlerts;
 use App\Services\VideoEmbedService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -100,6 +101,16 @@ class Auction extends Model implements HasMedia
         'refurbished' => 'Refurbished',
         'for_parts'   => 'For Parts / Not Working',
     ];
+
+    protected static function booted(): void
+    {
+        static::updated(function (Auction $auction): void {
+            if ($auction->wasChanged('status') && $auction->status === self::STATUS_ACTIVE) {
+                ProcessKeywordAlerts::dispatch($auction->id)
+                    ->delay(now()->addSeconds(5));
+            }
+        });
+    }
 
     public function getIsCurrentlyFeaturedAttribute(): bool
     {
@@ -208,6 +219,11 @@ class Auction extends Model implements HasMedia
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class);
+    }
+
+    public function questions(): HasMany
+    {
+        return $this->hasMany(AuctionQuestion::class);
     }
 
     public function categories(): BelongsToMany

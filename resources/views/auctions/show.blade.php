@@ -255,6 +255,98 @@
                             @endforelse
                         </div>
                     </div>
+
+                    {{-- Questions & Answers --}}
+                    <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Questions & Answers</h3>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
+                                {{ $questions->count() }}
+                            </span>
+                        </div>
+
+                        <div class="space-y-4">
+                            @forelse($questions as $question)
+                                <x-ui-card>
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p class="text-sm text-gray-900">{{ $question->question }}</p>
+                                            <p class="text-xs text-gray-500 mt-2">
+                                                Asked by {{ $question->user->name ?? 'Unknown user' }}
+                                                <span class="mx-1">·</span>
+                                                {{ $question->created_at->diffForHumans() }}
+                                            </p>
+                                        </div>
+
+                                        @auth
+                                            @if(auth()->id() === $question->user_id || auth()->id() === $auction->user_id)
+                                                <form method="POST" action="{{ route('questions.destroy', $question) }}">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-xs text-red-600 hover:text-red-700 font-medium">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        @endauth
+                                    </div>
+
+                                    @if($question->isAnswered())
+                                        <div class="mt-4 border-l-2 border-indigo-200 pl-4">
+                                            <p class="text-sm text-gray-800">{{ $question->answer }}</p>
+                                            <p class="text-xs text-gray-500 mt-2">
+                                                Answered by {{ $question->answerer->name ?? 'Seller' }}
+                                                @if($question->answered_at)
+                                                    <span class="mx-1">·</span>
+                                                    {{ $question->answered_at->diffForHumans() }}
+                                                @endif
+                                            </p>
+                                        </div>
+                                    @elseif(auth()->check() && auth()->id() === $auction->user_id)
+                                        <form method="POST" action="{{ route('questions.answer', $question) }}" class="mt-4 space-y-2">
+                                            @csrf
+                                            @method('PATCH')
+                                            <label for="answer-{{ $question->id }}" class="sr-only">Answer</label>
+                                            <textarea id="answer-{{ $question->id }}"
+                                                      name="answer"
+                                                      rows="3"
+                                                      maxlength="1000"
+                                                      class="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                                      placeholder="Write your answer..."
+                                                      required></textarea>
+                                            <button type="submit" class="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
+                                                Post Answer
+                                            </button>
+                                        </form>
+                                    @endif
+                                </x-ui-card>
+                            @empty
+                                <p class="text-sm text-gray-500 text-center py-4">No questions yet. Be the first to ask.</p>
+                            @endforelse
+                        </div>
+
+                        @auth
+                            @if(auth()->id() !== $auction->user_id)
+                                <div class="mt-6 pt-6 border-t border-gray-100">
+                                    <h4 class="text-sm font-semibold text-gray-800 mb-3">Ask a Question</h4>
+                                    <form method="POST" action="{{ route('auctions.questions.store', $auction) }}" class="space-y-3">
+                                        @csrf
+                                        <label for="question" class="sr-only">Question</label>
+                                        <textarea id="question"
+                                                  name="question"
+                                                  rows="3"
+                                                  maxlength="500"
+                                                  class="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                                  placeholder="Ask something about this item..."
+                                                  required></textarea>
+                                        <button type="submit" class="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">
+                                            Submit Question
+                                        </button>
+                                    </form>
+                                </div>
+                            @endif
+                        @endauth
+                    </div>
                 </div>
 
                 {{-- Right Column: Bidding Panel --}}
@@ -306,6 +398,22 @@
                                     <label for="bid-amount" class="block text-sm font-medium text-gray-700 mb-1">
                                         Your Bid <span class="text-gray-400">(min $<span id="min-bid">{{ number_format($auction->minimumNextBid(), 2) }}</span>)</span>
                                     </label>
+                                    <div class="grid grid-cols-3 gap-2 mb-3"
+                                     x-data="quickBid({ minBid: {{ (float) $auction->minimumNextBid() }}, currentPrice: {{ (float) $auction->current_price }}, increment: {{ (float) $auction->min_bid_increment }} })"
+                                     x-init="init()">
+                                    <button type="button"
+                                        @click="setMin()"
+                                        x-text="minLabel"
+                                        class="bg-indigo-50 border border-indigo-200 text-sm font-medium rounded-lg hover:bg-indigo-100 py-2 px-2 text-gray-700 transition"></button>
+                                    <button type="button"
+                                        @click="setPlus5()"
+                                        x-text="plus5Label"
+                                        class="bg-gray-50 border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-100 py-2 px-2 text-gray-700 transition"></button>
+                                    <button type="button"
+                                        @click="setPlus10()"
+                                        x-text="plus10Label"
+                                        class="bg-gray-50 border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-100 py-2 px-2 text-gray-700 transition"></button>
+                                    </div>
                                     <div class="relative">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-lg">$</span>
                                         <input type="number" id="bid-amount" step="0.01"

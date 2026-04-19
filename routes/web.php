@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuctionController;
+use App\Http\Controllers\AuctionQuestionController;
 use App\Http\Controllers\BidController;
 use App\Http\Controllers\CategoryBrowseController;
 use App\Http\Controllers\ConversationController;
@@ -37,11 +38,20 @@ use App\Http\Controllers\User\NotificationPreferenceController;
 use App\Http\Controllers\User\WithdrawalController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\StripeConnectController;
+use App\Models\Auction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Cache;
 
 Route::get('/', function () {
-    return view('welcome');
+    $liveCount = Cache::remember('live_auction_count', 60, fn() => Auction::where('status','active')->count());
+    $featuredAuctions = Cache::remember('featured_auctions_hero', 120, fn() => 
+        Auction::featured()->with('media')->take(8)->get()
+    );
+    $endingSoonAuctions = Cache::remember('ending_soon_auctions', 60, fn() => 
+        Auction::active()->where('end_time', '<=', now()->addHours(6))->orderBy('end_time')->take(8)->get()
+    );
+    return view('welcome', compact('liveCount', 'featuredAuctions', 'endingSoonAuctions'));
 });
 
 // Stripe Webhook (outside all middleware — no CSRF)
@@ -65,6 +75,16 @@ Route::middleware('auth')->group(function () {
     // User sub-pages
     Route::get('/dashboard/bids', [BidHistoryController::class, 'index'])->name('user.bids');
     Route::get('/dashboard/won', [WonAuctionsController::class, 'index'])->name('user.won-auctions');
+    
+    
+    
+    
+    // Keyword Alerts
+    Route::get('/dashboard/keyword-alerts', [\App\Http\Controllers\User\KeywordAlertController::class, 'index'])->name('user.keyword-alerts');
+    Route::post('/dashboard/keyword-alerts', [\App\Http\Controllers\User\KeywordAlertController::class, 'store'])->name('user.keyword-alerts.store');
+    Route::delete('/dashboard/keyword-alerts/{alert}', [\App\Http\Controllers\User\KeywordAlertController::class, 'destroy'])->name('user.keyword-alerts.destroy');
+    Route::patch('/dashboard/keyword-alerts/{alert}/toggle', [\App\Http\Controllers\User\KeywordAlertController::class, 'toggle'])->name('user.keyword-alerts.toggle');
+
     Route::get('/dashboard/watchlist', [WatchlistController::class, 'index'])->name('user.watchlist');
     Route::get('/dashboard/activity', [App\Http\Controllers\User\ActivityLogController::class, 'index'])->name('user.activity');
 
@@ -112,9 +132,12 @@ Route::middleware('auth')->group(function () {
     // Auction detail & actions
     Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->middleware('track.auction.view')->name('auctions.show');
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');
+    Route::post('/auctions/{auction}/questions', [AuctionQuestionController::class, 'store'])->name('auctions.questions.store');
     Route::post('/auctions/{auction}/watch', [AuctionController::class, 'toggleWatch'])->name('auctions.watch');
     Route::post('/auctions/{auction}/auto-bid', [AuctionController::class, 'setAutoBid'])->name('auctions.auto-bid');
     Route::delete('/auctions/{auction}/auto-bid', [AuctionController::class, 'cancelAutoBid'])->name('auctions.cancel-auto-bid');
+    Route::patch('/questions/{question}/answer', [AuctionQuestionController::class, 'answer'])->name('questions.answer');
+    Route::delete('/questions/{question}', [AuctionQuestionController::class, 'destroy'])->name('questions.destroy');
 
     // Seller Application
     Route::get('/seller/apply', [SellerApplicationController::class, 'showForm'])->name('seller.apply.form');

@@ -124,6 +124,15 @@ class AuctionController extends Controller
             ->take(10)
             ->get();
 
+        $questions = $auction->questions()
+            ->visible()
+            ->with([
+                'user:id,name',
+                'answerer:id,name',
+            ])
+            ->oldest()
+            ->get();
+
         $prediction = null;
         if ($auction->primaryCategory->isNotEmpty()) {
             $inputAttrs = $auction->attributeValues->mapWithKeys(function ($attrVal) {
@@ -143,6 +152,7 @@ class AuctionController extends Controller
             'isWatching',
             'autoBid',
             'recentBids',
+            'questions',
             'prediction'
         ));
     }

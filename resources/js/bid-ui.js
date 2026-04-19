@@ -77,3 +77,43 @@ document.addEventListener('auction:closed', (e) => {
       countdown.classList.remove('text-indigo-600', 'text-orange-600');
   }
 });
+
+window.quickBid = function({ minBid, currentPrice, increment }) {
+  return {
+    min: parseFloat(minBid),
+    current: parseFloat(currentPrice),
+    inc: parseFloat(increment),
+    init() {
+      window.addEventListener('bid:placed', (e) => {
+        const nextAmount = parseFloat(e?.detail?.amount);
+        if (Number.isNaN(nextAmount)) {
+          return;
+        }
+
+        this.current = nextAmount;
+        this.min = this.current + this.inc;
+      });
+    },
+    get minLabel() { return `Min ($${this.min.toFixed(2)})`; },
+    get plus5Label() { return `+5% ($${(this.current * 1.05).toFixed(2)})`; },
+    get plus10Label() { return `+10% ($${(this.current * 1.10).toFixed(2)})`; },
+    setMin() {
+      const input = document.getElementById('bid-amount');
+      if (input) {
+        input.value = this.min.toFixed(2);
+      }
+    },
+    setPlus5() {
+      const input = document.getElementById('bid-amount');
+      if (input) {
+        input.value = (this.current * 1.05).toFixed(2);
+      }
+    },
+    setPlus10() {
+      const input = document.getElementById('bid-amount');
+      if (input) {
+        input.value = (this.current * 1.10).toFixed(2);
+      }
+    },
+  };
+};

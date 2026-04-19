@@ -193,6 +193,11 @@ class User extends Authenticatable implements HasMedia
         return $this->hasMany(Auction::class);
     }
 
+    
+    public function keywordAlerts()
+    {
+        return $this->hasMany(KeywordAlert::class);
+    }
     public function bids(): HasMany
     {
         return $this->hasMany(Bid::class);

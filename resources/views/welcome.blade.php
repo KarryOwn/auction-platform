@@ -103,128 +103,198 @@
     </nav>
 
     <!-- Hero Section -->
-    <div class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        <!-- Background decorations -->
-        <div class="absolute inset-y-0 w-full h-full -z-10 bg-white">
-            <div class="absolute top-0 right-1/4 w-[800px] h-[800px] bg-indigo-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
-            <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
-            <div class="absolute -bottom-32 right-1/3 w-[600px] h-[600px] bg-pink-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
-        </div>
-
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
-                <div class="lg:col-span-6 text-center lg:text-left mb-16 lg:mb-0">
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-medium text-sm mb-6 border border-indigo-100">
-                        <span class="flex h-2 w-2 relative">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                        </span>
-                        Live Auctions Running Now
-                    </div>
-                    <h1 class="text-5xl sm:text-6xl lg:text-7xl font-serif font-bold text-gray-900 leading-[1.1] mb-6">
-                        Discover & Bid on <br/>
-                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Exclusive Items</span>
-                    </h1>
-                    <p class="text-lg sm:text-xl text-gray-600 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                        Join the premier marketplace for unique collectibles, electronics, and rare finds. Experience real-time bidding with secure transactions and verified sellers.
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                        <a href="{{ route('auctions.index') }}" class="inline-flex justify-center items-center px-8 py-4 text-base font-semibold rounded-xl text-white bg-gray-900 hover:bg-gray-800 transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
-                            Start Bidding
-                            <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                        </a>
-                        <a href="{{ auth()->check() && !auth()->user()->isVerifiedSeller() ? route('seller.apply.form') : (auth()->check() ? route('seller.dashboard') : route('register')) }}" class="inline-flex justify-center items-center px-8 py-4 text-base font-semibold rounded-xl text-gray-900 bg-white border-2 border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-all duration-200">
-                            Become a Seller
-                        </a>
-                    </div>
-                    
-                    <div class="mt-12 flex items-center justify-center lg:justify-start gap-8">
-                        <div>
-                            <p class="text-3xl font-bold text-gray-900 font-serif">10K+</p>
-                            <p class="text-sm font-medium text-gray-500 mt-1">Active Auctions</p>
-                        </div>
-                        <div class="w-px h-12 bg-gray-200"></div>
-                        <div>
-                            <p class="text-3xl font-bold text-gray-900 font-serif">50K+</p>
-                            <p class="text-sm font-medium text-gray-500 mt-1">Verified Users</p>
-                        </div>
-                        <div class="w-px h-12 bg-gray-200"></div>
-                        <div>
-                            <p class="text-3xl font-bold text-gray-900 font-serif">Secure</p>
-                            <p class="text-sm font-medium text-gray-500 mt-1">Transactions</p>
-                        </div>
-                    </div>
+<div class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-gradient-to-br from-indigo-900 to-purple-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
+            <div class="lg:col-span-6 text-center lg:text-left mb-16 lg:mb-0">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white font-medium text-sm mb-6 border border-white/20">
+                    <span class="flex h-2 w-2 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    ● {{ $liveCount ?? 0 }} Live Auctions
                 </div>
-                
-                <div class="lg:col-span-6 relative">
-                    <!-- Hero Imagery - Abstract representation of an auction platform -->
-                    <div class="relative w-full aspect-square max-w-lg mx-auto">
-                        <div class="absolute inset-0 bg-gradient-to-tr from-indigo-100 to-white rounded-3xl transform rotate-3 scale-105 border border-white/50 shadow-2xl"></div>
-                        
-                        <!-- Visual App UI Mockup -->
-                        <div class="absolute inset-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col transform -rotate-1 transition-transform hover:rotate-0 duration-500">
-                            <!-- Mockup Header -->
-                            <div class="h-12 border-b border-gray-100 flex items-center px-4 justify-between bg-gray-50/50">
-                                <div class="flex gap-1.5">
-                                    <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                                    <div class="w-3 h-3 rounded-full bg-amber-400"></div>
-                                    <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                                </div>
-                                <div class="h-4 w-32 bg-gray-200 rounded-full"></div>
-                                <div class="w-6 h-6 rounded-full bg-gray-200"></div>
-                            </div>
-                            <!-- Mockup Content -->
-                            <div class="p-6 flex-1 bg-gray-50 overflow-hidden flex flex-col gap-4">
-                                <div class="h-48 w-full bg-gray-200 rounded-xl overflow-hidden relative">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-80 mix-blend-multiply"></div>
-                                    <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Sneaker" class="w-full h-full object-cover object-center mix-blend-overlay">
-                                    <div class="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-                                        02:14:59 Left
-                                    </div>
-                                </div>
-                                <div class="space-y-3">
-                                    <div class="h-6 w-3/4 bg-gray-200 rounded text-gray-800 font-bold flex items-center px-2">Limited Edition Sneakers</div>
-                                    <div class="flex justify-between items-end">
-                                        <div>
-                                            <div class="text-xs text-gray-500 mb-1">Current Bid</div>
-                                            <div class="text-xl font-bold text-indigo-700">$450.00</div>
+                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-serif font-bold text-white leading-[1.1] mb-6">
+                    Bid on things worth having.
+                </h1>
+                <p class="text-lg sm:text-xl text-indigo-200 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                    Verified sellers. Real-time bidding. Secure escrow.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+                    <a href="{{ route('auctions.index') }}" class="inline-flex justify-center items-center px-8 py-4 text-base font-semibold rounded-xl text-gray-900 bg-white hover:bg-gray-100 transition-all duration-200">
+                        Browse Live Auctions
+                    </a>
+                    <a href="{{ auth()->check() && !auth()->user()->isVerifiedSeller() ? route('seller.apply.form') : (auth()->check() ? route('seller.dashboard') : route('register')) }}" class="inline-flex justify-center items-center px-8 py-4 text-base font-semibold rounded-xl text-white bg-transparent border-2 border-white hover:bg-white/10 transition-all duration-200">
+                        Become a Seller
+                    </a>
+                </div>
+                <div class="flex items-center justify-center lg:justify-start gap-2 text-sm text-indigo-200">
+                    <span>100% Secure Escrow</span>
+                    <span>&middot;</span>
+                    <span>Anti-snipe Protection</span>
+                    <span>&middot;</span>
+                    <span>Instant Payouts</span>
+                </div>
+            </div>
+            
+            <div class="lg:col-span-6 relative">
+                <div class="flex flex-col gap-4">
+                    @forelse($featuredAuctions ?? [] as $auction)
+                        <a href="{{ route('auctions.show', $auction) }}" class="block bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl hover:bg-white/20 transition-all duration-200">
+                            <div class="flex items-center gap-4">
+                                <div class="w-[60px] h-[60px] flex-shrink-0 bg-gray-200 rounded overflow-hidden">
+                                    @if($auction->getCoverImageUrl())
+                                        <img src="{{ $auction->getCoverImageUrl() }}" alt="{{ $auction->title }}" class="w-full h-full object-cover">
+                                    @else
+                                        <div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                         </div>
-                                        <div class="text-sm text-gray-500">12 Bids</div>
-                                    </div>
-                                    <div class="w-full h-10 bg-gray-900 rounded-lg mt-2 flex items-center justify-center text-white text-sm font-medium shadow-sm">
-                                        Place Bid
-                                    </div>
+                                    @endif
                                 </div>
-                                
-                                <div class="mt-4 border-t border-gray-200 pt-4 flex gap-3">
-                                    <div class="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80')"></div>
-                                    <div class="flex-1 space-y-2">
-                                        <div class="h-3 w-1/2 bg-gray-200 rounded"></div>
-                                        <div class="h-3 w-1/4 bg-gray-200 rounded"></div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-white font-semibold truncate">{{ $auction->title }}</h3>
+                                    <div class="text-indigo-200 text-sm font-bold flex items-center gap-2">
+                                        <span>${{ number_format($auction->current_price, 2) }}</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <span class="flex h-1.5 w-1.5 relative mr-1.5">
+                                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                                            </span>
+                                            Live
+                                        </span>
                                     </div>
                                 </div>
                             </div>
+                        </a>
+                    @empty
+                        <div class="text-indigo-200 text-center py-8">
+                            No featured auctions right now.
                         </div>
-
-                        <!-- Floating elements -->
-                        <div class="absolute -right-6 top-1/4 bg-white p-4 rounded-xl shadow-xl border border-gray-100 animate-bounce" style="animation-duration: 3s;">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-500 font-medium">New highest bid!</p>
-                                    <p class="text-sm font-bold text-gray-900">$475.00 by Alex***</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @endforelse
                 </div>
             </div>
         </div>
     </div>
+</div>
+<!-- Featured Auctions section -->
+<section class="py-16 bg-gray-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 font-serif">Featured Right Now</h2>
+            <a href="{{ route('auctions.index') }}" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                View all <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
 
-    <!-- Features / How it works -->
+        <div class="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-6 pb-8 lg:pb-0 snap-x snap-mandatory hide-scrollbars">
+            @forelse($featuredAuctions ?? [] as $auction)
+                <div class="snap-start shrink-0 w-72 lg:w-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+                    <div class="aspect-video w-full relative bg-gray-100">
+                        @if($auction->getCoverImageUrl())
+                            <img src="{{ $auction->getCoverImageUrl() }}" alt="{{ $auction->title }}" class="w-full h-full object-cover">
+                        @else
+                            <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="p-5 flex flex-col flex-1">
+                        @if($auction->primaryCategory->first())
+                            <div class="mb-2">
+                                <x-ui-badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui-badge>
+                            </div>
+                        @endif
+                        <h3 class="font-semibold text-gray-900 mb-2 truncate" title="{{ $auction->title }}">{{ $auction->title }}</h3>
+                        <div class="mt-auto pt-4 flex flex-col gap-3">
+                            <div class="flex items-end justify-between">
+                                <div>
+                                    <x-ui-price :amount="$auction->current_price" size="md" />
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ $auction->bids_count ?? 0 }} bids
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                <x-ui-countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
+                                <x-ui-button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
+                                    Bid Now
+                                </x-ui-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-span-full py-12 text-center text-gray-500">
+                    No featured auctions available right now.
+                </div>
+            @endforelse
+        </div>
+    </div>
+</section>
+
+<!-- Ending Soon section -->
+<section class="py-16 bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 font-serif flex items-center gap-2">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                Ending Soon
+            </h2>
+            <a href="{{ route('auctions.index') }}" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                View all <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
+
+        <div class="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-6 pb-8 lg:pb-0 snap-x snap-mandatory hide-scrollbars">
+            @forelse($endingSoonAuctions ?? [] as $auction)
+                <div class="snap-start shrink-0 w-72 lg:w-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+                    <div class="aspect-video w-full relative bg-gray-100">
+                        @if($auction->getCoverImageUrl())
+                            <img src="{{ $auction->getCoverImageUrl() }}" alt="{{ $auction->title }}" class="w-full h-full object-cover">
+                        @else
+                            <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="p-5 flex flex-col flex-1">
+                        @if($auction->primaryCategory->first())
+                            <div class="mb-2">
+                                <x-ui-badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui-badge>
+                            </div>
+                        @endif
+                        <h3 class="font-semibold text-gray-900 mb-2 truncate" title="{{ $auction->title }}">{{ $auction->title }}</h3>
+                        <div class="mt-auto pt-4 flex flex-col gap-3">
+                            <div class="flex items-end justify-between">
+                                <div>
+                                    <x-ui-price :amount="$auction->current_price" size="md" />
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ $auction->bids_count ?? 0 }} bids
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                <x-ui-countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
+                                <x-ui-button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
+                                    Bid Now
+                                </x-ui-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-span-full py-12 text-center text-gray-500">
+                    No auctions ending soon.
+                </div>
+            @endforelse
+        </div>
+    </div>
+</section>
+
+<!-- Features / How it works -->
     <div id="how-it-works" class="py-24 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
@@ -387,3 +457,12 @@
     </script>
 </body>
 </html>
+@foreach($featuredAuctions as $auction)
+                    <div class="snap-start lg:snap-align-none shrink-0 w-[280px] lg:w-auto">
+                        <x-auction.card :auction="$auction" />
+                    </div>
+                @endforeach@foreach($endingSoonAuctions as $auction)
+                    <div class="snap-start lg:snap-align-none shrink-0 w-[280px] lg:w-auto">
+                        <x-auction.card :auction="$auction" />
+                    </div>
+                @endforeach

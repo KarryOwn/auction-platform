@@ -864,7 +864,7 @@ Output the COMPLETE redesigned auctions/show.blade.php.
 - [ ] BidEventBus.subscribe() used instead of inline Echo
 - [ ] x-ui-countdown, x-ui-price, x-ui-badge, x-ui-card used
 
-**Test command:** `php artisan view:clear && grep -c "BidEventBus\|x-ui-" resources/views/auctions/show.blade.php`
+**Test command:** `sail artisan view:clear && grep -c "BidEventBus\|x-ui-" resources/views/auctions/show.blade.php`
 
 **Commit message:** `feat(auctions): full layout redesign of auction show page with sticky bid panel and quick-bid buttons`
 
@@ -1017,13 +1017,13 @@ Output all 5 files completely.
 ```
 
 **Acceptance criteria:**
-- [ ] `php artisan migrate --pretend` runs clean
+- [ ] `sail artisan migrate --pretend` runs clean
 - [ ] Unique constraint prevents duplicate keywords per user
 - [ ] `toggle` route returns JSON (not redirect)
 - [ ] `destroy` returns 403 if wrong user tries to delete
 - [ ] View renders empty state correctly
 
-**Test command:** `php artisan route:list | grep "keyword-alerts"`
+**Test command:** `sail artisan route:list | grep "keyword-alerts"`
 
 **Commit message:** `feat(alerts): add keyword alert system with model, controller, routes, and view`
 
@@ -1075,7 +1075,7 @@ Output all modified and created files.
 - [ ] Notification has correct `toArray()` shape for the notification bell component
 - [ ] 5-second delay prevents job running before DB transaction commits
 
-**Test command:** `php artisan queue:listen --queue=notifications --tries=1 --timeout=10 2>&1 &`
+**Test command:** `sail artisan queue:listen --queue=notifications --tries=1 --timeout=10 2>&1 &`
 
 **Commit message:** `feat(notifications): dispatch keyword alert notifications when auction is published`
 
@@ -1219,7 +1219,7 @@ Output all files completely.
 - [ ] Visible questions show in chronological order
 - [ ] Unauthenticated users see questions but not the ask form
 
-**Test command:** `php artisan route:list | grep "questions"`
+**Test command:** `sail artisan route:list | grep "questions"`
 
 **Commit message:** `feat(qa): add public Q&A system to auction detail pages`
 
