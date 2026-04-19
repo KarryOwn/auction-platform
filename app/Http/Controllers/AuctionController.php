@@ -124,6 +124,16 @@ class AuctionController extends Controller
             ->take(10)
             ->get();
 
+        $bidChartData = $auction->bids()
+            ->orderBy('created_at')
+            ->get(['amount', 'created_at'])
+            ->map(fn ($b) => [
+                'x' => $b->created_at->toIso8601String(),
+                'y' => (float) $b->amount,
+            ])
+            ->values()
+            ->toJson();
+
         $questions = $auction->questions()
             ->visible()
             ->with([
@@ -152,6 +162,7 @@ class AuctionController extends Controller
             'isWatching',
             'autoBid',
             'recentBids',
+            'bidChartData',
             'questions',
             'prediction'
         ));

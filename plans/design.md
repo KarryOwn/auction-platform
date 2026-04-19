@@ -1293,7 +1293,7 @@ Output all files completely.
 - [ ] Star UI uses Alpine.js (hover changes preview, click sets value)
 - [ ] Average rating shows on storefront
 
-**Test command:** `php artisan route:list | grep "rate" && php artisan migrate --pretend 2>&1 | tail -5`
+**Test command:** `sail artisan route:list | grep "rate" && sail artisan migrate --pretend 2>&1 | tail -5`
 
 **Commit message:** `feat(ratings): add two-way buyer/seller rating system after auction completion`
 
@@ -1419,7 +1419,7 @@ Add the route in routes/web.php inside the auth middleware group.
 - [ ] Modal opens and closes without page reload
 - [ ] Success path closes modal AND shows toast
 
-**Test command:** `php artisan route:list | grep "report"`
+**Test command:** `sail artisan route:list | grep "report"`
 
 **Commit message:** `feat(auctions): add buyer-facing report listing form with modal and duplicate protection`
 

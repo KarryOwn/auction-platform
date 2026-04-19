@@ -201,24 +201,24 @@
                     <div class="p-5 flex flex-col flex-1">
                         @if($auction->primaryCategory->first())
                             <div class="mb-2">
-                                <x-ui-badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui-badge>
+                                <x-ui.badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui.badge>
                             </div>
                         @endif
                         <h3 class="font-semibold text-gray-900 mb-2 truncate" title="{{ $auction->title }}">{{ $auction->title }}</h3>
                         <div class="mt-auto pt-4 flex flex-col gap-3">
                             <div class="flex items-end justify-between">
                                 <div>
-                                    <x-ui-price :amount="$auction->current_price" size="md" />
+                                    <x-ui.price :amount="$auction->current_price" size="md" />
                                 </div>
                                 <div class="text-sm text-gray-500">
                                     {{ $auction->bids_count ?? 0 }} bids
                                 </div>
                             </div>
                             <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
-                                <x-ui-countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
-                                <x-ui-button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
+                                <x-ui.countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
+                                <x-ui.button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
                                     Bid Now
-                                </x-ui-button>
+                                </x-ui.button>
                             </div>
                         </div>
                     </div>
@@ -263,24 +263,24 @@
                     <div class="p-5 flex flex-col flex-1">
                         @if($auction->primaryCategory->first())
                             <div class="mb-2">
-                                <x-ui-badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui-badge>
+                                <x-ui.badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui.badge>
                             </div>
                         @endif
                         <h3 class="font-semibold text-gray-900 mb-2 truncate" title="{{ $auction->title }}">{{ $auction->title }}</h3>
                         <div class="mt-auto pt-4 flex flex-col gap-3">
                             <div class="flex items-end justify-between">
                                 <div>
-                                    <x-ui-price :amount="$auction->current_price" size="md" />
+                                    <x-ui.price :amount="$auction->current_price" size="md" />
                                 </div>
                                 <div class="text-sm text-gray-500">
                                     {{ $auction->bids_count ?? 0 }} bids
                                 </div>
                             </div>
                             <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
-                                <x-ui-countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
-                                <x-ui-button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
+                                <x-ui.countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
+                                <x-ui.button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
                                     Bid Now
-                                </x-ui-button>
+                                </x-ui.button>
                             </div>
                         </div>
                     </div>
@@ -457,12 +457,3 @@
     </script>
 </body>
 </html>
-@foreach($featuredAuctions as $auction)
-                    <div class="snap-start lg:snap-align-none shrink-0 w-[280px] lg:w-auto">
-                        <x-auction.card :auction="$auction" />
-                    </div>
-                @endforeach@foreach($endingSoonAuctions as $auction)
-                    <div class="snap-start lg:snap-align-none shrink-0 w-[280px] lg:w-auto">
-                        <x-auction.card :auction="$auction" />
-                    </div>
-                @endforeach

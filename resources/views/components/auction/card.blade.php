@@ -35,9 +35,9 @@
         {{-- Floating Badges Overlay --}}
         @if($auction->is_featured && $size !== 'sm')
             <div class="absolute top-3 right-3">
-                <x-ui-badge color="amber" class="shadow-sm font-bold flex items-center gap-1">
+                <x-ui.badge color="amber" class="shadow-sm font-bold flex items-center gap-1">
                     ★ Featured
-                </x-ui-badge>
+                </x-ui.badge>
             </div>
         @endif
     </div>
@@ -70,7 +70,7 @@
         {{-- Badges Row --}}
         <div class="flex flex-wrap items-center gap-1.5 mb-3">
             @if($auction->condition)
-                <x-ui-badge color="blue" size="xs">{{ $auction->condition_label }}</x-ui-badge>
+                <x-ui.badge color="blue" size="xs">{{ $auction->condition_label }}</x-ui.badge>
             @endif
             @if($auction->brand)
                 <span class="text-xs text-gray-500 font-medium">{{ $auction->brand->name }}</span>
@@ -97,9 +97,9 @@
             <div class="mb-4">
                 @if($auction->hasReserve())
                     @if($auction->reserve_met)
-                        <x-ui-badge color="green" size="xs">Reserve met</x-ui-badge>
+                        <x-ui.badge color="green" size="xs">Reserve met</x-ui.badge>
                     @else
-                        <x-ui-badge color="amber" size="xs">Reserve not met</x-ui-badge>
+                        <x-ui.badge color="amber" size="xs">Reserve not met</x-ui.badge>
                     @endif
                 @else
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-500 border border-gray-200">No reserve</span>
@@ -110,7 +110,7 @@
         {{-- Price & Bids Block --}}
         <div class="mt-auto flex items-end justify-between {{ $size === 'sm' ? 'pt-2 mt-2 border-t border-gray-50' : '' }}">
             <div>
-                <x-ui-price :amount="$auction->current_price" size="sm" :label="$size !== 'sm' ? 'Current Bid' : null" />
+                <x-ui.price :amount="$auction->current_price" size="sm" :label="$size !== 'sm' ? 'Current Bid' : null" />
                 @if($size !== 'sm')
                     <p class="text-xs text-gray-500 mt-0.5 font-medium">{{ $auction->bids_count ?? $auction->bid_count ?? 0 }} bids</p>
                 @endif
@@ -124,10 +124,10 @@
     {{-- Footer Actions --}}
     <div class="bg-gray-50 px-{{ $size === 'sm' ? '3 py-2' : ($size === 'lg' ? '6 py-4' : '4 py-3') }} border-t border-gray-100 flex items-center justify-between">
         <div>
-            <x-ui-countdown :ends-at="isset($auction->end_time) ? Carbon\Carbon::parse($auction->end_time)->toIso8601String() : now()->addDay()->toIso8601String()" size="sm" :show-label="false" />
+            <x-ui.countdown :ends-at="isset($auction->end_time) ? Carbon\Carbon::parse($auction->end_time)->toIso8601String() : now()->addDay()->toIso8601String()" size="sm" :show-label="false" />
         </div>
-        <x-ui-button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm" class="!px-3 !py-1 {{ $size === 'sm' ? 'text-xs' : '' }}">
+        <x-ui.button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm" class="!px-3 !py-1 {{ $size === 'sm' ? 'text-xs' : '' }}">
             Bid Now
-        </x-ui-button>
+        </x-ui.button>
     </div>
 </div>

@@ -108,8 +108,21 @@
 
                 {{-- Left Column: Auction Details --}}
                 <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                    <div class="bg-white shadow-sm sm:rounded-lg p-6 relative"
+                         x-data="reportAuctionModal('{{ route('auctions.report', $auction) }}')">
                         <p class="text-gray-700 leading-relaxed mb-6">{{ $auction->description }}</p>
+
+                        @auth
+                            @if(auth()->id() !== $auction->user_id)
+                                <div class="mb-6 -mt-2">
+                                    <button type="button"
+                                            @click="open()"
+                                            class="text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2">
+                                        Report this listing
+                                    </button>
+                                </div>
+                            @endif
+                        @endauth
 
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
@@ -207,6 +220,70 @@
                             @endif
                         @endauth
 
+                        @auth
+                            @if(auth()->id() !== $auction->user_id)
+                                <div x-cloak
+                                     x-show="isOpen"
+                                     x-transition.opacity
+                                     class="absolute inset-0 z-30 bg-black/50 p-4 sm:p-6">
+                                    <div class="h-full w-full grid place-items-center">
+                                        <div @click.outside="close()"
+                                             x-transition
+                                             class="w-full max-w-lg bg-white rounded-xl shadow-xl border border-gray-200 p-5 sm:p-6">
+                                            <div class="flex items-center justify-between mb-4">
+                                                <h3 class="text-lg font-semibold text-gray-900">Report this listing</h3>
+                                                <button type="button"
+                                                        @click="close()"
+                                                        class="text-gray-400 hover:text-gray-600"
+                                                        aria-label="Close report modal">
+                                                    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            <form @submit.prevent="submitReport" class="space-y-4">
+                                                <div>
+                                                    <label for="report-reason" class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                                                    <select id="report-reason"
+                                                            x-model="form.reason"
+                                                            class="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                                            required>
+                                                        <option value="">Select a reason</option>
+                                                        <option value="Item description inaccurate">Item description inaccurate</option>
+                                                        <option value="Counterfeit or fake item">Counterfeit or fake item</option>
+                                                        <option value="Prohibited item">Prohibited item</option>
+                                                        <option value="Seller fraud">Seller fraud</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label for="report-description" class="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+                                                    <textarea id="report-description"
+                                                              x-model="form.description"
+                                                              maxlength="500"
+                                                              rows="4"
+                                                              class="w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                                              placeholder="Add more details to help our team review this report."></textarea>
+                                                </div>
+
+                                                <div class="flex items-center justify-end gap-3 pt-2">
+                                                    <x-ui.button type="button" variant="secondary" @click="close()">
+                                                        Cancel
+                                                    </x-ui.button>
+                                                    <x-ui.button type="submit" variant="danger" x-bind:disabled="submitting">
+                                                        <span x-show="!submitting">Submit Report</span>
+                                                        <span x-show="submitting">Submitting...</span>
+                                                    </x-ui.button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        @endauth
+
                         {{-- Reserve Price Indicator --}}
                         @if($auction->hasReserve())
                             <div class="mt-4 flex items-center gap-2 text-sm">
@@ -224,6 +301,20 @@
                             </div>
                         @endif
                     </div>
+
+                    <x-ui.card>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-medium text-gray-900 dark:text-gray-100">Price History</h3>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ $auction->bids_count ?? 0 }} bids</span>
+                        </div>
+                        @if(($auction->bids_count ?? 0) > 0)
+                            <div class="h-[120px]">
+                                <canvas id="price-chart" height="120"></canvas>
+                            </div>
+                        @else
+                            <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No bids yet</p>
+                        @endif
+                    </x-ui.card>
 
                     {{-- Recent Bids --}}
                     <div class="bg-white shadow-sm sm:rounded-lg p-6">
@@ -267,11 +358,11 @@
 
                         <div class="space-y-4">
                             @forelse($questions as $question)
-                                <x-ui-card>
+                                <x-ui.card>
                                     <div class="flex items-start justify-between gap-4">
                                         <div>
-                                            <p class="text-sm text-gray-900">{{ $question->question }}</p>
-                                            <p class="text-xs text-gray-500 mt-2">
+                                            <p class="text-sm text-gray-900 dark:text-gray-100">{{ $question->question }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                                 Asked by {{ $question->user->name ?? 'Unknown user' }}
                                                 <span class="mx-1">·</span>
                                                 {{ $question->created_at->diffForHumans() }}
@@ -293,8 +384,8 @@
 
                                     @if($question->isAnswered())
                                         <div class="mt-4 border-l-2 border-indigo-200 pl-4">
-                                            <p class="text-sm text-gray-800">{{ $question->answer }}</p>
-                                            <p class="text-xs text-gray-500 mt-2">
+                                            <p class="text-sm text-gray-800 dark:text-gray-100">{{ $question->answer }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                                 Answered by {{ $question->answerer->name ?? 'Seller' }}
                                                 @if($question->answered_at)
                                                     <span class="mx-1">·</span>
@@ -319,7 +410,7 @@
                                             </button>
                                         </form>
                                     @endif
-                                </x-ui-card>
+                                </x-ui.card>
                             @empty
                                 <p class="text-sm text-gray-500 text-center py-4">No questions yet. Be the first to ask.</p>
                             @endforelse
@@ -679,4 +770,136 @@
             window.BidEventBus.subscribe({{ $auction->id }});
         });
     </script>
+
+    <script>
+        window.reportAuctionModal = function(reportUrl) {
+            return {
+                isOpen: false,
+                submitting: false,
+                form: {
+                    reason: '',
+                    description: '',
+                },
+                open() {
+                    this.isOpen = true;
+                },
+                close() {
+                    this.isOpen = false;
+                },
+                async submitReport() {
+                    if (this.submitting) {
+                        return;
+                    }
+
+                    this.submitting = true;
+
+                    try {
+                        const response = await fetch(reportUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                reason: this.form.reason,
+                                description: this.form.description,
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            this.form.reason = '';
+                            this.form.description = '';
+                            this.close();
+                            window.toast?.success(data.message || 'Report submitted.');
+                            return;
+                        }
+
+                        window.toast?.error(data.message || 'Unable to submit report.');
+                    } catch (error) {
+                        window.toast?.error('Request failed.');
+                    } finally {
+                        this.submitting = false;
+                    }
+                },
+            };
+        };
+    </script>
+
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const canvas = document.getElementById('price-chart');
+                if (!canvas || typeof Chart === 'undefined') {
+                    return;
+                }
+
+                const points = @json(json_decode($bidChartData, true));
+                const showPoints = window.matchMedia('(min-width: 640px)').matches;
+
+                const chart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        datasets: [{
+                            data: points,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(199, 210, 254, 0.45)',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: showPoints ? 2 : 0,
+                            pointHoverRadius: showPoints ? 3 : 0,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: false },
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    displayFormats: { minute: 'HH:mm', hour: 'HH:mm' },
+                                    tooltipFormat: 'HH:mm',
+                                },
+                                ticks: {
+                                    color: '#6b7280',
+                                },
+                                grid: {
+                                    display: false,
+                                },
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#6b7280',
+                                    callback: (value) => {
+                                        const num = Number(value);
+                                        return Number.isInteger(num) ? `$${num}` : `$${num.toFixed(2)}`;
+                                    },
+                                },
+                                grid: {
+                                    color: 'rgba(229, 231, 235, 0.8)',
+                                },
+                            },
+                        },
+                    },
+                });
+
+                window.addEventListener('bid:placed', (e) => {
+                    chart.data.datasets[0].data.push({
+                        x: new Date().toISOString(),
+                        y: parseFloat(e.detail.amount),
+                    });
+                    chart.update('active');
+                });
+            });
+        </script>
+    @endpush
 </x-app-layout>

@@ -238,6 +238,11 @@ class User extends Authenticatable implements HasMedia
         return $this->hasMany(Auction::class, 'winner_id');
     }
 
+    public function ratingsReceived(): HasMany
+    {
+        return $this->hasMany(AuctionRating::class, 'ratee_id');
+    }
+
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
@@ -364,5 +369,17 @@ class User extends Authenticatable implements HasMedia
             self::DEFAULT_NOTIFICATION_PREFERENCES,
             $this->notification_preferences ?? []
         );
+    }
+
+    public function getAverageRatingAttribute(): ?float
+    {
+        $average = $this->ratingsReceived()->avg('score');
+
+        return $average !== null ? round((float) $average, 1) : null;
+    }
+
+    public function getRatingCountAttribute(): int
+    {
+        return (int) $this->ratingsReceived()->count();
     }
 }

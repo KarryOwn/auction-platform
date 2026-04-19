@@ -8,7 +8,7 @@
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            <x-ui-card>
+            <x-ui.card>
                 <x-slot name="header">
                     <h3 class="text-lg font-medium">Create Alert</h3>
                 </x-slot>
@@ -19,11 +19,11 @@
                         <x-text-input id="keyword" name="keyword" type="text" class="w-full" placeholder="e.g. Vintage Rolex..." required />
                         <x-input-error :messages="$errors->get('keyword')" class="mt-2" />
                     </div>
-                    <x-ui-button type="submit" variant="primary">Add Alert</x-ui-button>
+                    <x-ui.button type="submit" variant="primary">Add Alert</x-ui.button>
                 </form>
-            </x-ui-card>
+            </x-ui.card>
 
-            <x-ui-card>
+            <x-ui.card>
                 <x-slot name="header">
                     <h3 class="text-lg font-medium">Your Alerts</h3>
                 </x-slot>
@@ -44,8 +44,8 @@
                                 </div>
                                 <div class="flex items-center gap-4">
                                     <div class="flex items-center gap-2">
-                                        <x-ui-badge x-show="active" color="green" size="xs">Active</x-ui-badge>
-                                        <x-ui-badge x-show="!active" color="gray" size="xs">Inactive</x-ui-badge>
+                                        <x-ui.badge x-show="active" color="green" size="xs">Active</x-ui.badge>
+                                        <x-ui.badge x-show="!active" color="gray" size="xs">Inactive</x-ui.badge>
                                         <button 
                                             @click="
                                                 toggling = true;
@@ -70,7 +70,7 @@
                                     <form method="POST" action="{{ route('user.keyword-alerts.destroy', $alert) }}">
                                         @csrf
                                         @method('DELETE')
-                                        <x-ui-button type="submit" variant="danger" size="sm">Remove</x-ui-button>
+                                        <x-ui.button type="submit" variant="danger" size="sm">Remove</x-ui.button>
                                     </form>
                                 </div>
                             </div>
@@ -80,7 +80,7 @@
                 <div class="mt-4">
                     {{ $alerts->links() }}
                 </div>
-            </x-ui-card>
+            </x-ui.card>
             
         </div>
     </div>

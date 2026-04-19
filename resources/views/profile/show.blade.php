@@ -37,7 +37,7 @@
                     @endif
 
                     {{-- Stats --}}
-                    <div class="grid grid-cols-2 gap-4 py-4 border-t border-gray-100">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4 border-t border-gray-100">
                         <div>
                             <div class="text-sm font-medium text-gray-500">Member Since</div>
                             <div class="mt-1 text-gray-900 font-semibold">{{ $memberSince->format('F Y') }}</div>
@@ -45,6 +45,13 @@
                         <div>
                             <div class="text-sm font-medium text-gray-500">Auctions Won</div>
                             <div class="mt-1 text-gray-900 font-semibold">{{ $totalWins }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-500">Rating</div>
+                            <div class="mt-1 text-gray-900 font-semibold">
+                                {{ number_format($averageRating ?? 0, 1) }}
+                                <span class="text-sm text-gray-500 font-normal">({{ $ratingCount }} {{ \Illuminate\Support\Str::plural('rating', $ratingCount) }})</span>
+                            </div>
                         </div>
                     </div>
 

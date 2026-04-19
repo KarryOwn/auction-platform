@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuctionController;
+use App\Http\Controllers\AuctionRatingController;
 use App\Http\Controllers\AuctionQuestionController;
+use App\Http\Controllers\AuctionReportController;
 use App\Http\Controllers\BidController;
 use App\Http\Controllers\CategoryBrowseController;
 use App\Http\Controllers\ConversationController;
@@ -131,8 +133,11 @@ Route::middleware('auth')->group(function () {
 
     // Auction detail & actions
     Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->middleware('track.auction.view')->name('auctions.show');
+    Route::get('/auctions/{auction}/rate', [AuctionRatingController::class, 'create'])->name('auctions.rate');
+    Route::post('/auctions/{auction}/rate', [AuctionRatingController::class, 'store'])->name('auctions.rate.store');
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');
     Route::post('/auctions/{auction}/questions', [AuctionQuestionController::class, 'store'])->name('auctions.questions.store');
+    Route::post('/auctions/{auction}/report', [AuctionReportController::class, 'store'])->name('auctions.report');
     Route::post('/auctions/{auction}/watch', [AuctionController::class, 'toggleWatch'])->name('auctions.watch');
     Route::post('/auctions/{auction}/auto-bid', [AuctionController::class, 'setAutoBid'])->name('auctions.auto-bid');
     Route::delete('/auctions/{auction}/auto-bid', [AuctionController::class, 'cancelAutoBid'])->name('auctions.cancel-auto-bid');

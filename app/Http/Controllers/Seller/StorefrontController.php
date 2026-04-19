@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateStorefrontRequest;
 use App\Models\Auction;
+use App\Models\AuctionRating;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 
@@ -34,7 +35,17 @@ class StorefrontController extends Controller
             'total_completed' => Auction::query()->where('user_id', $seller->id)->where('status', Auction::STATUS_COMPLETED)->count(),
         ];
 
-        return view('seller.storefront.show', compact('seller', 'activeAuctions', 'completedAuctions', 'stats'));
+        $averageRating = AuctionRating::averageForUser($seller->id);
+        $ratingCount = AuctionRating::where('ratee_id', $seller->id)->count();
+
+        return view('seller.storefront.show', compact(
+            'seller',
+            'activeAuctions',
+            'completedAuctions',
+            'stats',
+            'averageRating',
+            'ratingCount',
+        ));
     }
 
     public function edit()

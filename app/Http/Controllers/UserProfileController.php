@@ -19,7 +19,9 @@ class UserProfileController extends Controller
 
         $totalWins = $user->wonAuctions()->count();
         $memberSince = $user->created_at;
+        $averageRating = $user->average_rating;
+        $ratingCount = $user->rating_count;
 
-        return view('profile.show', compact('user', 'totalWins', 'memberSince'));
+        return view('profile.show', compact('user', 'totalWins', 'memberSince', 'averageRating', 'ratingCount'));
     }
 }

@@ -98,8 +98,7 @@
         <script>
             document.addEventListener('alpine:init', () => {
                 Alpine.store('theme', {
-                    isDark: localStorage.getItem('theme') === 'dark' || 
-                           (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches),
+                    isDark: localStorage.getItem('theme') === 'dark',
                     toggle() {
                         this.isDark = !this.isDark;
                         localStorage.setItem('theme', this.isDark ? 'dark' : 'light');

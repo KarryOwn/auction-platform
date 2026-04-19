@@ -15,13 +15,13 @@ class TrackAuctionViewJob implements ShouldQueue
 
     public $tries = 3;
     public $backoff = [5, 30];
-    public $queue = 'analytics';
 
     /**
      * Create a new job instance.
      */
     public function __construct(public readonly string $auctionId)
     {
+        $this->onQueue('analytics');
     }
 
     /**
