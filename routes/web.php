@@ -25,6 +25,8 @@ use App\Http\Controllers\Admin\RefundController as AdminRefundController;
 use App\Http\Controllers\User\InvoiceController;
 use App\Http\Controllers\Seller\AnalyticsController;
 use App\Http\Controllers\Seller\DashboardController as SellerDashboardController;
+use App\Http\Controllers\Seller\ImportController as SellerImportController;
+use App\Http\Controllers\Seller\ScheduleController as SellerScheduleController;
 use App\Http\Controllers\Seller\InsightController;
 use App\Http\Controllers\Seller\AuctionCrudController;
 use App\Http\Controllers\Seller\MessageController as SellerMessageController;
@@ -160,6 +162,7 @@ Route::middleware('auth')->group(function () {
 Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(function () {
     Route::get('/dashboard', [SellerDashboardController::class, 'index'])->name('dashboard');
     Route::get('/metrics/live', [SellerDashboardController::class, 'liveMetrics'])->name('metrics.live');
+    Route::get('/revenue/chart-data', [SellerDashboardController::class, 'revenueChartData'])->name('revenue.chart-data');
 
     Route::get('/storefront/edit', [StorefrontController::class, 'edit'])->name('storefront.edit');
     Route::patch('/storefront', [StorefrontController::class, 'update'])->name('storefront.update');
@@ -183,6 +186,10 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::get('/auctions/{auction}/insights', [InsightController::class, 'auctionInsights'])->name('auctions.insights');
 
     Route::get('/auctions', [AuctionCrudController::class, 'index'])->name('auctions.index');
+    Route::get('/auctions/schedule', [SellerScheduleController::class, 'index'])->name('auctions.schedule');
+    Route::get('/auctions/import', [SellerImportController::class, 'create'])->name('auctions.import');
+    Route::post('/auctions/import', [SellerImportController::class, 'store'])->name('auctions.import.store');
+    Route::get('/auctions/import/template', [SellerImportController::class, 'template'])->name('auctions.import.template');
     Route::get('/auctions/create', [AuctionCrudController::class, 'create'])->name('auctions.create');
     Route::post('/auctions', [AuctionCrudController::class, 'store'])->name('auctions.store');
     Route::get('/auctions/{auction}/edit', [AuctionCrudController::class, 'edit'])->name('auctions.edit');

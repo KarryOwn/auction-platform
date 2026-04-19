@@ -1,6 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Create Auction</h2>
+        <div class="flex items-center justify-between gap-3">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Create Auction</h2>
+            <a href="{{ route('seller.auctions.import') }}" class="text-sm text-indigo-600 hover:text-indigo-700">Import from CSV -></a>
+        </div>
     </x-slot>
 
     <div class="py-8">

@@ -2,9 +2,14 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">My Auctions</h2>
-            <a href="{{ route('seller.auctions.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">
-                Create New Auction
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('seller.auctions.schedule') }}" class="inline-flex items-center px-4 py-2 border border-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50">
+                    Schedule View
+                </a>
+                <a href="{{ route('seller.auctions.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">
+                    Create New Auction
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -77,6 +82,9 @@
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-2">
                                         <a href="{{ route('seller.auctions.edit', $auction) }}" class="text-indigo-600 hover:text-indigo-800">Edit</a>
+                                        @if($auction->status === \App\Models\Auction::STATUS_ACTIVE)
+                                            <a href="{{ route('seller.auctions.insights', $auction) }}" class="text-emerald-600 hover:text-emerald-800">Insights</a>
+                                        @endif
                                         <a href="{{ route('auctions.show', $auction) }}" class="text-gray-600 hover:text-gray-800">View</a>
                                         @if($auction->isDraft())
                                             <form method="POST" action="{{ route('seller.auctions.destroy', $auction) }}" onsubmit="return confirm('Delete this draft?')">

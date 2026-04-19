@@ -1483,7 +1483,7 @@ Output: complete redesigned dashboard.blade.php and the controller additions.
 - [ ] Recent messages section shows max 3 items
 - [ ] Empty states for each section when data is absent
 
-**Test command:** `php artisan view:clear && php artisan route:list | grep "seller.dashboard"`
+**Test command:** `sail artisan view:clear && sail artisan route:list | grep "seller.dashboard"`
 
 **Commit message:** `feat(seller): redesign seller dashboard with health scores, revenue chart, and messages strip`
 
@@ -1534,7 +1534,7 @@ Output: ScheduleController.php and schedule.blade.php completely.
 - [ ] Mobile fallback renders correctly (Tailwind responsive classes)
 - [ ] Link from seller.auctions.index exists
 
-**Test command:** `php artisan route:list | grep "schedule"`
+**Test command:** `sail artisan route:list | grep "schedule"`
 
 **Commit message:** `feat(seller): add auction scheduling calendar view with start/end timeline`
 
@@ -1588,7 +1588,7 @@ Output: ImportController.php, import.blade.php, template CSV file (as a PHP stri
 - [ ] All created auctions are status='draft'
 - [ ] Template CSV download has correct headers and example row
 
-**Test command:** `php artisan route:list | grep "import"`
+**Test command:** `sail artisan route:list | grep "import"`
 
 **Commit message:** `feat(seller): add CSV bulk import for creating multiple auction drafts`
 
@@ -1647,7 +1647,7 @@ Output: the updated controller method and the complete redesigned insights/show.
 - [ ] Link from seller auction list to insights works
 - [ ] Handles case where `views_count` column might not exist yet (use `$auction->views_count ?? 0`)
 
-**Test command:** `php artisan view:clear && grep -c "clip-path\|funnel" resources/views/seller/insights/show.blade.php`
+**Test command:** `sail artisan view:clear && grep -c "clip-path\|funnel" resources/views/seller/insights/show.blade.php`
 
 **Commit message:** `feat(seller): add visual conversion funnel to auction insights page`
 

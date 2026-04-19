@@ -84,6 +84,24 @@ class InsightController extends Controller
 
         $insights = $this->suggestionService->auctionInsights($auction);
 
+        $viewsCount = (int) ($auction->views_count ?? 0);
+        $watchersCount = $auction->watchers()->count();
+        $biddersCount = $auction->bids()->distinct('user_id')->count('user_id');
+        $winnerCount = $auction->winner_id ? 1 : 0;
+
+        $insights['funnel'] = [
+            'views' => $viewsCount,
+            'watchers' => $watchersCount,
+            'bidders' => $biddersCount,
+            'winner' => $winnerCount,
+        ];
+
+        $insights['funnel_rates'] = [
+            'view_to_watch' => $viewsCount > 0 ? round(($watchersCount / $viewsCount) * 100, 1) : 0,
+            'watch_to_bid' => $watchersCount > 0 ? round(($biddersCount / $watchersCount) * 100, 1) : 0,
+            'bid_to_win' => $biddersCount > 0 ? ($winnerCount ? 100 : 0) : 0,
+        ];
+
         return view('seller.insights.show', compact('auction', 'insights'));
     }
 }
