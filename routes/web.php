@@ -192,6 +192,9 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::post('/messages/{conversation}', [SellerMessageController::class, 'store'])->name('messages.store');
     Route::post('/messages/{conversation}/read', [SellerMessageController::class, 'markRead'])->name('messages.read');
 
+    Route::post('/vacation-mode/activate', [\App\Http\Controllers\Seller\VacationModeController::class, 'activate'])->name('vacation.activate');
+    Route::post('/vacation-mode/deactivate', [\App\Http\Controllers\Seller\VacationModeController::class, 'deactivate'])->name('vacation.deactivate');
+
     Route::post('/insights/price-suggestion', [InsightController::class, 'suggestPrice'])->name('insights.price-suggestion');
     Route::post('/insights/predict', [InsightController::class, 'predict'])->name('insights.predict');
     Route::get('/insights/category-attributes', [InsightController::class, 'categoryAttributes'])->name('insights.category-attributes');

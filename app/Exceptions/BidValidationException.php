@@ -8,6 +8,7 @@ class BidValidationException extends RuntimeException
 {
     public const AUCTION_NOT_ACTIVE  = 'auction_not_active';
     public const AUCTION_ENDED      = 'auction_ended';
+    public const AUCTION_PAUSED     = 'auction_paused';
     public const BID_TOO_LOW        = 'bid_too_low';
     public const SELF_BID           = 'self_bid';
     public const USER_BANNED        = 'user_banned';
@@ -57,6 +58,11 @@ class BidValidationException extends RuntimeException
     public static function auctionEnded(): static
     {
         return new static('This auction has already ended.', self::AUCTION_ENDED);
+    }
+
+    public static function auctionPaused(): static
+    {
+        return new static('This auction is temporarily paused while the seller is on vacation.', self::AUCTION_PAUSED);
     }
 
     public static function bidTooLow(float $currentPrice, float $minimumBid): static

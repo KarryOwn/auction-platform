@@ -61,3 +61,9 @@ Schedule::command('cache:warm --key=category_tree --key=root_categories')
     ->name('warm-category-tree-and-roots-cache')
     ->withoutOverlapping();
 
+// Auto-deactivate expired vacation modes
+Schedule::call(fn () => app(\App\Services\VacationModeService::class)->autoDeactivateExpired())
+    ->everyFiveMinutes()
+    ->name('auto-deactivate-vacation-mode')
+    ->withoutOverlapping();
+
