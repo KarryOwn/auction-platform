@@ -22,6 +22,7 @@ class NotificationPreferenceController extends Controller
             'preferences.*.email'            => 'boolean',
             'preferences.*.push'             => 'boolean',
             'preferences.*.database'         => 'boolean',
+            'locale'                         => 'nullable|string|max:10',
         ]);
 
         // Merge submitted toggles with defaults (unchecked checkboxes won't be sent)
@@ -38,6 +39,13 @@ class NotificationPreferenceController extends Controller
         }
 
         $request->user()->update(['notification_preferences' => $merged]);
+
+        if (isset($validated['locale'])) {
+            $request->user()->userPreference()->updateOrCreate(
+                ['user_id' => $request->user()->id],
+                ['locale' => $validated['locale']]
+            );
+        }
 
         return redirect()->route('user.notification-preferences')
             ->with('success', 'Notification preferences updated.');

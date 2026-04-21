@@ -67,6 +67,29 @@ Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])
 // Public user profiles
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('users.show');
 
+Route::get('/account/reactivate', [ProfileController::class, 'showReactivate'])->name('account.reactivate');
+Route::post('/account/reactivate', function (\Illuminate\Http\Request $request) {
+    if (!$userId = session('reactivation_user_id')) {
+        return redirect()->route('login');
+    }
+    $user = \App\Models\User::find($userId);
+    
+    if ($user && $user->reactivation_deadline && now()->isAfter($user->reactivation_deadline)) {
+        return redirect('/')->with('error', 'Reactivation period has expired. Account permanently deleted.');
+    }
+
+    if ($user && $user->is_deactivated) {
+        $user->is_deactivated = false;
+        $user->deactivated_at = null;
+        $user->reactivation_deadline = null;
+        $user->save();
+        \Illuminate\Support\Facades\Auth::login($user);
+        session()->forget('reactivation_user_id');
+        return redirect()->route('dashboard')->with('status', 'Account reactivated successfully.');
+    }
+    return redirect()->route('login');
+})->name('account.reactivate.store');
+
 // Category browsing (public)
 Route::get('/categories', [CategoryBrowseController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category:slug}', [CategoryBrowseController::class, 'show'])->name('categories.show');
@@ -134,6 +157,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.avatar.upload');
     Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
+    Route::post('/profile/deactivate',  [ProfileController::class, 'deactivate'])->name('profile.deactivate');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Auction detail & actions

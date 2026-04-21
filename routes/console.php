@@ -67,3 +67,9 @@ Schedule::call(fn () => app(\App\Services\VacationModeService::class)->autoDeact
     ->name('auto-deactivate-vacation-mode')
     ->withoutOverlapping();
 
+Schedule::call(function () {
+    \App\Models\User::where('is_deactivated', true)
+        ->where('reactivation_deadline', '<=', now())
+        ->each(fn ($u) => $u->forceDelete());
+})->daily()->name('purge-deactivated-accounts');
+

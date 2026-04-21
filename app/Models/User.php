@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -17,7 +18,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, InteractsWithMedia;
+    use HasFactory, Notifiable, HasApiTokens, InteractsWithMedia, SoftDeletes;
 
     public const DEFAULT_NOTIFICATION_PREFERENCES = [
         'outbid'          => ['email' => true, 'push' => true, 'database' => true],
@@ -189,7 +190,8 @@ class User extends Authenticatable implements HasMedia
 
     public function getPreferencesAttribute()
     {
-        return UserPreference::forUser($this->id);
+        $this->loadMissing('userPreference');
+        return $this->userPreference ?? UserPreference::forUser($this->id);
     }
 
     public function userPreference(): HasOne

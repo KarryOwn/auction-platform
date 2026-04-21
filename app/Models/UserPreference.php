@@ -13,6 +13,7 @@ class UserPreference extends Model
     protected $fillable = [
         'user_id',
         'theme',
+        'locale',
         'bid_increment_preference',
         'custom_increment_amount',
         'notification_email',

@@ -63,6 +63,58 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit')->with('status', 'avatar-removed');
     }
 
+    public function deactivate(Request $request): RedirectResponse
+    {
+        $request->validateWithBag('userDeletion', [
+            'password' => ['required', 'current_password'],
+        ]);
+
+        $user = $request->user();
+
+        // Optional: Call VacationModeService or handle open escrow holds here
+
+        $user->is_deactivated = true;
+        $user->deactivated_at = now();
+        $user->reactivation_deadline = now()->addDays(30);
+        $user->save();
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/')->with('status', 'Account deactivated. You can reactivate within 30 days.');
+    }
+
+    public function showReactivate(Request $request): View|RedirectResponse
+    {
+        // Require auth before allowing reactivation
+        if (! Auth::check() && ! session()->has('reactivation_user_id')) {
+            return redirect()->route('login');
+        }
+        return view('profile.reactivate');
+    }
+
+    public function reactivate(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user || ! $user->is_deactivated) {
+            return redirect()->route('dashboard');
+        }
+
+        if ($user->reactivation_deadline && now()->isAfter($user->reactivation_deadline)) {
+            return redirect('/')->with('error', 'Reactivation period has expired. Account permanently deleted.');
+        }
+
+        $user->update([
+            'is_deactivated'        => false,
+            'deactivated_at'        => null,
+            'reactivation_deadline' => null,
+        ]);
+
+        return redirect()->route('dashboard')->with('status', 'Account reactivated successfully.');
+    }
+
     /**
      * Delete the user's account.
      */
@@ -76,7 +128,13 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        $user->delete();
+        // Anonymise user data instead of cascade delete to preserve bid/auction history integrity
+        $user->update([
+            'name'  => 'Deleted User #' . $user->id,
+            'email' => 'deleted-' . $user->id . '@deleted.invalid',
+        ]);
+        
+        $user->delete(); // SoftDelete — sets deleted_at
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

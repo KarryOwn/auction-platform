@@ -27,6 +27,19 @@ class EnsureNotBanned
                 ->with('status', 'Your account has been banned. Contact support if you believe this is a mistake.');
         }
 
+        if ($request->user()?->is_deactivated) {
+            $userId = $request->user()->id;
+            Auth::guard('web')->logout();
+            
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            
+            $request->session()->put('reactivation_user_id', $userId);
+
+            return redirect()->route('account.reactivate')
+                ->with('status', 'Your account is deactivated. Would you like to reactivate it?');
+        }
+
         return $next($request);
     }
 }

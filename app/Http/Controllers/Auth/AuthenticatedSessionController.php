@@ -26,6 +26,21 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        $user = $request->user();
+
+        if ($user->is_deactivated) {
+            $userId = $user->id;
+            Auth::guard('web')->logout();
+            
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            
+            $request->session()->put('reactivation_user_id', $userId);
+
+            return redirect()->route('account.reactivate')
+                ->with('status', 'Your account is deactivated. Would you like to reactivate it?');
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
