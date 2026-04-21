@@ -73,3 +73,12 @@ Schedule::call(function () {
         ->each(fn ($u) => $u->forceDelete());
 })->daily()->name('purge-deactivated-accounts');
 
+Schedule::call(function () {
+    \App\Models\DataExportRequest::where('status', 'ready')
+        ->where('expires_at', '<=', now())
+        ->each(function ($export) {
+            \Illuminate\Support\Facades\Storage::delete($export->file_path);
+            $export->update(['status' => 'expired', 'file_path' => null]);
+        });
+})->hourly()->name('purge-expired-exports');
+

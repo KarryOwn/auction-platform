@@ -146,6 +146,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/notifications', [NotificationPreferenceController::class, 'edit'])->name('user.notification-preferences');
     Route::put('/dashboard/notifications', [NotificationPreferenceController::class, 'update'])->name('user.notification-preferences.update');
 
+    // GDPR Export
+    Route::post('/dashboard/data-export', [\App\Http\Controllers\User\DataExportController::class, 'requestExport'])->name('user.data-export.request');
+    Route::get('/dashboard/data-export/{exportRequest}/download', [\App\Http\Controllers\User\DataExportController::class, 'download'])->name('user.data-export.download');
+
     // Mark all notifications as read (AJAX)
     Route::post('/notifications/mark-all-read', function (Request $request) {
         $request->user()->unreadNotifications()->update(['read_at' => now()]);
