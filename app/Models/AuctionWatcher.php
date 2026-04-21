@@ -16,12 +16,18 @@ class AuctionWatcher extends Model
         'notify_outbid',
         'notify_ending',
         'notify_cancelled',
+        'outbid_threshold_amount',
+        'price_alert_at',
+        'price_alert_sent',
     ];
 
     protected $casts = [
-        'notify_outbid'    => 'boolean',
-        'notify_ending'    => 'boolean',
-        'notify_cancelled' => 'boolean',
+        'notify_outbid'           => 'boolean',
+        'notify_ending'           => 'boolean',
+        'notify_cancelled'        => 'boolean',
+        'outbid_threshold_amount' => 'decimal:2',
+        'price_alert_at'          => 'decimal:2',
+        'price_alert_sent'        => 'boolean',
     ];
 
 

@@ -219,6 +219,16 @@ class AuctionController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
+        // If the request specifically has thresholds and we are already watching, update it instead of toggling off
+        if ($watcher && ($request->has('outbid_threshold') || $request->has('price_alert_at'))) {
+             $watcher->update([
+                 'outbid_threshold_amount' => $request->input('outbid_threshold'),
+                 'price_alert_at'          => $request->input('price_alert_at'),
+                 'price_alert_sent'        => false,
+             ]);
+             return response()->json(['watching' => true, 'message' => 'Watchlist preferences updated.']);
+        }
+
         if ($watcher) {
             $watcher->delete();
 
@@ -226,11 +236,13 @@ class AuctionController extends Controller
         }
 
         AuctionWatcher::create([
-            'auction_id'       => $auction->id,
-            'user_id'          => $user->id,
-            'notify_outbid'    => true,
-            'notify_ending'    => true,
-            'notify_cancelled' => true,
+            'auction_id'             => $auction->id,
+            'user_id'                => $user->id,
+            'notify_outbid'          => true,
+            'notify_ending'          => true,
+            'notify_cancelled'       => true,
+            'outbid_threshold_amount'=> $request->input('outbid_threshold'),
+            'price_alert_at'         => $request->input('price_alert_at'),
         ]);
 
         return response()->json(['watching' => true, 'message' => 'Added to watchlist!']);

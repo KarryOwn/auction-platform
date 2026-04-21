@@ -722,8 +722,6 @@ Route::post('/admin/bid-retractions/{request}/decline', [Admin\BidRetractionCont
 
 ---
 
-## Feature 50 — Bidding Power-Ups / Credits
-
 ### A. Feature Overview
 Users can earn or purchase "bid credits" that unlock temporary advantages: extended auto-bid limits, early auction access, or free listing fee credits. Credits are a virtual currency separate from wallet balance.
 

@@ -36,25 +36,28 @@ class HandleBidPlaced implements ShouldQueue
     {
         $bid     = $event->bid;
         $auction = $event->auction;
+// Always broadcast price update for real-time UI
+broadcast(new NewBidOnListing($auction, (float) $bid->amount))->toOthers();
 
-        // Always broadcast price update for real-time UI
-        broadcast(new NewBidOnListing($auction, (float) $bid->amount))->toOthers();
+// Release escrow for the previous highest bidder (regardless of bid type)
+$this->releaseOutbidEscrow($bid, $auction);
 
-        // Release escrow for the previous highest bidder (regardless of bid type)
-        $this->releaseOutbidEscrow($bid, $auction);
+// 4. Check price alerts (regardless of bid type)
+$this->checkPriceAlerts($bid, $auction);
 
-        // Skip outbid/watcher notifications for auto-bids — they fire rapidly
-        // in sequence and would spam the user. Only the initial manual bid
-        // that triggers the auto-bid chain should create notifications.
-        if ($bid->bid_type !== Bid::TYPE_MANUAL) {
-            return;
-        }
+// Skip outbid/watcher notifications for auto-bids — they fire rapidly
+// in sequence and would spam the user. Only the initial manual bid
+// that triggers the auto-bid chain should create notifications.
+if ($bid->bid_type !== Bid::TYPE_MANUAL) {
+    return;
+}
 
-        // 1. Outbid notification to the previous highest bidder
-        $outbidUserId = $this->notifyOutbidUser($bid, $auction);
+// 1. Outbid notification to the previous highest bidder
+$outbidUserId = clone $bid; // just keeping structure clean
+$outbidUserId = $this->notifyOutbidUser($bid, $auction);
 
-        // 2. Notify watchers (skip the bidder AND the already-notified outbid user)
-        $this->notifyWatchers($bid, $auction, $outbidUserId);
+// 2. Notify watchers (skip the bidder AND the already-notified outbid user)
+$this->notifyWatchers($bid, $auction, $outbidUserId);
 
         // 3. Trigger auto-bid processing
         ProcessAutoBids::dispatch($auction->id, $bid->user_id)->onQueue('bids');
@@ -112,6 +115,10 @@ class HandleBidPlaced implements ShouldQueue
             return null; // skip notification
         }
 
+        if (! $this->shouldNotifyOutbidUser($bid, $previousBid, $auction)) {
+            return $previousBid->user_id; // skip notification but still mark as outbid user
+        }
+
         try {
             $previousBid->user->notify(new OutbidNotification(
                 auctionId:    $auction->id,
@@ -166,5 +173,44 @@ class HandleBidPlaced implements ShouldQueue
                 ]);
             }
         }
+    }
+
+    protected function shouldNotifyOutbidUser(Bid $newBid, Bid $previousBid, $auction): bool
+    {
+        // Check threshold
+        $outbidAmount = (float) $newBid->amount - (float) $previousBid->amount;
+
+        // Check watcher threshold
+        $watcher = AuctionWatcher::where('auction_id', $auction->id)
+            ->where('user_id', $previousBid->user_id)
+            ->first();
+
+        $threshold = $watcher?->outbid_threshold_amount
+            ?? $previousBid->user?->default_outbid_threshold;
+
+        if ($threshold !== null && $outbidAmount < (float) $threshold) {
+            return false; // Below threshold — skip notification
+        }
+
+        return true;
+    }
+
+    protected function checkPriceAlerts(Bid $bid, $auction): void
+    {
+        AuctionWatcher::where('auction_id', $auction->id)
+            ->where('price_alert_sent', false)
+            ->whereNotNull('price_alert_at')
+            ->where('price_alert_at', '<=', $bid->amount)
+            ->with('user')
+            ->get()
+            ->each(function ($watcher) use ($auction, $bid) {
+                $watcher->user?->notify(new \App\Notifications\PriceAlertNotification(
+                    $auction->id,
+                    $auction->title,
+                    (float) $bid->amount,
+                    (float) $watcher->price_alert_at,
+                ));
+                $watcher->update(['price_alert_sent' => true]);
+            });
     }
 }

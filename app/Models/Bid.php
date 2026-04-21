@@ -99,6 +99,3 @@ class Bid extends Model
         return round((float) $this->amount - (float) $this->previous_amount, 2);
     }
 }
-is->previous_amount, 2);
-    }
-}
