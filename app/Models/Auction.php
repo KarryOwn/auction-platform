@@ -66,6 +66,7 @@ class Auction extends Model implements HasMedia
         'sku',
         'serial_number',
         'cloned_from_auction_id',
+        'auto_saved_at',
     ];
 
 
@@ -73,6 +74,7 @@ class Auction extends Model implements HasMedia
         'start_time'               => 'datetime',
         'end_time'                 => 'datetime',
         'closed_at'                => 'datetime',
+        'auto_saved_at'            => 'datetime',
         'featured_until'           => 'datetime',
         'starting_price'           => 'decimal:2',
         'current_price'            => 'decimal:2',

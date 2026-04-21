@@ -200,6 +200,9 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::post('/auctions', [AuctionCrudController::class, 'store'])->name('auctions.store');
     Route::get('/auctions/{auction}/edit', [AuctionCrudController::class, 'edit'])->name('auctions.edit');
     Route::patch('/auctions/{auction}', [AuctionCrudController::class, 'update'])->name('auctions.update');
+    Route::patch('/auctions/{auction}/auto-save', [\App\Http\Controllers\Seller\AuctionDraftController::class, 'autoSave'])
+        ->middleware('throttle:30,1')
+        ->name('auctions.auto-save');
     Route::post('/auctions/{auction}/clone', [AuctionCrudController::class, 'clone'])->name('auctions.clone');
     Route::post('/auctions/{auction}/publish', [AuctionCrudController::class, 'publish'])->name('auctions.publish');
     Route::post('/auctions/{auction}/cancel', [AuctionCrudController::class, 'cancel'])->name('auctions.cancel');
