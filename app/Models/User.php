@@ -281,6 +281,21 @@ class User extends Authenticatable implements HasMedia
         return $this->hasMany(Message::class, 'sender_id');
     }
 
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(User::class, 'referred_by_user_id');
+    }
+
+    public function referredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'referred_by_user_id');
+    }
+
+    public function referralReward(): HasOne
+    {
+        return $this->hasOne(ReferralReward::class, 'referee_id');
+    }
+
     // ── Scopes ──────────────────────────────────
 
     public function scopeActive(Builder $query): Builder

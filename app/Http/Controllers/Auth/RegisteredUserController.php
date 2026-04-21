@@ -41,6 +41,9 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        $referralCode = $request->input('referral_code') ?? session('referral_code');
+        app(\App\Services\ReferralService::class)->linkReferral($user, $referralCode);
+
         event(new Registered($user));
 
         Auth::login($user);

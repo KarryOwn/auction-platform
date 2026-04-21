@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->appendToGroup('web', [
+            \App\Http\Middleware\CaptureReferralCode::class,
             \App\Http\Middleware\EnsureNotBanned::class,
         ]);
     })

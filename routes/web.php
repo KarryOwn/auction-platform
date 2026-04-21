@@ -91,6 +91,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/dashboard/keyword-alerts/{alert}', [\App\Http\Controllers\User\KeywordAlertController::class, 'destroy'])->name('user.keyword-alerts.destroy');
     Route::patch('/dashboard/keyword-alerts/{alert}/toggle', [\App\Http\Controllers\User\KeywordAlertController::class, 'toggle'])->name('user.keyword-alerts.toggle');
 
+    Route::get('/dashboard/referrals', [\App\Http\Controllers\User\ReferralController::class, 'index'])->name('user.referrals');
     Route::get('/dashboard/watchlist', [WatchlistController::class, 'index'])->name('user.watchlist');
     Route::get('/dashboard/activity', [App\Http\Controllers\User\ActivityLogController::class, 'index'])->name('user.activity');
 

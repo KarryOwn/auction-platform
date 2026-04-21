@@ -98,6 +98,12 @@ return [
 
     'supported_currencies' => ['USD', 'EUR', 'GBP', 'JPY', 'VND'],
 
+    'referral' => [
+        'referrer_reward' => (float) env('REFERRAL_REWARD_REFERRER', 5.0),
+        'referee_reward'  => (float) env('REFERRAL_REWARD_REFEREE', 2.5),
+        'credit_on'       => env('REFERRAL_CREDIT_ON', 'registration'), // 'registration' | 'first_bid'
+    ],
+
     'images' => [
         'max_per_auction' => (int) env('AUCTION_IMAGES_MAX_PER_AUCTION', 10),
         'max_size_kb' => (int) env('AUCTION_IMAGES_MAX_SIZE_KB', 5120),
