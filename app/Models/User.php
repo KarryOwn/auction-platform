@@ -178,6 +178,15 @@ class User extends Authenticatable implements HasMedia
     }
 
 
+    public function getReturnPolicyLabelAttribute(): string
+    {
+        return match ($this->return_policy_type) {
+            'returns_accepted' => "Returns accepted within {$this->return_window_days} days",
+            'custom'           => $this->return_policy_custom ?? 'See custom policy',
+            default            => 'No returns accepted',
+        };
+    }
+
     public function getPreferencesAttribute()
     {
         return UserPreference::forUser($this->id);

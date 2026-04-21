@@ -268,6 +268,7 @@ class AuctionCrudController extends Controller
 
                 $auction->status = Auction::STATUS_ACTIVE;
                 $auction->current_price = $auction->starting_price;
+                $auction->effective_return_policy_snapshot = $auction->effective_return_policy;
                 $auction->save();
 
                 $this->biddingStrategy->initializePrice($auction);
@@ -324,10 +325,12 @@ class AuctionCrudController extends Controller
         }
 
         $isPreview    = true;
+        $returnPolicy = $auction->effective_return_policy;
 
         return view('auctions.show', compact(
             'auction', 'isWatching', 'autoBid', 'recentBids',
-            'bidChartData', 'questions', 'prediction', 'isPreview'
+            'bidChartData', 'questions', 'prediction', 'isPreview',
+            'returnPolicy'
         ));
     }
 
@@ -452,6 +455,12 @@ class AuctionCrudController extends Controller
 }
 auction->id, [
             'order' => $validated['order'],
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+}
+ated['order'],
         ]);
 
         return response()->json(['success' => true]);

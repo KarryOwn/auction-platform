@@ -64,6 +64,8 @@ class StoreAuctionRequest extends FormRequest
             'sku' => ['nullable', 'string', 'max:100'],
             'serial_number' => ['nullable', 'string', 'max:100'],
             'attributes' => ['nullable', 'array'],
+            'return_policy_override' => ['nullable', Rule::in(['no_returns', 'returns_accepted', 'custom'])],
+            'return_policy_custom_override' => ['nullable', 'string', 'max:2000'],
         ];
     }
 

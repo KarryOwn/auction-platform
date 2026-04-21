@@ -292,6 +292,23 @@ class Auction extends Model implements HasMedia
     /**
      * Get the condition label.
      */
+    public function getEffectiveReturnPolicyAttribute(): string
+    {
+        if ($this->effective_return_policy_snapshot) {
+            return $this->effective_return_policy_snapshot;
+        }
+
+        if ($this->return_policy_override) {
+            return match ($this->return_policy_override) {
+                'returns_accepted' => "Returns accepted (see auction details)",
+                'custom'           => $this->return_policy_custom_override ?? 'See custom policy',
+                default            => 'No returns accepted',
+            };
+        }
+
+        return $this->seller?->return_policy_label ?? 'No returns accepted';
+    }
+
     public function getConditionLabelAttribute(): ?string
     {
         return self::CONDITIONS[$this->condition] ?? null;

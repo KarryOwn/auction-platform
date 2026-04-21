@@ -51,13 +51,15 @@ class DisputeController extends Controller
     public function show(Dispute $dispute)
     {
         $dispute->load([
-            'auction:id,title,status,current_price,winner_id,user_id',
+            'auction:id,title,status,current_price,winner_id,user_id,effective_return_policy_snapshot',
             'claimant:id,name,email',
             'respondent:id,name,email',
             'resolver:id,name,email',
         ]);
 
-        return view('admin.disputes.show', compact('dispute'));
+        $returnPolicy = $dispute->auction->effective_return_policy;
+
+        return view('admin.disputes.show', compact('dispute', 'returnPolicy'));
     }
 
     public function update(Request $request, Dispute $dispute): RedirectResponse

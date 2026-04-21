@@ -60,6 +60,9 @@ class StorefrontController extends Controller
         $data = [
             'seller_bio' => $request->input('seller_bio'),
             'seller_slug' => $request->input('seller_slug'),
+            'return_policy_type'   => $request->input('return_policy_type'),
+            'return_window_days'   => $request->input('return_window_days'),
+            'return_policy_custom' => $request->input('return_policy_custom'),
         ];
 
         if ($request->hasFile('seller_avatar')) {

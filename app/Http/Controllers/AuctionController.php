@@ -157,6 +157,8 @@ class AuctionController extends Controller
             );
         }
 
+        $returnPolicy = $auction->effective_return_policy;
+
         return view('auctions.show', compact(
             'auction',
             'isWatching',
@@ -164,7 +166,8 @@ class AuctionController extends Controller
             'recentBids',
             'bidChartData',
             'questions',
-            'prediction'
+            'prediction',
+            'returnPolicy'
         ));
     }
 
