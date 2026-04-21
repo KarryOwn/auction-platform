@@ -117,6 +117,8 @@ class Auction extends Model implements HasMedia
             if ($auction->wasChanged('status') && $auction->status === self::STATUS_ACTIVE) {
                 ProcessKeywordAlerts::dispatch($auction->id)
                     ->delay(now()->addSeconds(5));
+                \App\Jobs\NotifySellerFollowers::dispatch($auction->id)
+                    ->delay(now()->addSeconds(5));
             }
 
             if ($auction->wasChanged('is_featured')) {

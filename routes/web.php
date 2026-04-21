@@ -164,6 +164,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/messages/{conversation}', [MessageController::class, 'show'])->name('messages.show');
     Route::post('/messages/{conversation}', [MessageController::class, 'store'])->name('messages.store');
     Route::post('/messages/{conversation}/read', [MessageController::class, 'markRead'])->name('messages.read');
+
+    // Follow Sellers
+    Route::post('/sellers/{user}/follow', [\App\Http\Controllers\SellerFollowController::class, 'toggle'])->name('sellers.follow');
 });
 
 Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(function () {

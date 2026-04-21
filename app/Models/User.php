@@ -296,6 +296,25 @@ class User extends Authenticatable implements HasMedia
         return $this->hasOne(ReferralReward::class, 'referee_id');
     }
 
+    public function following(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'seller_followers', 'follower_id', 'seller_id')
+            ->withPivot('notify_new_listings')
+            ->withTimestamps();
+    }
+
+    public function followers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'seller_followers', 'seller_id', 'follower_id')
+            ->withPivot('notify_new_listings')
+            ->withTimestamps();
+    }
+
+    public function getFollowerCountAttribute(): int
+    {
+        return $this->followers()->count();
+    }
+
     // ── Scopes ──────────────────────────────────
 
     public function scopeActive(Builder $query): Builder
