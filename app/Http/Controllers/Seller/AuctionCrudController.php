@@ -172,6 +172,7 @@ class AuctionCrudController extends Controller
             'description',
             'starting_price',
             'reserve_price',
+            'reserve_price_visible',
             'buy_it_now_price',
             'buy_it_now_enabled',
             'buy_it_now_expires_at',

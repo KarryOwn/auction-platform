@@ -117,6 +117,17 @@ class Auction extends Model implements HasMedia
         });
     }
 
+    public function getPublicReservePriceAttribute(): ?string
+    {
+        if (! $this->hasReserve()) {
+            return null;
+        }
+
+        return $this->reserve_price_visible
+            ? number_format((float) $this->reserve_price, 2)
+            : null;
+    }
+
     public function getIsCurrentlyFeaturedAttribute(): bool
     {
         return $this->is_featured && ($this->featured_until === null || $this->featured_until->isFuture());

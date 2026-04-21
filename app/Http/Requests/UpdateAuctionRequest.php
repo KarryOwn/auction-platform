@@ -44,6 +44,7 @@ class UpdateAuctionRequest extends FormRequest
             'description' => ['sometimes', 'nullable', 'string', 'min:20', 'max:5000'],
             'starting_price' => ['sometimes', 'nullable', 'numeric', 'min:0.01'],
             'reserve_price' => ['sometimes', 'nullable', 'numeric'],
+            'reserve_price_visible' => ['sometimes', 'nullable', 'boolean'],
             'buy_it_now_price' => ['sometimes', 'nullable', 'numeric', 'gt:starting_price'],
             'buy_it_now_enabled' => ['sometimes', 'nullable', 'boolean'],
             'buy_it_now_expires_at' => ['sometimes', 'nullable', 'date', 'after:now'],

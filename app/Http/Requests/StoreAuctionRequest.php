@@ -40,6 +40,7 @@ class StoreAuctionRequest extends FormRequest
             'description' => ['required', 'string', 'min:20', 'max:5000'],
             'starting_price' => ['required', 'numeric', 'min:0.01'],
             'reserve_price' => ['nullable', 'numeric', 'gt:starting_price'],
+            'reserve_price_visible' => ['nullable', 'boolean'],
             'buy_it_now_price' => ['nullable', 'numeric', 'gt:starting_price'],
             'buy_it_now_enabled' => ['nullable', 'boolean'],
             'buy_it_now_expires_at' => ['nullable', 'date', 'after:now'],

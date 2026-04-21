@@ -171,7 +171,7 @@ class AuctionController extends Controller
     /**
      * Get a compact live snapshot for realtime UI fallback sync.
      */
-    public function liveState(Auction $auction)
+    public function liveState(Auction $auction, Request $request)
     {
         $auction->loadCount('bids');
         $auction->load(['highestBid.user']);
@@ -193,15 +193,16 @@ class AuctionController extends Controller
             ])
             ->values();
 
-        return response()->json([
-            'auction_id' => (int) $auction->id,
-            'current_price' => (float) $auction->current_price,
-            'new_price' => (float) $auction->current_price,
-            'next_minimum' => (float) $auction->minimumNextBid(),
-            'bid_count' => (int) ($auction->bids_count ?? $auction->bid_count ?? 0),
-            'highest_bidder_name' => $auction->highestBid?->user?->name,
-            'recent_bids' => $recentBids,
-        ]);
+        $resource = new \App\Http\Resources\AuctionResource($auction);
+
+        return response()->json(array_merge(
+            $resource->toArray($request),
+            [
+                'auction_id' => (int) $auction->id,
+                'new_price' => (float) $auction->current_price,
+                'recent_bids' => $recentBids,
+            ]
+        ));
     }
 
     /**
