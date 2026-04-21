@@ -81,6 +81,8 @@ class Auction extends Model implements HasMedia
         'reserve_price'            => 'decimal:2',
         'min_bid_increment'        => 'decimal:2',
         'winning_bid_amount'       => 'decimal:2',
+        'listing_fee_charged'      => 'decimal:2',
+        'listing_fee_paid'         => 'boolean',
         'reserve_met'              => 'boolean',
         'is_featured'              => 'boolean',
         'featured_position'        => 'integer',

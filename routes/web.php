@@ -201,6 +201,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::get('/auctions/{auction}/edit', [AuctionCrudController::class, 'edit'])->name('auctions.edit');
     Route::patch('/auctions/{auction}', [AuctionCrudController::class, 'update'])->name('auctions.update');
     Route::get('/auctions/{auction}/preview', [AuctionCrudController::class, 'preview'])->name('auctions.preview');
+    Route::get('/auctions/{auction}/listing-fee-preview', [AuctionCrudController::class, 'listingFeePreview'])->name('auctions.listing-fee-preview');
     Route::patch('/auctions/{auction}/auto-save', [\App\Http\Controllers\Seller\AuctionDraftController::class, 'autoSave'])
         ->middleware('throttle:30,1')
         ->name('auctions.auto-save');

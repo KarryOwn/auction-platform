@@ -258,22 +258,35 @@ class AuctionCrudController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($auction) {
-            if ($auction->start_time === null) {
-                $auction->start_time = now();
-            }
+        try {
+            DB::transaction(function () use ($auction, $request) {
+                app(ListingFeeService::class)->charge($auction, $request->user());
 
-            $auction->status = Auction::STATUS_ACTIVE;
-            $auction->current_price = $auction->starting_price;
-            $auction->save();
+                if ($auction->start_time === null) {
+                    $auction->start_time = now();
+                }
 
-            $this->biddingStrategy->initializePrice($auction);
+                $auction->status = Auction::STATUS_ACTIVE;
+                $auction->current_price = $auction->starting_price;
+                $auction->save();
 
-            AuditLog::record('auction.published', Auction::class, $auction->id);
-        });
+                $this->biddingStrategy->initializePrice($auction);
+
+                AuditLog::record('auction.published', Auction::class, $auction->id);
+            });
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('auctions.show', $auction)
             ->with('status', 'Auction published successfully.');
+    }
+
+    public function listingFeePreview(Auction $auction): JsonResponse
+    {
+        $this->authorize('update', $auction);
+        $fee = app(ListingFeeService::class)->calculate($auction);
+        return response()->json(['listing_fee' => $fee]);
     }
 
     public function preview(Auction $auction, \App\Services\AttributePricePredictionService $predictionService)
