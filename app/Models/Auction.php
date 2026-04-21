@@ -352,6 +352,23 @@ class Auction extends Model implements HasMedia
         return (float) $this->current_price >= (float) $this->reserve_price;
     }
 
+    public function hasBuyItNow(): bool
+    {
+        return $this->buy_it_now_enabled
+            && $this->buy_it_now_price !== null
+            && ($this->buy_it_now_expires_at === null || $this->buy_it_now_expires_at->isFuture());
+    }
+
+    public function isBuyItNowAvailable(): bool
+    {
+        if (! $this->hasBuyItNow()) {
+            return false;
+        }
+
+        $threshold = config('auction.buy_it_now.bid_threshold_pct', 75) / 100;
+        return (float) $this->current_price < ((float) $this->buy_it_now_price * $threshold);
+    }
+
     /**
      * Calculate minimum next bid amount.
      */

@@ -172,6 +172,9 @@ class AuctionCrudController extends Controller
             'description',
             'starting_price',
             'reserve_price',
+            'buy_it_now_price',
+            'buy_it_now_enabled',
+            'buy_it_now_expires_at',
             'min_bid_increment',
             'start_time',
             'end_time',
@@ -376,6 +379,13 @@ class AuctionCrudController extends Controller
         Media::setNewOrder($validated['order']);
 
         AuditLog::record('auction.images.reordered', Auction::class, $auction->id, [
+            'order' => $validated['order'],
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+}
+auction->id, [
             'order' => $validated['order'],
         ]);
 

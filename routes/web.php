@@ -144,6 +144,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/auctions/{auction}/questions', [AuctionQuestionController::class, 'store'])->name('auctions.questions.store');
     Route::post('/auctions/{auction}/report', [AuctionReportController::class, 'store'])->name('auctions.report');
     Route::post('/auctions/{auction}/watch', [AuctionController::class, 'toggleWatch'])->name('auctions.watch');
+    Route::post('/auctions/{auction}/buy-it-now', [\App\Http\Controllers\BuyItNowController::class, 'purchase'])->name('auctions.buy-it-now');
     Route::post('/auctions/{auction}/auto-bid', [AuctionController::class, 'setAutoBid'])->name('auctions.auto-bid');
     Route::delete('/auctions/{auction}/auto-bid', [AuctionController::class, 'cancelAutoBid'])->name('auctions.cancel-auto-bid');
     Route::get('/auctions/{auction}/disputes/create', [DisputeController::class, 'create'])->name('disputes.create');
