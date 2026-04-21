@@ -315,6 +315,28 @@ class User extends Authenticatable implements HasMedia
         return $this->followers()->count();
     }
 
+    public function blockedUsers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_blocks', 'blocker_id', 'blocked_id')
+            ->withTimestamps();
+    }
+
+    public function blockedByUsers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_blocks', 'blocked_id', 'blocker_id')
+            ->withTimestamps();
+    }
+
+    public function hasBlocked(int $userId): bool
+    {
+        return $this->blockedUsers()->where('blocked_id', $userId)->exists();
+    }
+
+    public function isBlockedBy(int $userId): bool
+    {
+        return $this->blockedByUsers()->where('blocker_id', $userId)->exists();
+    }
+
     // ── Scopes ──────────────────────────────────
 
     public function scopeActive(Builder $query): Builder

@@ -19,6 +19,10 @@ class ConversationController extends Controller
             return back()->withErrors(['message' => 'You cannot message yourself.']);
         }
 
+        if ($buyer->hasBlocked($auction->user_id) || $buyer->isBlockedBy($auction->user_id)) {
+            return back()->withErrors(['message' => 'You cannot message this user.']);
+        }
+
         $conversation = Conversation::firstOrCreate(
             [
                 'auction_id' => $auction->id,

@@ -167,6 +167,9 @@ Route::middleware('auth')->group(function () {
 
     // Follow Sellers
     Route::post('/sellers/{user}/follow', [\App\Http\Controllers\SellerFollowController::class, 'toggle'])->name('sellers.follow');
+
+    // Block Users
+    Route::post('/users/{user}/block', [\App\Http\Controllers\UserBlockController::class, 'toggle'])->name('users.block');
 });
 
 Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(function () {
@@ -260,6 +263,11 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/disputes', [AdminDisputeController::class, 'index'])->name('disputes.index');
     Route::get('/disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
     Route::patch('/disputes/{dispute}', [AdminDisputeController::class, 'update'])->name('disputes.update');
+
+    // Bid Retractions
+    Route::get('/bid-retractions', [\App\Http\Controllers\Admin\BidRetractionController::class, 'index'])->name('bid-retractions.index');
+    Route::post('/bid-retractions/{retractionRequest}/approve', [\App\Http\Controllers\Admin\BidRetractionController::class, 'approve'])->name('bid-retractions.approve');
+    Route::post('/bid-retractions/{retractionRequest}/decline', [\App\Http\Controllers\Admin\BidRetractionController::class, 'decline'])->name('bid-retractions.decline');
 
     // Audit Logs
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

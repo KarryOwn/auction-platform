@@ -108,6 +108,10 @@ class HandleBidPlaced implements ShouldQueue
             return null;
         }
 
+        if ($previousBid->user->hasBlocked($bid->user_id) || $previousBid->user->isBlockedBy($bid->user_id)) {
+            return null; // skip notification
+        }
+
         try {
             $previousBid->user->notify(new OutbidNotification(
                 auctionId:    $auction->id,
