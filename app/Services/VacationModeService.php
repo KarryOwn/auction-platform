@@ -84,8 +84,8 @@ class VacationModeService
             ->get();
 
         foreach ($paused as $auction) {
-            $vacationDuration = now()->diffInSeconds($auction->paused_at);
-            $newEndTime = $auction->original_end_time->addSeconds($vacationDuration);
+            $vacationDuration = $auction->paused_at?->diffInSeconds(now(), true) ?? 0;
+            $newEndTime = ($auction->original_end_time ?? now())->copy()->addSeconds($vacationDuration);
 
             $auction->update([
                 'end_time'           => $newEndTime,

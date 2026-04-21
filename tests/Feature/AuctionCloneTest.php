@@ -7,7 +7,11 @@ use App\Models\User;
 use App\Services\AuctionCloneService;
 
 test('seller can clone a completed auction', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->completed()->create([
         'user_id' => $seller->id,
         'title' => 'Original Auction',
@@ -35,7 +39,11 @@ test('seller can clone a completed auction', function () {
 });
 
 test('cannot clone active auction', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->create([
         'user_id' => $seller->id,
         'status' => Auction::STATUS_ACTIVE,
@@ -47,8 +55,16 @@ test('cannot clone active auction', function () {
 });
 
 test('stranger cannot clone auction', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
-    $stranger = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+    $stranger = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->completed()->create([
         'user_id' => $seller->id,
     ]);

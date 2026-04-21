@@ -10,7 +10,12 @@ test('calculates zero fee by default', function () {
     Config::set('auction.listing_fee.flat', 0.0);
     Config::set('auction.listing_fee.percent', 0.0);
 
-    $seller = User::factory()->create(['role' => 'seller', 'wallet_balance' => 0]);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'wallet_balance' => 0,
+    ]);
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
         'starting_price' => 100,
@@ -26,7 +31,12 @@ test('calculates global flat and percentage fee', function () {
     Config::set('auction.listing_fee.flat', 2.0);
     Config::set('auction.listing_fee.percent', 0.05); // 5%
 
-    $seller = User::factory()->create(['role' => 'seller', 'wallet_balance' => 10]);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'wallet_balance' => 10,
+    ]);
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
         'starting_price' => 100, // 5% of 100 is 5. Total = 7.
@@ -49,7 +59,12 @@ test('calculates category specific tier fee', function () {
         'is_active' => true,
     ]);
 
-    $seller = User::factory()->create(['role' => 'seller', 'wallet_balance' => 100]);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'wallet_balance' => 100,
+    ]);
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
         'starting_price' => 1000,
@@ -66,15 +81,19 @@ test('calculates category specific tier fee', function () {
 test('publish charges wallet and marks fee as paid', function () {
     Config::set('auction.listing_fee.flat', 5.0);
 
-    $seller = User::factory()->create(['role' => 'seller', 'wallet_balance' => 10.0]);
-    $auction = Auction::factory()->draft()->create([
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'wallet_balance' => 10.0,
+    ]);
+    $auction = Auction::factory()->draft()->withImages(1)->create([
         'user_id' => $seller->id,
         'title' => 'Test Item',
         'description' => 'Test Desc',
         'starting_price' => 10,
         'end_time' => now()->addDays(3),
     ]);
-    $auction->addMediaFromString('test')->usingFileName('test.jpg')->toMediaCollection('images');
 
     $response = $this->actingAs($seller)->post(route('seller.auctions.publish', $auction));
 
@@ -94,15 +113,19 @@ test('publish charges wallet and marks fee as paid', function () {
 test('publish fails gracefully with insufficient balance', function () {
     Config::set('auction.listing_fee.flat', 15.0);
 
-    $seller = User::factory()->create(['role' => 'seller', 'wallet_balance' => 10.0]); // Less than 15
-    $auction = Auction::factory()->draft()->create([
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'wallet_balance' => 10.0,
+    ]); // Less than 15
+    $auction = Auction::factory()->draft()->withImages(1)->create([
         'user_id' => $seller->id,
         'title' => 'Test Item',
         'description' => 'Test Desc',
         'starting_price' => 10,
         'end_time' => now()->addDays(3),
     ]);
-    $auction->addMediaFromString('test')->usingFileName('test.jpg')->toMediaCollection('images');
 
     $response = $this->actingAs($seller)->post(route('seller.auctions.publish', $auction));
 

@@ -18,11 +18,13 @@ class ProcessKeywordAlerts implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public string $queue = 'notifications';
     public int $tries = 3;
     public array $backoff = [10, 60];
 
-    public function __construct(public readonly int $auctionId) {}
+    public function __construct(public readonly int $auctionId)
+    {
+        $this->onQueue('notifications');
+    }
 
     public function handle(): void
     {

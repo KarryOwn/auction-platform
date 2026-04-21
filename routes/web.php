@@ -170,6 +170,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/auctions/{auction}/rate', [AuctionRatingController::class, 'create'])->name('auctions.rate');
     Route::post('/auctions/{auction}/rate', [AuctionRatingController::class, 'store'])->name('auctions.rate.store');
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');
+    Route::post('/bids/{bid}/retract', [\App\Http\Controllers\BidRetractionController::class, 'store'])->name('bids.retract');
     Route::post('/auctions/{auction}/questions', [AuctionQuestionController::class, 'store'])->name('auctions.questions.store');
     Route::post('/auctions/{auction}/report', [AuctionReportController::class, 'store'])->name('auctions.report');
     Route::post('/auctions/{auction}/watch', [AuctionController::class, 'toggleWatch'])->name('auctions.watch');
@@ -194,7 +195,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/messages/{conversation}/read', [MessageController::class, 'markRead'])->name('messages.read');
 
     // Follow Sellers
-    Route::post('/sellers/{user}/follow', [\App\Http\Controllers\SellerFollowController::class, 'toggle'])->name('sellers.follow');
+    Route::post('/sellers/{seller}/follow', [\App\Http\Controllers\SellerFollowController::class, 'toggle'])->name('sellers.follow');
 
     // Block Users
     Route::post('/users/{user}/block', [\App\Http\Controllers\UserBlockController::class, 'toggle'])->name('users.block');

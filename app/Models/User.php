@@ -4,11 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -61,10 +64,19 @@ class User extends Authenticatable implements HasMedia
         'seller_application_status',
         'seller_application_note',
         'seller_bio',
+        'return_policy_type',
+        'return_window_days',
+        'return_policy_custom',
         'seller_avatar_path',
         'seller_slug',
         'seller_applied_at',
         'seller_rejected_reason',
+        'vacation_mode',
+        'vacation_mode_started_at',
+        'vacation_mode_ends_at',
+        'vacation_mode_message',
+        'referral_code',
+        'referred_by_user_id',
     ];
 
     /**
@@ -75,6 +87,16 @@ class User extends Authenticatable implements HasMedia
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    /**
+     * Default values for new model instances before persistence.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'return_policy_type' => 'no_returns',
+        'vacation_mode' => false,
     ];
 
     /**
@@ -95,7 +117,27 @@ class User extends Authenticatable implements HasMedia
             'notification_preferences'   => 'array',
             'seller_verified_at'         => 'datetime',
             'seller_applied_at'          => 'datetime',
+            'return_window_days'         => 'integer',
+            'vacation_mode'              => 'boolean',
+            'vacation_mode_started_at'   => 'datetime',
+            'vacation_mode_ends_at'      => 'datetime',
+            'referred_by_user_id'        => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $user): void {
+            if (! empty($user->referral_code)) {
+                return;
+            }
+
+            do {
+                $code = Str::upper(Str::random(8));
+            } while (self::where('referral_code', $code)->exists());
+
+            $user->referral_code = $code;
+        });
     }
 
     // ── Media (Avatar) ──────────────────────────
@@ -298,14 +340,14 @@ class User extends Authenticatable implements HasMedia
         return $this->hasOne(ReferralReward::class, 'referee_id');
     }
 
-    public function following(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function following(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'seller_followers', 'follower_id', 'seller_id')
             ->withPivot('notify_new_listings')
             ->withTimestamps();
     }
 
-    public function followers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function followers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'seller_followers', 'seller_id', 'follower_id')
             ->withPivot('notify_new_listings')
@@ -317,13 +359,13 @@ class User extends Authenticatable implements HasMedia
         return $this->followers()->count();
     }
 
-    public function blockedUsers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function blockedUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_blocks', 'blocker_id', 'blocked_id')
             ->withTimestamps();
     }
 
-    public function blockedByUsers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function blockedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_blocks', 'blocked_id', 'blocker_id')
             ->withTimestamps();

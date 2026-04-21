@@ -7,10 +7,13 @@ use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\TaxDocumentService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
 
 test('tax service compiles correct annual summary', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $buyer = User::factory()->create();
 
     // 1. Gross Sale: 1000, Platform Fee: 50 (Net 950)
@@ -71,7 +74,11 @@ test('tax service compiles correct annual summary', function () {
 });
 
 test('seller can generate and download tax document', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
 
     $response = $this->actingAs($seller)->post(route('seller.tax-documents.generate'), [
         'period_type' => 'annual',

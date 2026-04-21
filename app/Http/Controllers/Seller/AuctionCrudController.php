@@ -10,8 +10,10 @@ use App\Http\Requests\UpdateAuctionRequest;
 use App\Models\Auction;
 use App\Models\AuditLog;
 use App\Models\Brand;
+use App\Services\AuctionCloneService;
 use App\Services\AttributeService;
 use App\Services\CategoryService;
+use App\Services\ListingFeeService;
 use App\Services\TagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -448,19 +450,6 @@ class AuctionCrudController extends Controller
 
         AuditLog::record('auction.images.reordered', Auction::class, $auction->id, [
             'order' => $validated['order'],
-        ]);
-
-        return response()->json(['success' => true]);
-    }
-}
-auction->id, [
-            'order' => $validated['order'],
-        ]);
-
-        return response()->json(['success' => true]);
-    }
-}
-ated['order'],
         ]);
 
         return response()->json(['success' => true]);

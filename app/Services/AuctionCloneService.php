@@ -19,12 +19,17 @@ class AuctionCloneService
         }
 
         return DB::transaction(function () use ($source, $requester) {
+            $draftStart = now();
+            $draftEnd = $draftStart->copy()->addDays(7);
+
             $clone = Auction::create([
                 'user_id'                  => $requester->id,
                 'title'                    => $source->title,
                 'description'              => $source->description,
                 'starting_price'           => $source->starting_price,
                 'current_price'            => $source->starting_price,
+                'start_time'               => $draftStart,
+                'end_time'                 => $draftEnd,
                 'reserve_price'            => $source->reserve_price,
                 'reserve_price_visible'    => $source->reserve_price_visible,
                 'reserve_met'              => false,
@@ -42,7 +47,6 @@ class AuctionCloneService
                 'buy_it_now_enabled'       => false, // seller must re-enable after review
                 'status'                   => Auction::STATUS_DRAFT,
                 'cloned_from_auction_id'   => $source->id,
-                // end_time intentionally null — seller must set new dates
             ]);
 
             // Clone categories

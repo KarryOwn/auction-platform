@@ -20,8 +20,8 @@ class AuctionFactory extends Factory
      */
     public function definition(): array
     {
-        $startAt = $this->faker->dateTimeBetween('-1 day', '+1 day');
-        $endAt = (clone $startAt)->modify('+1 hour');
+        $startAt = $this->faker->dateTimeBetween('-2 days', '-10 minutes');
+        $endAt = $this->faker->dateTimeBetween('+10 minutes', '+2 days');
         $startingPrice = $this->faker->randomFloat(2, 10, 500);
 
         return [

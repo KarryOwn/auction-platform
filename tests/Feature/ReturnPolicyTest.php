@@ -2,6 +2,7 @@
 
 use App\Models\Auction;
 use App\Models\User;
+use Illuminate\Support\Facades\Config;
 
 test('seller defaults to no returns', function () {
     $seller = User::factory()->create();
@@ -43,15 +44,25 @@ test('auction override takes precedence over seller policy', function () {
 });
 
 test('publishing snapshots the effective return policy', function () {
-    $seller = User::factory()->create(['role' => 'seller', 'return_policy_type' => 'no_returns']);
-    
-    $auction = Auction::factory()->draft()->create([
+    Config::set('auction.listing_fee.flat', 0.0);
+    Config::set('auction.listing_fee.percent', 0.0);
+
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'return_policy_type' => 'no_returns',
+    ]);
+
+    $auction = Auction::factory()->draft()->withImages(1)->create([
         'user_id' => $seller->id,
         'return_policy_override' => 'custom',
         'return_policy_custom_override' => 'Snapshotted policy!',
     ]);
 
-    $this->actingAs($seller)->post(route('seller.auctions.publish', $auction));
+    $this->actingAs($seller)
+        ->post(route('seller.auctions.publish', $auction))
+        ->assertRedirect(route('auctions.show', $auction));
 
     $auction->refresh();
     

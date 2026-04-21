@@ -4,7 +4,11 @@ use App\Models\Auction;
 use App\Models\User;
 
 test('seller can auto-save draft auction', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
         'title' => 'Initial Title',
@@ -25,7 +29,11 @@ test('seller can auto-save draft auction', function () {
 });
 
 test('only allowed fields can be auto-saved', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
         'status' => Auction::STATUS_DRAFT,
@@ -44,7 +52,11 @@ test('only allowed fields can be auto-saved', function () {
 });
 
 test('cannot auto-save active auction', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->create([
         'user_id' => $seller->id,
         'status' => Auction::STATUS_ACTIVE,
@@ -62,8 +74,16 @@ test('cannot auto-save active auction', function () {
 });
 
 test('stranger cannot auto-save auction', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
-    $stranger = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+    $stranger = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
         'title' => 'My Draft',

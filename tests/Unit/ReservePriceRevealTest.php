@@ -4,6 +4,9 @@ use App\Models\Auction;
 use App\Models\User;
 use App\Http\Resources\AuctionResource;
 use Illuminate\Http\Request;
+use Tests\TestCase;
+
+uses(TestCase::class);
 
 test('public reserve price is null when disabled', function () {
     $auction = Auction::factory()->make([

@@ -4,7 +4,11 @@ use App\Models\Auction;
 use App\Models\User;
 
 test('seller can preview draft auction', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
         'title' => 'My Awesome Draft',
@@ -19,7 +23,11 @@ test('seller can preview draft auction', function () {
 });
 
 test('previewing an active auction redirects to regular show page', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     $auction = Auction::factory()->create([
         'user_id' => $seller->id,
         'status' => Auction::STATUS_ACTIVE,
@@ -31,8 +39,16 @@ test('previewing an active auction redirects to regular show page', function () 
 });
 
 test('stranger cannot preview seller draft', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
-    $stranger = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+    $stranger = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,
@@ -44,7 +60,11 @@ test('stranger cannot preview seller draft', function () {
 });
 
 test('unauthenticated user cannot preview seller draft', function () {
-    $seller = User::factory()->create(['role' => 'seller']);
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
     
     $auction = Auction::factory()->draft()->create([
         'user_id' => $seller->id,

@@ -73,6 +73,25 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            @if($isPreview ?? false)
+                <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-sm font-medium">Preview Mode - this auction is not yet published.</p>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('seller.auctions.edit', $auction) }}"
+                           class="inline-flex items-center px-3 py-2 rounded-md border border-amber-300 bg-white text-amber-900 text-sm font-medium hover:bg-amber-100 transition">
+                            Back to Edit
+                        </a>
+                        <form method="POST" action="{{ route('seller.auctions.publish', $auction) }}">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex items-center px-3 py-2 rounded-md bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition">
+                                Publish Now
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
             @php($galleryImages = $auction->getGalleryImages())
             <div class="bg-white shadow-sm sm:rounded-lg p-6" x-data="{ images: @js($galleryImages), activeImage: @js($galleryImages[0]['full_url'] ?? null) }" aria-label="Auction images">
                 @if(!empty($galleryImages))
@@ -997,48 +1016,6 @@
                                 },
                                 ticks: {
                                     color: '#6b7280',
-                                },
-                                grid: {
-                                    display: false,
-                                },
-                            },
-                            y: {
-                                ticks: {
-                                    color: '#6b7280',
-                                    callback: (value) => {
-                                        const num = Number(value);
-                                        return Number.isInteger(num) ? `$${num}` : `$${num.toFixed(2)}`;
-                                    },
-                                },
-                                grid: {
-                                    color: 'rgba(229, 231, 235, 0.8)',
-                                },
-                            },
-                        },
-                    },
-                });
-
-                window.addEventListener('bid:placed', (e) => {
-                    chart.data.datasets[0].data.push({
-                        x: new Date().toISOString(),
-                        y: parseFloat(e.detail.amount),
-                    });
-                    chart.update('active');
-                });
-            });
-        </script>
-    @endpush
-</x-app-layout> window.addEventListener('bid:placed', (e) => {
-                    chart.data.datasets[0].data.push({
-                        x: new Date().toISOString(),
-                        y: parseFloat(e.detail.amount),
-                    });
-                    chart.update('active');
-                });
-            });
-        </script>
-    @endpush
-</x-app-layout>lor: '#6b7280',
                                 },
                                 grid: {
                                     display: false,
