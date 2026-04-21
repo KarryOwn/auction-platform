@@ -200,6 +200,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::post('/auctions', [AuctionCrudController::class, 'store'])->name('auctions.store');
     Route::get('/auctions/{auction}/edit', [AuctionCrudController::class, 'edit'])->name('auctions.edit');
     Route::patch('/auctions/{auction}', [AuctionCrudController::class, 'update'])->name('auctions.update');
+    Route::post('/auctions/{auction}/clone', [AuctionCrudController::class, 'clone'])->name('auctions.clone');
     Route::post('/auctions/{auction}/publish', [AuctionCrudController::class, 'publish'])->name('auctions.publish');
     Route::post('/auctions/{auction}/cancel', [AuctionCrudController::class, 'cancel'])->name('auctions.cancel');
     Route::delete('/auctions/{auction}', [AuctionCrudController::class, 'destroy'])->name('auctions.destroy');

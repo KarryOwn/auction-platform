@@ -65,6 +65,7 @@ class Auction extends Model implements HasMedia
         'brand_id',
         'sku',
         'serial_number',
+        'cloned_from_auction_id',
     ];
 
 

@@ -295,6 +295,15 @@ class AuctionCrudController extends Controller
             ->with('status', 'Auction cancelled.');
     }
 
+    public function clone(Auction $auction, AuctionCloneService $cloneService): RedirectResponse
+    {
+        $this->authorize('clone', $auction);
+        $clone = $cloneService->clone($auction, request()->user());
+        return redirect()
+            ->route('seller.auctions.edit', $clone)
+            ->with('status', 'Auction cloned as a new draft. Set new dates before publishing.');
+    }
+
     public function destroy(Request $request, Auction $auction): RedirectResponse
     {
         $this->authorize('delete', $auction);

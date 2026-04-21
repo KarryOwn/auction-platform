@@ -36,6 +36,12 @@ class AuctionPolicy
             && $auction->isDraft();
     }
 
+    public function clone(User $user, Auction $auction): bool
+    {
+        return $auction->user_id === $user->id
+            && in_array($auction->status, [Auction::STATUS_COMPLETED, Auction::STATUS_CANCELLED], true);
+    }
+
     public function uploadMedia(User $user, Auction $auction): bool
     {
         return $auction->user_id === $user->id
