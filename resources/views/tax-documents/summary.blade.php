@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tax Summary - {{ $period_label ?? 'Period' }}</title>
+    <style>
+        body {
+            font-family: Helvetica, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .info-grid {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .info-grid td {
+            vertical-align: top;
+            width: 50%;
+        }
+        .summary-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .summary-table {
+            width: 100%;
+        }
+        .summary-table th {
+            text-align: left;
+            padding: 5px;
+        }
+        .summary-table td {
+            text-align: right;
+            padding: 5px;
+            font-weight: bold;
+        }
+        .line-items {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .line-items th, .line-items td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        .line-items th {
+            background-color: #eee;
+            text-align: left;
+        }
+        .text-right {
+            text-align: right !important;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Seller Tax Summary Report</h2>
+        <p>Period: {{ $period_from }} to {{ $period_to }}</p>
+    </div>
+
+    <table class="info-grid">
+        <tr>
+            <td>
+                <strong>Seller Information:</strong><br>
+                {{ $seller_name }}<br>
+                {{ $seller_email }}
+            </td>
+            <td class="text-right">
+                <strong>Report Generated:</strong><br>
+                {{ \Carbon\Carbon::parse($generated_at)->format('Y-m-d H:i:s') }}
+            </td>
+        </tr>
+    </table>
+
+    <div class="summary-box">
+        <h3>Financial Summary ({{ config('auction.currency', 'USD') }})</h3>
+        <table class="summary-table">
+            <tr>
+                <th>Gross Sales (Winning Bids)</th>
+                <td>${{ number_format($gross_sales, 2) }}</td>
+            </tr>
+            <tr>
+                <th>Platform Fees Deducted</th>
+                <td style="color: red;">-${{ number_format($platform_fees, 2) }}</td>
+            </tr>
+            <tr>
+                <th>Listing Fees Paid</th>
+                <td style="color: red;">-${{ number_format($listing_fees, 2) }}</td>
+            </tr>
+            <tr>
+                <th>Refunds Issued</th>
+                <td style="color: red;">-${{ number_format($refunds_issued, 2) }}</td>
+            </tr>
+            <tr>
+                <td colspan="2"><hr></td>
+            </tr>
+            <tr>
+                <th>Net Revenue</th>
+                <td style="font-size: 18px; color: green;">${{ number_format($net_revenue, 2) }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <h3>Line Items (Completed Auctions)</h3>
+    @if(count($line_items) > 0)
+        <table class="line-items">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Auction ID</th>
+                    <th>Title</th>
+                    <th>Invoice #</th>
+                    <th class="text-right">Gross</th>
+                    <th class="text-right">Fee</th>
+                    <th class="text-right">Net</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($line_items as $item)
+                <tr>
+                    <td>{{ $item['date'] }}</td>
+                    <td>#{{ $item['auction_id'] }}</td>
+                    <td>{{ \Illuminate\Support\Str::limit($item['title'], 40) }}</td>
+                    <td>{{ $item['invoice_number'] ?? 'N/A' }}</td>
+                    <td class="text-right">${{ number_format($item['gross'], 2) }}</td>
+                    <td class="text-right">-${{ number_format($item['platform_fee'], 2) }}</td>
+                    <td class="text-right">${{ number_format($item['net'], 2) }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p>No completed auctions found in this period.</p>
+    @endif
+
+    <div class="footer">
+        <p>This document is generated for informational purposes only and does not constitute official tax advice. Please consult a tax professional for reporting requirements in your jurisdiction.</p>
+        <p>Generated by {{ config('app.name') }}</p>
+    </div>
+
+</body>
+</html>

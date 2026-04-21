@@ -181,6 +181,12 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::get('/revenue', [RevenueController::class, 'index'])->name('revenue.index');
     Route::get('/revenue/export', [RevenueController::class, 'export'])->name('revenue.export');
 
+    Route::prefix('/tax-documents')->name('tax-documents.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Seller\TaxDocumentController::class, 'index'])->name('index');
+        Route::post('/generate', [\App\Http\Controllers\Seller\TaxDocumentController::class, 'generate'])->name('generate');
+        Route::get('/{document}/download', [\App\Http\Controllers\Seller\TaxDocumentController::class, 'download'])->name('download');
+    });
+
     Route::get('/messages', [SellerMessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{conversation}', [SellerMessageController::class, 'show'])->name('messages.show');
     Route::post('/messages/{conversation}', [SellerMessageController::class, 'store'])->name('messages.store');
