@@ -537,7 +537,7 @@
 
                     {{-- Auto-Bid Card --}}
                     @auth
-                    @if($auction->isActive())
+                    @if($auction->isActive() && !($isPreview ?? false))
                     <div class="bg-white shadow-sm sm:rounded-lg p-6">
                         <h3 class="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
                             <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -997,6 +997,48 @@
                                 },
                                 ticks: {
                                     color: '#6b7280',
+                                },
+                                grid: {
+                                    display: false,
+                                },
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#6b7280',
+                                    callback: (value) => {
+                                        const num = Number(value);
+                                        return Number.isInteger(num) ? `$${num}` : `$${num.toFixed(2)}`;
+                                    },
+                                },
+                                grid: {
+                                    color: 'rgba(229, 231, 235, 0.8)',
+                                },
+                            },
+                        },
+                    },
+                });
+
+                window.addEventListener('bid:placed', (e) => {
+                    chart.data.datasets[0].data.push({
+                        x: new Date().toISOString(),
+                        y: parseFloat(e.detail.amount),
+                    });
+                    chart.update('active');
+                });
+            });
+        </script>
+    @endpush
+</x-app-layout> window.addEventListener('bid:placed', (e) => {
+                    chart.data.datasets[0].data.push({
+                        x: new Date().toISOString(),
+                        y: parseFloat(e.detail.amount),
+                    });
+                    chart.update('active');
+                });
+            });
+        </script>
+    @endpush
+</x-app-layout>lor: '#6b7280',
                                 },
                                 grid: {
                                     display: false,

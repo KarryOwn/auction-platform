@@ -276,6 +276,48 @@ class AuctionCrudController extends Controller
             ->with('status', 'Auction published successfully.');
     }
 
+    public function preview(Auction $auction, \App\Services\AttributePricePredictionService $predictionService)
+    {
+        $this->authorize('update', $auction);
+
+        if (! $auction->isDraft()) {
+            return redirect()->route('auctions.show', $auction);
+        }
+
+        $auction->loadCount('bids');
+        $auction->load([
+            'seller', 'categories', 'media', 'brand', 'tags',
+            'attributeValues.attribute',
+        ]);
+
+        $isWatching   = false;
+        $autoBid      = null;
+        $recentBids   = collect();
+        $bidChartData = '[]';
+        $questions    = collect();
+        
+        $prediction = null;
+        if ($auction->primaryCategory->isNotEmpty()) {
+            $inputAttrs = $auction->attributeValues->mapWithKeys(function ($attrVal) {
+                return [$attrVal->attribute->slug => $attrVal->value];
+            })->toArray();
+            
+            $prediction = $predictionService->predict(
+                categoryId: $auction->primaryCategory->first()->id,
+                inputAttrs: $inputAttrs,
+                brandId: $auction->brand_id,
+                condition: $auction->condition
+            );
+        }
+
+        $isPreview    = true;
+
+        return view('auctions.show', compact(
+            'auction', 'isWatching', 'autoBid', 'recentBids',
+            'bidChartData', 'questions', 'prediction', 'isPreview'
+        ));
+    }
+
     public function cancel(Request $request, Auction $auction): RedirectResponse
     {
         $this->authorize('cancel', $auction);
