@@ -50,6 +50,7 @@ use App\Models\Auction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Cache;
+use App\Services\CategoryService;
 
 Route::get('/', function () {
     $liveCount = Cache::remember('live_auction_count', 60, fn() => Auction::where('status','active')->count());
@@ -65,6 +66,15 @@ Route::get('/', function () {
 // Stripe Webhook (outside all middleware — no CSRF)
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])
      ->name('stripe.webhook');
+
+Route::get('/api/categories/{id}/commission', function (int $id, CategoryService $categoryService) {
+    $rate = $categoryService->getEffectiveCommissionRate($id);
+
+    return response()->json([
+        'commission_rate' => $rate,
+        'commission_pct' => round($rate * 100, 2),
+    ]);
+})->name('api.categories.commission');
 
 // Public user profiles
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('users.show');

@@ -57,7 +57,7 @@ class AuctionManagementController extends Controller
      */
     public function show(Request $request, Auction $auction)
     {
-        $auction->load(['seller:id,name,email']);
+        $auction->load(['seller:id,name,email', 'invoice', 'primaryCategory']);
 
         $bidStats = [
             'total_bids'      => $auction->bids()->count(),

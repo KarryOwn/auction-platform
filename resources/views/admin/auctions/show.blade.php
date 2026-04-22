@@ -124,6 +124,20 @@
                         <dt class="text-sm font-medium text-gray-500">Current Price</dt>
                         <dd class="text-sm font-bold text-gray-900">${{ number_format($auction->current_price, 2) }}</dd>
 
+                        <dt class="text-sm font-medium text-gray-500">Commission Rate</dt>
+                        <dd class="text-sm text-gray-900">
+                            @if($auction->invoice)
+                                {{ number_format((float) $auction->invoice->commission_rate_percent, 2) }}%
+                                <span class="text-xs text-gray-500">(captured at close)</span>
+                            @elseif($auction->primaryCategory->isNotEmpty())
+                                {{ number_format($auction->primaryCategory->first()->effective_commission_percent, 2) }}%
+                                <span class="text-xs text-gray-500">(current category rate)</span>
+                            @else
+                                {{ number_format((float) config('auction.platform_fee_percent', 0.05) * 100, 2) }}%
+                                <span class="text-xs text-gray-500">(global default)</span>
+                            @endif
+                        </dd>
+
                         @if($bidStats['redis_price'])
                             <dt class="text-sm font-medium text-gray-500">Redis Price</dt>
                             <dd class="text-sm text-gray-900">${{ number_format((float)$bidStats['redis_price'], 2) }}</dd>

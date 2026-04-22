@@ -49,6 +49,16 @@
                                 <x-input-error :messages="$errors->get('sort_order')" class="mt-2" />
                             </div>
 
+                            <div>
+                                <x-input-label for="commission_rate" :value="__('Commission Rate Override')" />
+                                <x-text-input id="commission_rate" class="block mt-1 w-full" type="number" step="0.0001" min="0" max="1" name="commission_rate" :value="old('commission_rate', $category->commission_rate)" placeholder="0.0800 = 8%" />
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Blank inherits from the parent category or the global platform fee.
+                                    Current effective rate: {{ number_format($category->effective_commission_percent, 2) }}%.
+                                </p>
+                                <x-input-error :messages="$errors->get('commission_rate')" class="mt-2" />
+                            </div>
+
                             <div class="md:col-span-2">
                                 <label for="is_active" class="inline-flex items-center">
                                     <input id="is_active" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="is_active" value="1" {{ old('is_active', $category->is_active) ? 'checked' : '' }}>

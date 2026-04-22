@@ -164,4 +164,11 @@ class CategoryService
             Cache::forget("categories:{$category->id}:attributes");
         });
     }
+
+    public function getEffectiveCommissionRate(int $categoryId): float
+    {
+        $category = Category::find($categoryId);
+
+        return $category?->effective_commission_rate ?? (float) config('auction.platform_fee_percent', 0.05);
+    }
 }

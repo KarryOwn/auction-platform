@@ -30,7 +30,8 @@ class PaymentService
             $this->escrowService->captureForWinner($winner, $auction);
 
             // 2. Calculate platform fee and seller payout
-            $platformFee  = $this->calculatePlatformFee($amount);
+            $commissionRate = $this->resolveCommissionRate($auction);
+            $platformFee  = round($amount * $commissionRate, 2);
             $sellerAmount = round($amount - $platformFee, 2);
 
             // 3. Credit seller wallet
@@ -45,7 +46,7 @@ class PaymentService
             $auction->update(['payment_status' => 'paid']);
 
             // 5. Generate invoice
-            $invoice = $this->invoiceService->generateForAuction($auction, $platformFee, $sellerAmount);
+            $invoice = $this->invoiceService->generateForAuction($auction, $platformFee, $sellerAmount, $commissionRate);
 
             Log::info('PaymentService: winner payment captured', [
                 'auction_id'    => $auction->id,
@@ -64,18 +65,35 @@ class PaymentService
     /**
      * Calculate the platform fee for a given amount.
      */
-    public function calculatePlatformFee(float $amount): float
+    public function calculatePlatformFee(float $amount, ?Auction $auction = null): float
     {
-        $feePercent = (float) config('auction.platform_fee_percent', 5.0);
+        $rate = $this->resolveCommissionRate($auction);
 
-        return round($amount * ($feePercent / 100), 2);
+        return round($amount * $rate, 2);
     }
 
     /**
      * Calculate the seller payout amount after platform fee.
      */
-    public function calculateSellerAmount(float $amount): float
+    public function calculateSellerAmount(float $amount, ?Auction $auction = null): float
     {
-        return round($amount - $this->calculatePlatformFee($amount), 2);
+        return round($amount - $this->calculatePlatformFee($amount, $auction), 2);
+    }
+
+    public function resolveCommissionRate(?Auction $auction = null): float
+    {
+        if (! $auction) {
+            return (float) config('auction.platform_fee_percent', 0.05);
+        }
+
+        $primaryCategory = $auction->relationLoaded('primaryCategory')
+            ? $auction->primaryCategory->first()
+            : $auction->primaryCategory()->first();
+
+        if ($primaryCategory) {
+            return $primaryCategory->effective_commission_rate;
+        }
+
+        return (float) config('auction.platform_fee_percent', 0.05);
     }
 }

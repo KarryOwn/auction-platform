@@ -37,6 +37,7 @@
                                         .ts-wrapper .ts-dropdown .option.selected { opacity: 0.4; filter: blur(0.5px); pointer-events: none; }
                                     </style>
                                     <p class="text-xs text-gray-500 mt-1">First selected is primary.</p>
+                                    <p id="commission-hint" class="text-xs text-amber-700 mt-2 hidden"></p>
                                     <x-input-error class="mt-2" :messages="$errors->get('categories')" />
                                 </div>
                                 
@@ -216,7 +217,46 @@
         function categorySelect() {
             return {
                 init() {
-                    new window.TomSelect(this.$refs.select, {
+                    const commissionHint = document.getElementById('commission-hint');
+                    const fetchCommission = async (value) => {
+                        const selected = Array.isArray(value) ? value : [value];
+                        const primaryId = selected.find(Boolean);
+
+                        if (!primaryId) {
+                            if (commissionHint) {
+                                commissionHint.textContent = '';
+                                commissionHint.classList.add('hidden');
+                            }
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(`/api/categories/${primaryId}/commission`, {
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Unable to load commission.');
+                            }
+
+                            const data = await response.json();
+
+                            if (commissionHint) {
+                                commissionHint.textContent = `Platform commission for this category: ${data.commission_pct}% of the winning bid.`;
+                                commissionHint.classList.remove('hidden');
+                            }
+                        } catch (_) {
+                            if (commissionHint) {
+                                commissionHint.textContent = '';
+                                commissionHint.classList.add('hidden');
+                            }
+                        }
+                    };
+
+                    const select = new window.TomSelect(this.$refs.select, {
                         plugins: ['remove_button', 'clear_button'],
                         maxItems: 3,
                         placeholder: 'Select categories...',
@@ -243,6 +283,10 @@
                                     this.removeItem(item);
                                 }
                             }
+                            fetchCommission(this.items);
+                        },
+                        onItemRemove: function() {
+                            fetchCommission(this.items);
                         },
                         render: {
                             item: function(data, escape) {
@@ -260,6 +304,8 @@
                             }
                         }
                     });
+
+                    fetchCommission(select.items);
                 }
             }
         }

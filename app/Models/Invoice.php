@@ -103,6 +103,28 @@ class Invoice extends Model
         ]);
     }
 
+    public function getCommissionRateAttribute(): ?float
+    {
+        $metadataRate = $this->metadata['commission_rate'] ?? null;
+        if ($metadataRate !== null) {
+            return (float) $metadataRate;
+        }
+
+        $subtotal = (float) $this->subtotal;
+        if ($subtotal <= 0) {
+            return null;
+        }
+
+        return round(((float) $this->platform_fee / $subtotal), 4);
+    }
+
+    public function getCommissionRatePercentAttribute(): ?float
+    {
+        return $this->commission_rate !== null
+            ? round($this->commission_rate * 100, 2)
+            : null;
+    }
+
     /**
      * Generate the next sequential invoice number.
      */

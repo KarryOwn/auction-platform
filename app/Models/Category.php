@@ -24,6 +24,7 @@ class Category extends Model
         'icon',
         'image_path',
         'sort_order',
+        'commission_rate',
         'is_active',
         'depth',
         'path',
@@ -31,6 +32,7 @@ class Category extends Model
 
     protected $casts = [
         'sort_order' => 'integer',
+        'commission_rate' => 'decimal:4',
         'is_active'  => 'boolean',
         'depth'      => 'integer',
     ];
@@ -137,6 +139,26 @@ class Category extends Model
     public function getBreadcrumbAttribute(): Collection
     {
         return $this->ancestors->push($this);
+    }
+
+    public function getEffectiveCommissionRateAttribute(): float
+    {
+        if ($this->commission_rate !== null) {
+            return (float) $this->commission_rate;
+        }
+
+        foreach ($this->ancestors->reverse() as $ancestor) {
+            if ($ancestor->commission_rate !== null) {
+                return (float) $ancestor->commission_rate;
+            }
+        }
+
+        return (float) config('auction.platform_fee_percent', 0.05);
+    }
+
+    public function getEffectiveCommissionPercentAttribute(): float
+    {
+        return round($this->effective_commission_rate * 100, 2);
     }
 
     /**

@@ -44,6 +44,7 @@ class CategoryController extends Controller
             'description' => $validated['description'] ?? null,
             'icon'        => $validated['icon'] ?? null,
             'sort_order'  => $validated['sort_order'] ?? 0,
+            'commission_rate' => $validated['commission_rate'] ?? null,
             'is_active'   => $validated['is_active'] ?? true,
         ]);
 
@@ -72,15 +73,16 @@ class CategoryController extends Controller
     {
         $validated = $request->validated();
 
-        $category->update(array_filter([
+        $category->update([
             'name'        => $validated['name'] ?? $category->name,
             'slug'        => $validated['slug'] ?? $category->slug,
             'parent_id'   => array_key_exists('parent_id', $validated) ? $validated['parent_id'] : $category->parent_id,
             'description' => $validated['description'] ?? $category->description,
             'icon'        => $validated['icon'] ?? $category->icon,
             'sort_order'  => $validated['sort_order'] ?? $category->sort_order,
+            'commission_rate' => array_key_exists('commission_rate', $validated) ? $validated['commission_rate'] : $category->commission_rate,
             'is_active'   => $validated['is_active'] ?? $category->is_active,
-        ], fn ($v) => $v !== null));
+        ]);
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('categories', 'public');

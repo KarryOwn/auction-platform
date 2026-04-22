@@ -69,14 +69,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Platform Fee (Percentage)
+    | Platform Fee Rate (Decimal)
     |--------------------------------------------------------------------------
     |
-    | The percentage of the winning bid amount charged as a platform fee.
-    | The seller receives (100 - fee)% of the winning bid.
+    | Stored as a decimal rate: 0.05 = 5%, 0.08 = 8%.
+    | Category overrides should use the same decimal convention.
     |
     */
-    'platform_fee_percent' => (float) env('AUCTION_PLATFORM_FEE_PERCENT', 5.0),
+    'platform_fee_percent' => (float) env('AUCTION_PLATFORM_FEE_PERCENT', 0.05),
 
     /*
     |--------------------------------------------------------------------------

@@ -74,7 +74,7 @@
                         <span class="text-gray-900">${{ number_format($invoice->subtotal, 2) }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Platform Fee ({{ config('auction.platform_fee_percent', 5) }}%)</span>
+                        <span class="text-gray-600">Platform Fee ({{ number_format((float) ($invoice->commission_rate_percent ?? ((float) config('auction.platform_fee_percent', 0.05) * 100)), 2) }}%)</span>
                         <span class="text-gray-900">${{ number_format($invoice->platform_fee, 2) }}</span>
                     </div>
                     <div class="flex justify-between text-sm">

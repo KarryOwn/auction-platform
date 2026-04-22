@@ -96,7 +96,8 @@ class HandleAuctionClosed implements ShouldQueue
             $seller = User::find($auction->user_id);
             if ($seller) {
                 $sellerAmount = $this->paymentService->calculateSellerAmount(
-                    (float) $auction->winning_bid_amount
+                    (float) $auction->winning_bid_amount,
+                    $auction
                 );
                 $seller->notify(new AuctionPayoutNotification(
                     auctionId:    $auction->id,
@@ -104,7 +105,8 @@ class HandleAuctionClosed implements ShouldQueue
                     totalAmount:  (float) $auction->winning_bid_amount,
                     sellerAmount: $sellerAmount,
                     platformFee:  $this->paymentService->calculatePlatformFee(
-                        (float) $auction->winning_bid_amount
+                        (float) $auction->winning_bid_amount,
+                        $auction
                     ),
                 ));
             }

@@ -12,9 +12,9 @@ class InvoiceService
     /**
      * Generate an invoice for a completed and paid auction.
      */
-    public function generateForAuction(Auction $auction, float $platformFee, float $sellerAmount): Invoice
+    public function generateForAuction(Auction $auction, float $platformFee, float $sellerAmount, ?float $commissionRate = null): Invoice
     {
-        return DB::transaction(function () use ($auction, $platformFee, $sellerAmount) {
+        return DB::transaction(function () use ($auction, $platformFee, $sellerAmount, $commissionRate) {
             $total = (float) $auction->winning_bid_amount;
 
             $invoice = Invoice::create([
@@ -34,6 +34,7 @@ class InvoiceService
                     'auction_title'      => $auction->title,
                     'winning_bid_amount' => $total,
                     'bid_count'          => $auction->bid_count,
+                    'commission_rate'    => $commissionRate,
                 ],
             ]);
 

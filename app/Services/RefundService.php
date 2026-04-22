@@ -29,11 +29,17 @@ class RefundService
             $buyer  = User::findOrFail($auction->winner_id);
             $seller = User::findOrFail($auction->user_id);
             $amount = (float) $auction->winning_bid_amount;
+            $invoice = Invoice::where('auction_id', $auction->id)->first();
 
-            // Calculate what the seller received
-            $platformFeePercent = (float) config('auction.platform_fee_percent', 5.0);
-            $platformFee  = round($amount * ($platformFeePercent / 100), 2);
-            $sellerAmount = round($amount - $platformFee, 2);
+            // Use stored invoice values when available so historical refunds
+            // are not affected by later commission-rate changes.
+            if ($invoice) {
+                $platformFee = (float) $invoice->platform_fee;
+                $sellerAmount = (float) $invoice->seller_amount;
+            } else {
+                $platformFee = round($amount * (float) config('auction.platform_fee_percent', 0.05), 2);
+                $sellerAmount = round($amount - $platformFee, 2);
+            }
 
             // 1. Issue Stripe refund first if applicable
             $tx = WalletTransaction::where('user_id', $buyer->id)
@@ -87,7 +93,6 @@ class RefundService
             $auction->update(['payment_status' => 'refunded']);
 
             // 5. Update invoice status
-            $invoice = Invoice::where('auction_id', $auction->id)->first();
             if ($invoice) {
                 $invoice->markRefunded();
             }

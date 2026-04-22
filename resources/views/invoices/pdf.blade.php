@@ -169,7 +169,7 @@
                 <td class="text-right">${{ number_format($invoice->subtotal, 2) }}</td>
             </tr>
             <tr>
-                <td>Platform Fee ({{ config('auction.platform_fee_percent', 5) }}%)</td>
+                <td>Platform Fee ({{ number_format((float) ($invoice->commission_rate_percent ?? ((float) config('auction.platform_fee_percent', 0.05) * 100)), 2) }}%)</td>
                 <td class="text-right">${{ number_format($invoice->platform_fee, 2) }}</td>
             </tr>
             <tr>
