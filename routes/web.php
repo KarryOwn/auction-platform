@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuctionController;
+use App\Http\Controllers\AuctionComparisonController;
 use App\Http\Controllers\AuctionCertificateController;
 use App\Http\Controllers\AuctionRatingController;
 use App\Http\Controllers\AuctionQuestionController;
@@ -67,6 +68,8 @@ Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])
 
 // Public user profiles
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('users.show');
+Route::post('/auctions/compare', [AuctionComparisonController::class, 'compare'])->name('auctions.compare');
+Route::get('/auctions/compare', [AuctionComparisonController::class, 'compare'])->name('auctions.compare.get');
 
 Route::get('/account/reactivate', [ProfileController::class, 'showReactivate'])->name('account.reactivate');
 Route::post('/account/reactivate', function (\Illuminate\Http\Request $request) {

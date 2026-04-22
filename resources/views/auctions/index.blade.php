@@ -149,4 +149,10 @@
             </div>
         </div>
     </div>
+
+    @include('auctions.partials.compare-bar')
+
+    @push('scripts')
+        @include('auctions.partials.compare-script', ['pollComparedAuctions' => []])
+    @endpush
 </x-app-layout>

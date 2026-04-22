@@ -163,6 +163,12 @@
                                 <div class="p-4">
                                     <div class="flex items-start justify-between mb-1">
                                         <h3 class="font-bold text-gray-900 line-clamp-1">{{ $auction->title }}</h3>
+                                        <label class="ml-3 flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                                            <input type="checkbox"
+                                                   data-compare-toggle="{{ $auction->id }}"
+                                                   class="h-3.5 w-3.5 rounded border-gray-300 text-amber-500 focus:ring-amber-500">
+                                            Compare
+                                        </label>
                                     </div>
 
                                     {{-- Condition badge --}}
@@ -200,10 +206,17 @@
                                             <span class="text-green-600 font-bold text-xl">${{ number_format($auction->current_price, 2) }}</span>
                                             <span class="block text-xs text-gray-400">{{ $auction->bids_count ?? 0 }} {{ Str::plural('bid', $auction->bids_count ?? 0) }}</span>
                                         </div>
-                                        <a href="{{ route('auctions.show', $auction) }}"
-                                           class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition">
-                                            Bid Now
-                                        </a>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button"
+                                                    onclick="document.querySelector('[data-compare-toggle=&quot;{{ $auction->id }}&quot;]')?.click()"
+                                                    class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
+                                                Compare
+                                            </button>
+                                            <a href="{{ route('auctions.show', $auction) }}"
+                                               class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition">
+                                                Bid Now
+                                            </a>
+                                        </div>
                                     </div>
 
                                     <div class="mt-2 pt-2 border-t border-gray-100">
@@ -225,4 +238,10 @@
             </div>
         </div>
     </div>
+
+    @include('auctions.partials.compare-bar')
+
+    @push('scripts')
+        @include('auctions.partials.compare-script', ['pollComparedAuctions' => []])
+    @endpush
 </x-app-layout>
