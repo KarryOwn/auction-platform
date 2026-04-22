@@ -14,11 +14,16 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AnalyticsController as AdminAnalyticsController;
 use App\Http\Controllers\Admin\AuctionManagementController;
 use App\Http\Controllers\Admin\AttributeController as AdminAttributeController;
+use App\Http\Controllers\Admin\BidTimingController as AdminBidTimingController;
+use App\Http\Controllers\Admin\BuyerAnalyticsController as AdminBuyerAnalyticsController;
 use App\Http\Controllers\Admin\BrandController as AdminBrandController;
+use App\Http\Controllers\Admin\CategoryAnalyticsController as AdminCategoryAnalyticsController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\MaintenanceController as AdminMaintenanceController;
+use App\Http\Controllers\Admin\SellerLeaderboardController as AdminSellerLeaderboardController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ReportController;
@@ -306,6 +311,16 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/metrics/live', [DashboardController::class, 'liveMetrics'])->name('metrics.live');
     Route::get('/metrics/fraud-alerts', [DashboardController::class, 'fraudAlerts'])->name('metrics.fraud-alerts');
     Route::get('/metrics/throughput', [DashboardController::class, 'bidThroughput'])->name('metrics.throughput');
+
+    // Analytics Reports
+    Route::prefix('/analytics')->name('analytics.')->group(function () {
+        Route::get('/', [AdminAnalyticsController::class, 'index'])->name('index');
+        Route::get('/categories', [AdminCategoryAnalyticsController::class, 'index'])->name('categories');
+        Route::get('/bid-timing', [AdminBidTimingController::class, 'heatmap'])->name('bid-timing');
+        Route::get('/leaderboard', [AdminSellerLeaderboardController::class, 'index'])->name('leaderboard');
+        Route::get('/buyers', [AdminBuyerAnalyticsController::class, 'index'])->name('buyers');
+        Route::get('/buyers/{user}', [AdminBuyerAnalyticsController::class, 'report'])->name('buyers.report');
+    });
 
     // Auction Management
     Route::get('/auctions', [AuctionManagementController::class, 'index'])->name('auctions.index');

@@ -136,6 +136,10 @@
                     <h3 class="text-lg font-semibold text-gray-800">Maintenance Windows</h3>
                     <p class="text-sm text-gray-500 mt-1">Schedule downtime, announce updates, and keep the bypass link handy.</p>
                 </a>
+                <a href="{{ route('admin.analytics.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Analytics Reports</h3>
+                    <p class="text-sm text-gray-500 mt-1">Category trends, peak bidding windows, seller rankings, and buyer activity.</p>
+                </a>
             </div>
 
         </div>

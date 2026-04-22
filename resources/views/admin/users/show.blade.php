@@ -126,6 +126,46 @@
                 <div id="action-message" class="mt-4 hidden"></div>
             </div>
 
+            {{-- Buyer Analytics --}}
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-1">Buyer Analytics</h3>
+                        <p class="text-sm text-gray-500">Last {{ $buyerAnalytics['days'] }} days of bidding and purchase activity.</p>
+                    </div>
+                    <a href="{{ route('admin.analytics.buyers.report', $user) }}" class="text-sm text-indigo-600 hover:text-indigo-800">
+                        JSON report
+                    </a>
+                </div>
+                <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
+                    <div class="rounded-lg border border-gray-200 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Bids</div>
+                        <div class="mt-2 text-2xl font-bold text-gray-900">{{ number_format($buyerAnalytics['total_bids']) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Auctions Bid On</div>
+                        <div class="mt-2 text-2xl font-bold text-gray-900">{{ number_format($buyerAnalytics['auctions_bid_on']) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Auctions Won</div>
+                        <div class="mt-2 text-2xl font-bold text-gray-900">{{ number_format($buyerAnalytics['auctions_won']) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Spent</div>
+                        <div class="mt-2 text-2xl font-bold text-green-700">${{ number_format($buyerAnalytics['total_spent'], 2) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Avg Bid</div>
+                        <div class="mt-2 text-2xl font-bold text-gray-900">${{ number_format($buyerAnalytics['avg_bid_amount'], 2) }}</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Win Rate</div>
+                        <div class="mt-2 text-2xl font-bold text-indigo-700">{{ number_format($buyerAnalytics['win_rate_pct'], 1) }}%</div>
+                        <div class="mt-1 text-xs text-gray-500">Wallet: ${{ number_format($buyerAnalytics['wallet_balance'], 2) }}</div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Recent Bids --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 pb-2">

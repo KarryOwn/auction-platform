@@ -7,6 +7,7 @@ use App\Jobs\CreateRandomAuction;
 use App\Jobs\CloseExpiredAuctions;
 use App\Jobs\CaptureAuctionSnapshots;
 use App\Jobs\CleanupStaleEscrowHolds;
+use App\Jobs\GenerateAnalyticsSnapshot;
 use App\Models\Category;
 use App\Services\CategoryService;
 use App\Services\ExchangeRateService;
@@ -113,4 +114,9 @@ Schedule::call(fn () => app(MaintenanceWindowService::class)->activateDue())
 Schedule::call(fn () => app(MaintenanceWindowService::class)->deactivateExpired())
     ->everyMinute()
     ->name('deactivate-maintenance-window')
+    ->withoutOverlapping();
+
+Schedule::job(new GenerateAnalyticsSnapshot)
+    ->dailyAt('01:00')
+    ->name('generate-analytics-snapshot')
     ->withoutOverlapping();

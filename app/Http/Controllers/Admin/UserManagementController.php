@@ -50,6 +50,8 @@ class UserManagementController extends Controller
     {
         $user->loadCount(['auctions', 'bids']);
 
+        $buyerAnalytics = $this->buildBuyerAnalytics($user);
+
         $activity = [
             'total_bids'          => $user->bids()->count(),
             'bids_today'          => $user->bids()->whereDate('created_at', today())->count(),
@@ -76,12 +78,34 @@ class UserManagementController extends Controller
             return response()->json([
                 'user'          => $user,
                 'activity'      => $activity,
+                'buyer_analytics' => $buyerAnalytics,
                 'recent_bids'   => $recentBids,
                 'audit_history' => $auditHistory,
             ]);
         }
 
-        return view('admin.users.show', compact('user', 'activity', 'recentBids', 'auditHistory'));
+        return view('admin.users.show', compact('user', 'activity', 'buyerAnalytics', 'recentBids', 'auditHistory'));
+    }
+
+    private function buildBuyerAnalytics(User $user, int $days = 30): array
+    {
+        $from = now()->subDays($days);
+        $bids = $user->bids()->where('created_at', '>=', $from);
+        $won = $user->wonAuctions()->where('closed_at', '>=', $from);
+
+        $auctionsBidOn = (clone $bids)->distinct('auction_id')->count('auction_id');
+        $auctionsWon = (clone $won)->count();
+
+        return [
+            'days' => $days,
+            'total_bids' => (clone $bids)->count(),
+            'auctions_bid_on' => $auctionsBidOn,
+            'auctions_won' => $auctionsWon,
+            'total_spent' => (float) (clone $won)->sum('winning_bid_amount'),
+            'avg_bid_amount' => (float) ((clone $bids)->avg('amount') ?? 0),
+            'win_rate_pct' => $auctionsBidOn > 0 ? round(($auctionsWon / $auctionsBidOn) * 100, 1) : 0,
+            'wallet_balance' => (float) $user->wallet_balance,
+        ];
     }
 
     /**
