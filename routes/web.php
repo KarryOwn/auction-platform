@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\AuctionManagementController;
 use App\Http\Controllers\Admin\AttributeController as AdminAttributeController;
 use App\Http\Controllers\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\MaintenanceController as AdminMaintenanceController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ReportController;
@@ -342,6 +343,14 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     // Payment Management
     Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/transactions', [AdminPaymentController::class, 'transactions'])->name('payments.transactions');
+
+    // Maintenance Management
+    Route::prefix('/maintenance')->name('maintenance.')->middleware('admin')->group(function () {
+        Route::get('/', [AdminMaintenanceController::class, 'index'])->name('index');
+        Route::post('/', [AdminMaintenanceController::class, 'store'])->name('store');
+        Route::patch('/{window}', [AdminMaintenanceController::class, 'update'])->name('update');
+        Route::post('/{window}/cancel', [AdminMaintenanceController::class, 'cancel'])->name('cancel');
+    });
 
     // Refunds
     Route::get('/auctions/{auction}/refund', [AdminRefundController::class, 'show'])->name('auctions.refund');

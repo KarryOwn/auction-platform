@@ -132,6 +132,10 @@
                     <h3 class="text-lg font-semibold text-gray-800">Audit Logs</h3>
                     <p class="text-sm text-gray-500 mt-1">Review all admin actions and changes.</p>
                 </a>
+                <a href="{{ route('admin.maintenance.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Maintenance Windows</h3>
+                    <p class="text-sm text-gray-500 mt-1">Schedule downtime, announce updates, and keep the bypass link handy.</p>
+                </a>
             </div>
 
         </div>

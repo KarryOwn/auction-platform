@@ -125,4 +125,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'maintenance_bypass_token' => env('APP_MAINTENANCE_BYPASS_TOKEN'),
+
 ];

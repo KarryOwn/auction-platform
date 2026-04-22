@@ -81,6 +81,7 @@
 
         <div class="min-h-screen">
             @include('layouts.navigation')
+            @include('partials.maintenance-banner')
 
             <!-- Page Heading -->
             @isset($header)

@@ -115,8 +115,12 @@
         </div>
     </nav>
 
+    <div class="pt-20">
+        @include('partials.maintenance-banner')
+    </div>
+
     <!-- Hero Section -->
-<div class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-gradient-to-br from-indigo-900 to-purple-900">
+<div class="relative pt-12 pb-20 lg:pt-28 lg:pb-32 overflow-hidden bg-gradient-to-br from-indigo-900 to-purple-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
             <div class="lg:col-span-6 text-center lg:text-left mb-16 lg:mb-0">

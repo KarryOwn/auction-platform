@@ -16,6 +16,9 @@
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-50">
+            <div class="w-full">
+                @include('partials.maintenance-banner')
+            </div>
             <div>
                 <a href="/" class="inline-flex scale-125 hover:scale-110 transition-transform duration-200 my-8">
                     <x-application-logo />

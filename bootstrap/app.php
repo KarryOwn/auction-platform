@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureNotBanned::class,
             \App\Http\Middleware\SetUserLocale::class,
             \App\Http\Middleware\SetDisplayCurrency::class,
+            \App\Http\Middleware\MaintenanceAnnouncement::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

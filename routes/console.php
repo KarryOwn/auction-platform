@@ -10,6 +10,7 @@ use App\Jobs\CleanupStaleEscrowHolds;
 use App\Models\Category;
 use App\Services\CategoryService;
 use App\Services\ExchangeRateService;
+use App\Services\MaintenanceWindowService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -102,4 +103,14 @@ Schedule::call(function () {
 Schedule::call(fn () => app(ExchangeRateService::class)->refresh())
     ->hourly()
     ->name('refresh-exchange-rates')
+    ->withoutOverlapping();
+
+Schedule::call(fn () => app(MaintenanceWindowService::class)->activateDue())
+    ->everyMinute()
+    ->name('activate-maintenance-window')
+    ->withoutOverlapping();
+
+Schedule::call(fn () => app(MaintenanceWindowService::class)->deactivateExpired())
+    ->everyMinute()
+    ->name('deactivate-maintenance-window')
     ->withoutOverlapping();
