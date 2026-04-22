@@ -64,6 +64,48 @@
                 </div>
             </div>
 
+            <div class="rounded-2xl border border-indigo-100 bg-white p-6 shadow-sm">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <p class="text-sm font-medium uppercase tracking-wider text-indigo-500">Referral Program</p>
+                        <h3 class="mt-2 text-2xl font-bold text-gray-900">Invite friends and earn wallet credits</h3>
+                        <p class="mt-2 text-sm text-gray-600">Share your personal referral link and track pending versus credited rewards from your dashboard.</p>
+                    </div>
+                    <a href="{{ route('user.referrals') }}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700">
+                        Open Referrals
+                    </a>
+                </div>
+            </div>
+
+            @if($latestExportRequest)
+                <div class="rounded-2xl border px-5 py-4 shadow-sm {{ $latestExportRequest->status === 'ready' ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white' }}">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">Data export</p>
+                            <p class="mt-1 text-sm text-gray-600">
+                                Latest export status: {{ ucfirst($latestExportRequest->status) }}.
+                                @if($latestExportRequest->status === 'ready' && $latestExportRequest->expires_at)
+                                    Download before {{ $latestExportRequest->expires_at->format('M d, Y') }}.
+                                @endif
+                            </p>
+                        </div>
+                        <div class="flex gap-3">
+                            @if($latestExportRequest->status === 'ready')
+                                <a href="{{ route('user.data-export.download', $latestExportRequest) }}"
+                                   class="inline-flex items-center justify-center rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800">
+                                    Download Export
+                                </a>
+                            @else
+                                <a href="{{ route('profile.edit') }}"
+                                   class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Manage Export
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 
                 {{-- Main Content - Left 2 Columns --}}

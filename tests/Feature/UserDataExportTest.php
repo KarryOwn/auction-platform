@@ -54,6 +54,16 @@ test('existing ready export redirects to download', function () {
     $response->assertRedirect(route('user.data-export.download', $request));
 });
 
+test('profile page shows export call to action', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('profile.edit'));
+
+    $response->assertOk()
+        ->assertSee('Export My Data')
+        ->assertSee('Request Export');
+});
+
 test('job successfully creates zip file', function () {
     // Requires zlib extension
     if (!extension_loaded('zip')) {

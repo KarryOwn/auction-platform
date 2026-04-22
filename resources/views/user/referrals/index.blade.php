@@ -7,13 +7,21 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @if(session('status'))
+                <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('status') }}
+                </div>
+            @endif
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Your Referral Link</h3>
-                <div class="flex items-center gap-4">
+                <div x-data="{ copied: false }" class="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <input type="text" readonly value="{{ $referralLink }}" class="w-full sm:w-1/2 border-gray-300 rounded-md shadow-sm bg-gray-50 cursor-not-allowed">
-                    <button type="button" onclick="navigator.clipboard.writeText('{{ $referralLink }}')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md">
-                        Copy
+                    <button type="button"
+                            @click="navigator.clipboard.writeText('{{ $referralLink }}').then(() => { copied = true; setTimeout(() => copied = false, 2000); })"
+                            class="inline-flex min-h-11 items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md">
+                        <span x-show="!copied">Copy Link</span>
+                        <span x-show="copied" x-cloak>Copied ✓</span>
                     </button>
                 </div>
                 <p class="mt-4 text-sm text-gray-600">Share this link with your friends. You'll both earn rewards when they join and place their first bid or list an item!</p>

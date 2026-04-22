@@ -19,6 +19,10 @@
                 <div class="bg-green-100 text-green-800 px-4 py-3 rounded">{{ session('status') }}</div>
             @endif
 
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                Re-listing creates a new draft from a completed or cancelled auction. Review dates, quantity, shipping, and pricing before publishing the new listing.
+            </div>
+
             <div class="bg-white shadow-sm sm:rounded-lg p-4">
                 @php
                     $tabs = [
@@ -68,7 +72,11 @@
                                     </div>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ ucfirst($auction->status) }}</span>
+                                    @if($auction->paused_by_vacation)
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Paused (Vacation)</span>
+                                    @else
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ ucfirst($auction->status) }}</span>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">${{ number_format($auction->current_price, 2) }}</td>
                                 <td class="px-4 py-3">{{ $auction->bids_count ?? $auction->bid_count }}</td>
@@ -96,6 +104,11 @@
                                             <form method="POST" action="{{ route('seller.auctions.cancel', $auction) }}" onsubmit="return confirm('Cancel this auction?')">
                                                 @csrf
                                                 <button class="text-red-600 hover:text-red-800">Cancel</button>
+                                            </form>
+                                        @elseif(in_array($auction->status, [\App\Models\Auction::STATUS_COMPLETED, \App\Models\Auction::STATUS_CANCELLED], true))
+                                            <form method="POST" action="{{ route('seller.auctions.clone', $auction) }}" onsubmit="return confirm('Create a new draft from this auction? Review dates and pricing before publishing.')">
+                                                @csrf
+                                                <button class="text-amber-700 hover:text-amber-900 font-medium">Re-list</button>
                                             </form>
                                         @endif
                                     </div>

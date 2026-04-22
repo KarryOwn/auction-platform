@@ -67,6 +67,7 @@
                                 <x-dropdown-link :href="route('admin.users.index')">{{ __('Manage Users') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.reports.index')">{{ __('Reports') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.disputes.index')">{{ __('Disputes') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.bid-retractions.index')">{{ __('Bid Retractions') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.audit-logs.index')">{{ __('Audit Logs') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.payments.index')">{{ __('Payments') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.seller-applications.index')">
@@ -105,6 +106,7 @@
                                 </x-dropdown-link>
                                 <x-dropdown-link :href="route('seller.analytics.index')">{{ __('Analytics') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('seller.revenue.index')">{{ __('Revenue') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('seller.tax-documents.index')">{{ __('Tax Documents') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('seller.storefront.edit')">{{ __('Storefront Settings') }}</x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
@@ -183,11 +185,17 @@
                         <x-dropdown-link :href="route('user.wallet')">
                             {{ __('Wallet') }}
                         </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.referrals')">
+                            {{ __('Referrals') }}
+                        </x-dropdown-link>
                         <x-dropdown-link :href="route('user.invoices')">
                             {{ __('Invoices') }}
                         </x-dropdown-link>
                         <x-dropdown-link :href="route('user.notification-preferences')">
                             {{ __('Notification Settings') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.api-tokens.index')">
+                            {{ __('API Tokens') }}
                         </x-dropdown-link>
 
                         <div class="border-t border-gray-100 my-1"></div>
@@ -265,6 +273,7 @@
                     <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">{{ __('Manage Users') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">{{ __('Reports') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.disputes.index')" :active="request()->routeIs('admin.disputes.*')">{{ __('Disputes') }}</x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.bid-retractions.index')" :active="request()->routeIs('admin.bid-retractions.*')">{{ __('Bid Retractions') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.payments.index')" :active="request()->routeIs('admin.payments.*')">{{ __('Payments') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.seller-applications.index')" :active="request()->routeIs('admin.seller-applications.*')">{{ __('Seller Applications') }}</x-responsive-nav-link>
                 </div>
@@ -322,8 +331,14 @@
                 <x-responsive-nav-link :href="route('user.wallet')">
                     {{ __('Wallet') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('user.referrals')">
+                    {{ __('Referrals') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('user.invoices')">
                     {{ __('Invoices') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('user.api-tokens.index')">
+                    {{ __('API Tokens') }}
                 </x-responsive-nav-link>
 
                 @if(!$authUser->isVerifiedSeller())

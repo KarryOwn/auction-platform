@@ -14,9 +14,28 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
+
+  .transition-safe {
+    transition-duration: var(--motion-base);
+  }
 }
 
 /* Ensure touch targets meet 44px minimum */
 @media (pointer: coarse) {
   .btn-sm { min-height: 44px; }
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DataExportRequest;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,11 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => $request->user(),
+            'blockedUsers' => $request->user()->blockedUsers()->latest('user_blocks.created_at')->get(),
+            'latestExportRequest' => DataExportRequest::query()
+                ->where('user_id', $request->user()->id)
+                ->latest()
+                ->first(),
         ]);
     }
 

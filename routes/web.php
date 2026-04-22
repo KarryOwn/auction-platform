@@ -50,6 +50,7 @@ use App\Http\Controllers\User\BidHistoryController;
 use App\Http\Controllers\User\WonAuctionsController;
 use App\Http\Controllers\User\WatchlistController;
 use App\Http\Controllers\User\WalletController;
+use App\Http\Controllers\User\ApiTokenController;
 use App\Http\Controllers\User\NotificationPreferenceController;
 use App\Http\Controllers\User\WithdrawalController;
 use App\Http\Controllers\StripeWebhookController;
@@ -191,6 +192,11 @@ Route::middleware('auth')->group(function () {
     // Notification Preferences
     Route::get('/dashboard/notifications', [NotificationPreferenceController::class, 'edit'])->name('user.notification-preferences');
     Route::put('/dashboard/notifications', [NotificationPreferenceController::class, 'update'])->name('user.notification-preferences.update');
+
+    // API Tokens
+    Route::get('/dashboard/api-tokens', [ApiTokenController::class, 'index'])->name('user.api-tokens.index');
+    Route::post('/dashboard/api-tokens', [ApiTokenController::class, 'store'])->name('user.api-tokens.store');
+    Route::delete('/dashboard/api-tokens/{token}', [ApiTokenController::class, 'destroy'])->name('user.api-tokens.destroy');
 
     // GDPR Export
     Route::post('/dashboard/data-export', [\App\Http\Controllers\User\DataExportController::class, 'requestExport'])->name('user.data-export.request');

@@ -11,6 +11,12 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @if(session('status'))
+                <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    {{ session('status') }}
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <x-ui.card>
                     <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Gross Revenue (This Month)</p>
@@ -36,6 +42,67 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $stats['completed_auctions'] }} completed of {{ $stats['total_auctions'] }} total</p>
                 </x-ui.card>
             </div>
+
+            <x-ui.card>
+                <x-slot:header>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-gray-100">Vacation Mode</h3>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Pause active auctions or leave a buyer-facing message while you are away.</p>
+                        </div>
+                        @if(auth()->user()->vacation_mode)
+                            <x-ui.badge color="amber">Active</x-ui.badge>
+                        @else
+                            <x-ui.badge color="green">Available</x-ui.badge>
+                        @endif
+                    </div>
+                </x-slot:header>
+
+                <div class="grid gap-6 lg:grid-cols-[1.3fr,0.7fr]">
+                    @if(auth()->user()->vacation_mode)
+                        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                            <p class="text-sm font-semibold text-amber-900">Vacation mode is active.</p>
+                            <p class="mt-2 text-sm text-amber-800">Buyer actions are paused on eligible auctions while you are away.</p>
+                            @if(auth()->user()->vacation_mode_message)
+                                <p class="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm text-amber-900">
+                                    "{{ auth()->user()->vacation_mode_message }}"
+                                </p>
+                            @endif
+                            @if(auth()->user()->vacation_mode_ends_at)
+                                <p class="mt-3 text-xs text-amber-700">
+                                    Expected return: {{ auth()->user()->vacation_mode_ends_at->format('M d, Y H:i') }}
+                                </p>
+                            @endif
+                        </div>
+                        <form method="POST" action="{{ route('seller.vacation.deactivate') }}" class="flex items-start justify-end">
+                            @csrf
+                            <x-primary-button>Return From Vacation</x-primary-button>
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('seller.vacation.activate') }}" class="grid gap-4 lg:grid-cols-2">
+                            @csrf
+                            <div class="lg:col-span-2">
+                                <label for="vacation_mode" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Mode</label>
+                                <select id="vacation_mode" name="mode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="pause">Pause auctions and disable bidding</option>
+                                    <option value="message_only">Keep auctions live but show away banner</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="vacation_ends_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Return date (optional)</label>
+                                <input id="vacation_ends_at" type="datetime-local" name="ends_at" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
+                            <div class="lg:row-span-2">
+                                <label for="vacation_message" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Buyer-facing message</label>
+                                <textarea id="vacation_message" name="message" rows="4" maxlength="500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Example: I am away until Monday. Orders and replies will resume when I return."></textarea>
+                            </div>
+                            <div class="lg:col-span-2">
+                                <x-primary-button>Activate Vacation Mode</x-primary-button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+            </x-ui.card>
 
             <x-ui.card>
                 <x-slot:header>
@@ -231,7 +298,7 @@
                         }
 
                         ctx.save();
-                        ctx.fillStyle = '#9ca3af';
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim() || '#9ca3af';
                         ctx.textAlign = 'center';
                         ctx.font = '13px sans-serif';
                         ctx.fillText('No revenue data in the last 30 days', (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2);

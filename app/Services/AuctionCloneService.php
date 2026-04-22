@@ -67,6 +67,32 @@ class AuctionCloneService
                 ]);
             }
 
+            foreach ($source->lotItems as $lotItem) {
+                $clonedLotItem = $clone->lotItems()->create([
+                    'name' => $lotItem->name,
+                    'quantity' => $lotItem->quantity,
+                    'condition' => $lotItem->condition,
+                    'description' => $lotItem->description,
+                    'sort_order' => $lotItem->sort_order,
+                ]);
+
+                $image = $lotItem->getFirstMedia('image');
+                if ($image) {
+                    try {
+                        $clonedLotItem->addMedia($image->getPath())
+                            ->preservingOriginal()
+                            ->usingFileName($image->file_name)
+                            ->toMediaCollection('image');
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('AuctionCloneService: lot item media copy failed', [
+                            'lot_item_id' => $lotItem->id,
+                            'auction_id' => $source->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
             // Clone media — copy files via Spatie
             foreach ($source->getMedia('images') as $media) {
                 try {

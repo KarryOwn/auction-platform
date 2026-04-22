@@ -86,3 +86,66 @@ test('bidding on paused auction throws exception', function () {
 
     $validator->validate($auction, $buyer, 100);
 });
+
+test('seller dashboard shows vacation mode controls', function () {
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+
+    $response = $this->actingAs($seller)->get(route('seller.dashboard'));
+
+    $response->assertOk()
+        ->assertSee('Vacation Mode')
+        ->assertSee('Activate Vacation Mode');
+});
+
+test('seller can activate vacation mode from dashboard route', function () {
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+    $auction = Auction::factory()->create([
+        'user_id' => $seller->id,
+        'status' => Auction::STATUS_ACTIVE,
+        'end_time' => now()->addDay(),
+    ]);
+
+    $response = $this->actingAs($seller)->post(route('seller.vacation.activate'), [
+        'message' => 'Out of office this weekend',
+        'mode' => 'pause',
+    ]);
+
+    $response->assertRedirect(route('seller.dashboard'))
+        ->assertSessionHas('status');
+
+    expect($seller->fresh()->vacation_mode)->toBeTrue();
+    expect($auction->fresh()->paused_by_vacation)->toBeTrue();
+});
+
+test('paused auction detail shows vacation banner and disabled bid state', function () {
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'vacation_mode' => true,
+        'vacation_mode_message' => 'Back next week',
+        'vacation_mode_ends_at' => now()->addDays(7),
+    ]);
+    $buyer = User::factory()->create();
+    $auction = Auction::factory()->create([
+        'user_id' => $seller->id,
+        'status' => Auction::STATUS_ACTIVE,
+        'paused_by_vacation' => true,
+        'end_time' => now()->addDay(),
+    ]);
+
+    $response = $this->actingAs($buyer)->get(route('auctions.show', $auction));
+
+    $response->assertOk()
+        ->assertSee('Seller is on vacation.')
+        ->assertSee('Back next week')
+        ->assertSee('Bidding Paused While Seller Is Away');
+});

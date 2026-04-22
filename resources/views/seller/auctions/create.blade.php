@@ -9,7 +9,7 @@
     <div class="py-8">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <form id="auction-form" method="POST" action="{{ route('seller.auctions.store') }}" class="space-y-6">
+                <form id="auction-form" method="POST" action="{{ route('seller.auctions.store') }}" enctype="multipart/form-data" class="space-y-6">
                     @csrf
 
                     <div>
@@ -17,7 +17,7 @@
                         <div class="grid grid-cols-1 gap-4">
                             <div>
                                 <x-input-label for="title" value="Title" />
-                                <x-text-input id="title" name="title" type="text" class="mt-1 block w-full" :value="old('title')" required />
+                                <x-text-input id="title" name="title" type="text" class="mt-1 block w-full" :value="old('title')" required data-autosave />
                                 <x-input-error class="mt-2" :messages="$errors->get('title')" />
                             </div>
                             
@@ -87,13 +87,15 @@
 
                             <div>
                                 <x-input-label for="description" value="Description" />
-                                <textarea id="description" name="description" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>{{ old('description') }}</textarea>
+                                <textarea id="description" name="description" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required data-autosave>{{ old('description') }}</textarea>
                                 <x-input-error class="mt-2" :messages="$errors->get('description')" />
                             </div>
                         </div>
                     </div>
 
-                    <div>
+                    @include('seller.auctions.partials.lot-item-manager')
+
+                    <div x-data="{ buyItNowEnabled: {{ old('buy_it_now_enabled') ? 'true' : 'false' }} }">
                         <h3 class="text-lg font-semibold text-gray-900 mb-3">Pricing</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -104,6 +106,15 @@
                             <div>
                                 <x-input-label for="reserve_price" value="Reserve Price (optional)" />
                                 <x-text-input id="reserve_price" name="reserve_price" type="number" step="0.01" min="0.01" class="mt-1 block w-full" :value="old('reserve_price')" />
+                                <label class="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="checkbox"
+                                           name="reserve_price_visible"
+                                           value="1"
+                                           @checked(old('reserve_price_visible'))
+                                           data-autosave
+                                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span>Show reserve price to bidders</span>
+                                </label>
                                 <x-input-error class="mt-2" :messages="$errors->get('reserve_price')" />
                             </div>
                             <div>
@@ -119,6 +130,29 @@
                                     @endforeach
                                 </select>
                                 <x-input-error class="mt-2" :messages="$errors->get('currency')" />
+                            </div>
+                        </div>
+                        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <label class="flex items-center gap-2 text-sm font-medium text-amber-900">
+                                <input type="checkbox"
+                                       name="buy_it_now_enabled"
+                                       value="1"
+                                       x-model="buyItNowEnabled"
+                                       class="rounded border-amber-300 text-amber-600 focus:ring-amber-500">
+                                <span>Enable Buy It Now</span>
+                            </label>
+                            <p class="mt-2 text-xs text-amber-800">The instant-purchase option automatically disappears once bidding reaches 75% of the BIN price.</p>
+                            <div x-show="buyItNowEnabled" x-cloak class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div>
+                                    <x-input-label for="buy_it_now_price" value="Buy It Now Price" />
+                                    <x-text-input id="buy_it_now_price" name="buy_it_now_price" type="number" step="0.01" min="0.01" class="mt-1 block w-full" :value="old('buy_it_now_price')" />
+                                    <x-input-error class="mt-2" :messages="$errors->get('buy_it_now_price')" />
+                                </div>
+                                <div>
+                                    <x-input-label for="buy_it_now_expires_at" value="BIN expiry (optional)" />
+                                    <x-text-input id="buy_it_now_expires_at" name="buy_it_now_expires_at" type="datetime-local" class="mt-1 block w-full" :value="old('buy_it_now_expires_at')" />
+                                    <x-input-error class="mt-2" :messages="$errors->get('buy_it_now_expires_at')" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -161,7 +195,7 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-3">Video</h3>
                         <x-input-label for="video_url" value="YouTube/Vimeo URL (optional)" />
                         <div class="flex gap-2 mt-1">
-                            <x-text-input id="video_url" name="video_url" type="url" class="block w-full" x-model="url" @input="update" :value="old('video_url')" />
+                            <x-text-input id="video_url" name="video_url" type="url" class="block w-full" x-model="url" @input="update" :value="old('video_url')" data-autosave />
                             <button type="button" class="px-3 py-2 text-sm rounded border" @click="clear">Clear</button>
                         </div>
                         <p class="mt-1 text-sm text-gray-500">Paste a YouTube or Vimeo URL.</p>
@@ -200,14 +234,14 @@
                 return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
             }
             // On load: convert any old() UTC values to local for display
-            document.querySelectorAll('#start_time, #end_time').forEach(input => {
+            document.querySelectorAll('#start_time, #end_time, #buy_it_now_expires_at').forEach(input => {
                 if (input.value) input.value = utcToLocal(input.value);
             });
             // On submit: convert local values to UTC
             const auctionForm = document.getElementById('auction-form');
             if (auctionForm) {
                 auctionForm.addEventListener('submit', function() {
-                    auctionForm.querySelectorAll('#start_time, #end_time').forEach(input => {
+                    auctionForm.querySelectorAll('#start_time, #end_time, #buy_it_now_expires_at').forEach(input => {
                         if (input.value) input.value = localToUtc(input.value);
                     });
                 });

@@ -3,6 +3,9 @@ import './bid-events';
 import './bid-ui';
 import './toast';
 import './filepond-setup';
+import './auto-save';
+import './bin-purchase';
+import './listing-fee-publish';
 
 import Alpine from 'alpinejs';
 
@@ -72,6 +75,12 @@ document.addEventListener('keydown', (e) => {
 			watchBtn.click();
 		}
 	}
+});
+
+window.cardNavigation = (url) => ({
+	open() {
+		window.location.href = url;
+	},
 });
 
 Alpine.start();

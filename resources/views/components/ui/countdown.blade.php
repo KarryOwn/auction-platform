@@ -80,10 +80,13 @@
         <span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Time remaining</span>
     @endif
 
-    <div class="{{ $sizeClasses }} transition-colors duration-300"
+    <div class="{{ $sizeClasses }} transition-colors duration-300 motion-reduce:transition-none"
+         role="status"
+         aria-live="polite"
+         aria-atomic="true"
          :class="{
             'text-gray-400': isEnded,
-            'text-orange-600 animate-pulse': isSnipeWarning && !isEnded,
+            'text-orange-600 motion-safe:animate-pulse': isSnipeWarning && !isEnded,
             'text-gray-800 dark:text-gray-100': !isEnded && !isSnipeWarning
          }">
         

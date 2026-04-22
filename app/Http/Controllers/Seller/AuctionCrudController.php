@@ -15,6 +15,7 @@ use App\Services\AttributeService;
 use App\Services\CategoryService;
 use App\Services\ListingFeeService;
 use App\Services\TagService;
+use App\Models\AuctionLotItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -97,13 +98,17 @@ class AuctionCrudController extends Controller
             'starting_price' => $validated['starting_price'],
             'current_price' => $validated['starting_price'],
             'reserve_price' => $validated['reserve_price'] ?? null,
+            'reserve_price_visible' => (bool) ($validated['reserve_price_visible'] ?? false),
+            'buy_it_now_price' => $validated['buy_it_now_price'] ?? null,
+            'buy_it_now_enabled' => (bool) ($validated['buy_it_now_enabled'] ?? false),
+            'buy_it_now_expires_at' => $validated['buy_it_now_expires_at'] ?? null,
             'reserve_met' => false,
             'min_bid_increment' => $validated['min_bid_increment'] ?? config('auction.min_bid_increment', 1.0),
             'snipe_threshold_seconds' => $validated['snipe_threshold_seconds'] ?? config('auction.snipe.threshold_seconds', 30),
             'snipe_extension_seconds' => $validated['snipe_extension_seconds'] ?? config('auction.snipe.extension_seconds', 30),
             'max_extensions' => $validated['max_extensions'] ?? config('auction.snipe.max_extensions', 10),
             'currency' => $validated['currency'] ?? config('auction.currency', 'USD'),
-            'start_time' => $validated['start_time'] ?? null,
+            'start_time' => $validated['start_time'] ?? now(),
             'end_time' => $validated['end_time'],
             'video_url' => $validated['video_url'] ?? null,
             'status' => Auction::STATUS_DRAFT,
@@ -111,6 +116,7 @@ class AuctionCrudController extends Controller
             'brand_id' => $validated['brand_id'] ?? null,
             'sku' => $validated['sku'] ?? null,
             'serial_number' => $validated['serial_number'] ?? null,
+            'is_lot' => (bool) ($validated['is_lot'] ?? false),
         ]);
 
         // Sync categories
@@ -136,6 +142,8 @@ class AuctionCrudController extends Controller
             $this->attributeService->syncAuctionAttributes($auction, $validatedAttrs);
         }
 
+        $this->syncLotItems($auction, $request);
+
         AuditLog::record('auction.created.draft', Auction::class, $auction->id, [
             'title' => $auction->title,
         ]);
@@ -148,7 +156,7 @@ class AuctionCrudController extends Controller
     {
         $this->authorize('update', $auction);
 
-        $auction->load(['media', 'categories', 'tags', 'brand', 'attributeValues.attribute'])->loadCount('bids');
+        $auction->load(['media', 'categories', 'tags', 'brand', 'attributeValues.attribute', 'lotItems.media'])->loadCount(['bids', 'lotItems']);
 
         return view('seller.auctions.edit', [
             'auction' => $auction,
@@ -190,6 +198,7 @@ class AuctionCrudController extends Controller
             'brand_id',
             'sku',
             'serial_number',
+            'is_lot',
         ]);
 
         if (array_key_exists('starting_price', $fillable) && $auction->isDraft()) {
@@ -220,6 +229,8 @@ class AuctionCrudController extends Controller
             $validatedAttrs = $this->attributeService->validateValues($validated['attributes'], $categoryIds);
             $this->attributeService->syncAuctionAttributes($auction, $validatedAttrs);
         }
+
+        $this->syncLotItems($auction, $request);
 
         AuditLog::record('auction.updated', Auction::class, $auction->id, [
             'fields' => array_keys($fillable),
@@ -252,6 +263,10 @@ class AuctionCrudController extends Controller
 
         if ($auction->getMedia('images')->isEmpty()) {
             $missing[] = 'images';
+        }
+
+        if ($auction->is_lot && $auction->lotItems()->count() === 0) {
+            $missing[] = 'lot_items';
         }
 
         if ($missing !== []) {
@@ -302,7 +317,7 @@ class AuctionCrudController extends Controller
 
         $auction->loadCount('bids');
         $auction->load([
-            'seller', 'categories', 'media', 'brand', 'tags',
+            'seller', 'categories', 'media', 'brand', 'tags', 'lotItems.media',
             'attributeValues.attribute',
         ]);
 
@@ -436,6 +451,70 @@ class AuctionCrudController extends Controller
         ]);
 
         return response()->json(['success' => true]);
+    }
+
+    private function syncLotItems(Auction $auction, Request $request): void
+    {
+        $items = collect($request->input('lot_items', []))
+            ->values()
+            ->filter(fn ($item) => filled($item['name'] ?? null))
+            ->values();
+
+        if (! $auction->is_lot) {
+            $auction->lotItems->each(function (AuctionLotItem $item) {
+                $item->clearMediaCollection('image');
+                $item->delete();
+            });
+
+            return;
+        }
+
+        $existingIds = $auction->lotItems()->pluck('id')->all();
+        $keptIds = [];
+
+        foreach ($items as $index => $itemData) {
+            $lotItem = null;
+            $incomingId = isset($itemData['id']) ? (int) $itemData['id'] : null;
+
+            if ($incomingId) {
+                $lotItem = $auction->lotItems()->whereKey($incomingId)->first();
+            }
+
+            if (! $lotItem) {
+                $lotItem = $auction->lotItems()->create([
+                    'name' => (string) $itemData['name'],
+                    'quantity' => (int) ($itemData['quantity'] ?? 1),
+                    'condition' => $itemData['condition'] ?? null,
+                    'description' => $itemData['description'] ?? null,
+                    'sort_order' => $index,
+                ]);
+            } else {
+                $lotItem->update([
+                    'name' => (string) $itemData['name'],
+                    'quantity' => (int) ($itemData['quantity'] ?? 1),
+                    'condition' => $itemData['condition'] ?? null,
+                    'description' => $itemData['description'] ?? null,
+                    'sort_order' => $index,
+                ]);
+            }
+
+            $keptIds[] = $lotItem->id;
+
+            if ($request->hasFile("lot_items.$index.image")) {
+                $lotItem->clearMediaCollection('image');
+                $lotItem
+                    ->addMediaFromRequest("lot_items.$index.image")
+                    ->toMediaCollection('image');
+            }
+        }
+
+        $toDelete = array_diff($existingIds, $keptIds);
+        if ($toDelete !== []) {
+            $auction->lotItems()->whereIn('id', $toDelete)->get()->each(function (AuctionLotItem $item) {
+                $item->clearMediaCollection('image');
+                $item->delete();
+            });
+        }
     }
 
     public function reorderImages(Request $request, Auction $auction): JsonResponse

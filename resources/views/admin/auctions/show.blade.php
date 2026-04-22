@@ -157,6 +157,32 @@
                         <dt class="text-sm font-medium text-gray-500">Description</dt>
                         <dd class="text-sm text-gray-900 col-span-2">{{ $auction->description ?? 'No description' }}</dd>
 
+                        @if($auction->is_lot)
+                            <dt class="text-sm font-medium text-gray-500">Lot Items</dt>
+                            <dd class="text-sm text-gray-900 col-span-2">
+                                <div class="space-y-3">
+                                    @foreach($auction->lotItems as $item)
+                                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                            <div class="flex items-center gap-3">
+                                                @if($item->getFirstMediaUrl('image', 'thumbnail'))
+                                                    <img src="{{ $item->getFirstMediaUrl('image', 'thumbnail') }}" alt="{{ $item->name }}" class="h-12 w-12 rounded-lg object-cover">
+                                                @endif
+                                                <div>
+                                                    <p class="font-medium text-gray-900">{{ $item->name }} <span class="text-gray-500">×{{ $item->quantity }}</span></p>
+                                                    @if($item->condition)
+                                                        <p class="text-xs text-gray-500">{{ $item->condition }}</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            @if($item->description)
+                                                <p class="mt-2 text-sm text-gray-600">{{ $item->description }}</p>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </dd>
+                        @endif
+
                         <dt class="text-sm font-medium text-gray-500">Authenticity Certificate</dt>
                         <dd class="text-sm text-gray-900 col-span-2"
                             x-data="adminAuthCertReview({

@@ -56,16 +56,117 @@
 
                     {{-- Watch Button --}}
                     @auth
-                    <button id="watch-btn"
-                            onclick="toggleWatch()"
-                            class="inline-flex items-center min-h-11 px-3 py-2 border rounded-lg text-sm font-medium transition
-                                   {{ $isWatching ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50' }}">
-                        <svg class="w-4 h-4 mr-1" fill="{{ $isWatching ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                        </svg>
-                        <span id="watch-text">{{ $isWatching ? 'Watching' : 'Watch' }}</span>
-                    </button>
+                    @unless($isPreview ?? false)
+                    <div
+                        x-data="watchSettings({
+                            watching: {{ $isWatching ? 'true' : 'false' }},
+                            watchUrl: '{{ route('auctions.watch', $auction) }}',
+                            outbidThreshold: @js(old('outbid_threshold', $watcher?->outbid_threshold_amount ?? auth()->user()->default_outbid_threshold)),
+                            priceAlertAt: @js(old('price_alert_at', $watcher?->price_alert_at)),
+                        })"
+                        @keydown.escape.window="close()"
+                        class="relative"
+                    >
+                        <button id="watch-btn"
+                                type="button"
+                                @click="openModal()"
+                                x-bind:aria-pressed="watching.toString()"
+                                x-bind:disabled="loading"
+                                x-bind:class="watching ? 'border-yellow-400 bg-yellow-50 text-yellow-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'"
+                                class="inline-flex items-center min-h-11 px-3 py-2 border rounded-lg text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-70">
+                            <svg class="w-4 h-4 mr-1" x-bind:fill="watching ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            <span id="watch-text" x-text="watching ? 'Watching' : 'Watch'"></span>
+                        </button>
+
+                        <div x-show="open"
+                             x-cloak
+                             x-transition.opacity
+                             class="fixed inset-0 z-[90] bg-slate-950/50"
+                             style="display: none;"
+                             @click="close()"></div>
+
+                        <div x-show="open"
+                             x-cloak
+                             x-transition
+                             class="fixed inset-0 z-[100] flex items-center justify-center px-4"
+                             style="display: none;">
+                            <div class="w-full max-w-lg rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
+                                <div class="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">Watch settings</p>
+                                        <h3 class="mt-1 text-lg font-semibold text-slate-950" x-text="watching ? 'Update watch alerts' : 'Watch this auction'"></h3>
+                                        <p class="mt-1 text-sm text-slate-500">Control when you hear about outbids and set a target price alert.</p>
+                                    </div>
+                                    <button type="button" class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" @click="close()">
+                                        <span class="sr-only">Close watch settings</span>
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-5 px-6 py-6">
+                                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <label for="watch-outbid-threshold" class="block text-sm font-medium text-slate-900">Only notify me if I am outbid by at least</label>
+                                        <div class="relative mt-2">
+                                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-500">$</span>
+                                            <input id="watch-outbid-threshold"
+                                                   type="number"
+                                                   min="0.01"
+                                                   step="0.01"
+                                                   x-model="outbidThreshold"
+                                                   class="w-full rounded-xl border-slate-300 pl-7 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                   placeholder="25.00">
+                                        </div>
+                                        <p class="mt-2 text-xs text-slate-500">Leave blank to use standard outbid notifications.</p>
+                                    </div>
+
+                                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <label for="watch-price-alert" class="block text-sm font-medium text-slate-900">Alert me when price reaches</label>
+                                        <div class="relative mt-2">
+                                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-500">$</span>
+                                            <input id="watch-price-alert"
+                                                   type="number"
+                                                   min="0.01"
+                                                   step="0.01"
+                                                   x-model="priceAlertAt"
+                                                   class="w-full rounded-xl border-slate-300 pl-7 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                   placeholder="1000.00">
+                                        </div>
+                                        <p class="mt-2 text-xs text-slate-500">We only send this alert once for each watched auction.</p>
+                                    </div>
+
+                                    <div class="flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                                        <button type="button"
+                                                x-show="watching"
+                                                x-bind:disabled="loading"
+                                                @click="removeWatch()"
+                                                class="inline-flex items-center justify-center rounded-xl border border-rose-200 px-4 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:opacity-60">
+                                            Remove from watchlist
+                                        </button>
+                                        <div class="flex flex-1 items-center justify-end gap-3">
+                                            <button type="button"
+                                                    class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                                                    @click="close()">
+                                                Cancel
+                                            </button>
+                                            <button type="button"
+                                                    x-bind:disabled="loading"
+                                                    @click="save()"
+                                                    class="inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
+                                                <span x-show="!loading" x-text="watching ? 'Save settings' : 'Start watching'"></span>
+                                                <span x-show="loading">Saving...</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endunless
                     @endauth
                 </div>
             </div>
@@ -76,8 +177,11 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             @if($isPreview ?? false)
-                <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm font-medium">Preview Mode - this auction is not yet published.</p>
+                <div class="rounded-2xl border-2 border-amber-300 bg-amber-50 px-6 py-4 text-amber-900 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold">Preview Mode - this auction is not yet published.</p>
+                        <p class="mt-1 text-sm text-amber-800">This preview hides buyer actions and shows the draft exactly as it will appear after publishing.</p>
+                    </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('seller.auctions.edit', $auction) }}"
                            class="inline-flex items-center px-3 py-2 rounded-md border border-amber-300 bg-white text-amber-900 text-sm font-medium hover:bg-amber-100 transition">
@@ -138,6 +242,7 @@
                                 <div class="mb-6 -mt-2">
                                     <button type="button"
                                             @click="open()"
+                                            aria-label="Report this listing"
                                             class="text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2">
                                         Report this listing
                                     </button>
@@ -192,6 +297,42 @@
                             </div>
                         @endif
 
+                        @if($auction->is_lot)
+                            <details class="mt-6 overflow-hidden rounded-2xl border border-violet-200 bg-violet-50/60">
+                                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-violet-900">
+                                    <span>What's Included ({{ $auction->lotItems->count() }} items)</span>
+                                    <svg class="h-4 w-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </summary>
+                                <div class="space-y-3 border-t border-violet-200 px-4 py-4">
+                                    @foreach($auction->lotItems as $item)
+                                        <div class="flex gap-4 rounded-2xl bg-white p-4 ring-1 ring-violet-100">
+                                            @if($item->getFirstMediaUrl('image', 'thumbnail'))
+                                                <img src="{{ $item->getFirstMediaUrl('image', 'thumbnail') }}" alt="{{ $item->name }}" class="h-16 w-16 rounded-xl object-cover">
+                                            @else
+                                                <div class="flex h-16 w-16 items-center justify-center rounded-xl bg-violet-100 text-xs font-semibold text-violet-700">
+                                                    Item
+                                                </div>
+                                            @endif
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <p class="font-medium text-slate-900">{{ $item->name }}</p>
+                                                    <span class="text-sm text-slate-500">×{{ $item->quantity }}</span>
+                                                    @if($item->condition)
+                                                        <x-ui.badge color="blue" size="xs">{{ $item->condition }}</x-ui.badge>
+                                                    @endif
+                                                </div>
+                                                @if($item->description)
+                                                    <p class="mt-2 text-sm text-slate-600">{{ $item->description }}</p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </details>
+                        @endif
+
                         {{-- Product Specifications --}}
                         <div class="mt-8 border-t pt-6">
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Specifications</h3>
@@ -212,6 +353,14 @@
                                     <div class="flex justify-between py-2 border-b border-gray-100">
                                         <span class="text-gray-500">Serial Number</span>
                                         <span class="font-medium text-gray-900">{{ $auction->serial_number }}</span>
+                                    </div>
+                                @endif
+                                @if($auction->hasReserve())
+                                    <div class="flex justify-between py-2 border-b border-gray-100">
+                                        <span class="text-gray-500">Reserve Price</span>
+                                        <span class="font-medium text-gray-900">
+                                            {{ $auction->public_reserve_price ?? 'Not disclosed' }}
+                                        </span>
                                     </div>
                                 @endif
                                 
@@ -246,8 +395,15 @@
                             </div>
                         @endif
 
+                        <details class="mt-6 rounded-xl border border-gray-200 bg-gray-50">
+                            <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-gray-900">Seller Policy</summary>
+                            <div class="px-4 pb-4 text-sm text-gray-700">
+                                {{ $returnPolicy }}
+                            </div>
+                        </details>
+
                         @auth
-                            @if(auth()->id() !== $auction->user_id)
+                            @if(auth()->id() !== $auction->user_id && !($isPreview ?? false))
                                 <div class="mt-6 border-t pt-4">
                                     <h4 class="text-sm font-semibold text-gray-800 mb-2">Message Seller</h4>
                                     <form method="POST" action="{{ route('conversations.start', $auction) }}" class="space-y-2">
@@ -499,7 +655,7 @@
 
                         <div class="bg-gray-50 rounded-lg p-4 text-center mb-6">
                             <span class="block text-xs text-gray-500 uppercase tracking-wide">Time Remaining</span>
-                            <span id="countdown" class="text-2xl font-bold text-gray-800" data-end="{{ $auction->end_time->toIso8601String() }}" role="status">
+                            <span id="countdown" class="text-2xl font-bold text-gray-800 transition-colors motion-reduce:transition-none" data-end="{{ $auction->end_time->toIso8601String() }}" role="status" aria-live="polite" aria-atomic="true">
                                 {{ $auction->timeRemaining() }}
                             </span>
                             @if($auction->extension_count > 0)
@@ -507,6 +663,55 @@
                                     Extended {{ $auction->extension_count }}×
                                 </span>
                             @endif
+                        </div>
+
+                        <div
+                            x-data="calendarDropdown({
+                                title: @js($auction->title),
+                                description: @js(str($auction->description)->limit(220)->toString()),
+                                url: '{{ route('auctions.show', $auction) }}',
+                                startAt: '{{ $auction->end_time->copy()->subMinutes(15)->toIso8601String() }}',
+                                endAt: '{{ $auction->end_time->toIso8601String() }}'
+                            })"
+                            @click.outside="open = false"
+                            class="mb-6"
+                        >
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Calendar</p>
+                                        <p class="mt-1 text-sm text-slate-700">Add the ending time to your calendar and get a reminder before the auction closes.</p>
+                                    </div>
+                                    <div class="relative">
+                                        <button type="button"
+                                                @click="open = !open"
+                                                class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100">
+                                            Add to calendar
+                                            <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </button>
+                                        <div x-show="open"
+                                             x-cloak
+                                             x-transition
+                                             class="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+                                             style="display: none;">
+                                            <a x-bind:href="googleUrl()" target="_blank" rel="noopener" class="flex items-center justify-between px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-50">
+                                                Google Calendar
+                                                <span class="text-xs text-slate-400">opens</span>
+                                            </a>
+                                            <a x-bind:href="yahooUrl()" target="_blank" rel="noopener" class="flex items-center justify-between px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-50">
+                                                Yahoo Calendar
+                                                <span class="text-xs text-slate-400">opens</span>
+                                            </a>
+                                            <button type="button" @click="downloadIcs()" class="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50">
+                                                Download ICS
+                                                <span class="text-xs text-slate-400">file</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {{-- Snipe Warning --}}
@@ -519,12 +724,24 @@
                             </div>
                         </div>
 
+                        @if($auction->paused_by_vacation)
+                            <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                                <p class="text-sm font-semibold text-amber-900">Seller is on vacation.</p>
+                                @if($auction->seller->vacation_mode_message)
+                                    <p class="mt-1 text-sm text-amber-800">{{ $auction->seller->vacation_mode_message }}</p>
+                                @endif
+                                @if($auction->seller->vacation_mode_ends_at)
+                                    <p class="mt-1 text-xs text-amber-700">Expected return: {{ $auction->seller->vacation_mode_ends_at->format('M d, Y') }}</p>
+                                @endif
+                            </div>
+                        @endif
+
                         {{-- Bid Form --}}
-                        @if($auction->isActive())
+                        @if($auction->isActive() && !($isPreview ?? false))
                             <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-sm"></div>
                             <div id="success-message" class="hidden bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg mb-4 text-sm"></div>
 
-                            <form id="bid-form" class="space-y-4" aria-describedby="countdown">
+                            <form id="bid-form" class="space-y-4 {{ $auction->paused_by_vacation ? 'pointer-events-none opacity-50' : '' }}" aria-describedby="countdown display-minimum-note">
                                 <div>
                                     <label for="bid-amount" class="block text-sm font-medium text-gray-700 mb-1">
                                         Your Bid (USD)
@@ -556,17 +773,34 @@
                                                  data-increment="{{ (float) $auction->min_bid_increment }}"
                                                min="{{ $auction->minimumNextBid() }}"
                                                value="{{ $auction->minimumNextBid() }}"
+                                                 @disabled($auction->paused_by_vacation)
+                                                 aria-describedby="display-minimum-note"
                                                  class="pl-8 block w-full h-14 md:h-auto rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg md:text-xl font-semibold">
                                     </div>
                                 </div>
 
                                 <button type="submit" id="bid-btn"
+                                        @disabled($auction->paused_by_vacation)
                                         aria-label="Place bid on {{ $auction->title }}"
                                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-                                    Place Bid
+                                    {{ $auction->paused_by_vacation ? 'Bidding Paused While Seller Is Away' : 'Place Bid' }}
                                 </button>
                                 <p class="text-xs text-gray-400 text-center mt-1">Press B to focus bid input</p>
                             </form>
+
+                            @auth
+                                @if(auth()->id() !== $auction->user_id)
+                                    <x-auction.bin-button
+                                        :auction="$auction"
+                                        :bin-price="$auction->buy_it_now_price"
+                                        :available="$auction->isBuyItNowAvailable()"
+                                    />
+                                @endif
+                            @endauth
+                        @elseif($isPreview ?? false)
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                Buyer actions are hidden in preview mode. Publish the auction to enable bidding, watching, and reporting.
+                            </div>
                         @else
                             <div class="bg-gray-100 rounded-lg p-4 text-center text-gray-500">
                                 <p class="text-lg font-semibold">Auction has ended</p>
@@ -773,35 +1007,196 @@
         });
     </script>
 
-    {{-- Watch Toggle --}}
     <script>
-        async function toggleWatch() {
-            try {
-                const response = await fetch("{{ route('auctions.watch', $auction) }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': "{{ csrf_token() }}",
-                        'Accept': 'application/json',
+        function watchSettings(config) {
+            return {
+                open: false,
+                loading: false,
+                watching: Boolean(config.watching),
+                watchUrl: config.watchUrl,
+                outbidThreshold: config.outbidThreshold ?? '',
+                priceAlertAt: config.priceAlertAt ?? '',
+                openModal() {
+                    this.open = true;
+                },
+                close() {
+                    if (this.loading) {
+                        return;
+                    }
+
+                    this.open = false;
+                },
+                normalizedValue(value) {
+                    if (value === '' || value === null || value === undefined) {
+                        return null;
+                    }
+
+                    const parsed = Number.parseFloat(value);
+
+                    return Number.isFinite(parsed) && parsed > 0 ? parsed.toFixed(2) : null;
+                },
+                async request(payload = {}) {
+                    const response = await fetch(this.watchUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Unable to update watch settings.');
+                    }
+
+                    return data;
+                },
+                async save() {
+                    this.loading = true;
+
+                    try {
+                        const data = await this.request({
+                            outbid_threshold: this.normalizedValue(this.outbidThreshold),
+                            price_alert_at: this.normalizedValue(this.priceAlertAt),
+                        });
+
+                        this.watching = Boolean(data.watching);
+                        this.open = false;
+                        window.toast?.success(data.message || 'Watch settings saved.');
+                    } catch (error) {
+                        window.toast?.error(error.message || 'Unable to update your watchlist right now.');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async removeWatch() {
+                    this.loading = true;
+
+                    try {
+                        const data = await this.request();
+                        this.watching = Boolean(data.watching);
+                        this.open = false;
+                        window.toast?.success(data.message || 'Removed from watchlist.');
+                    } catch (error) {
+                        window.toast?.error(error.message || 'Unable to update your watchlist right now.');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+            };
+        }
+
+        function calendarDropdown(config) {
+            return {
+                open: false,
+                title: config.title,
+                description: config.description,
+                url: config.url,
+                startAt: config.startAt,
+                endAt: config.endAt,
+                formatDate(value) {
+                    return new Date(value).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+                },
+                googleUrl() {
+                    const params = new URLSearchParams({
+                        action: 'TEMPLATE',
+                        text: `${this.title} auction ending`,
+                        details: `${this.description}\n\nView auction: ${this.url}`,
+                        dates: `${this.formatDate(this.startAt)}/${this.formatDate(this.endAt)}`,
+                    });
+
+                    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+                },
+                yahooUrl() {
+                    const params = new URLSearchParams({
+                        v: '60',
+                        view: 'd',
+                        type: '20',
+                        title: `${this.title} auction ending`,
+                        desc: `${this.description}\n\nView auction: ${this.url}`,
+                        st: this.formatDate(this.startAt),
+                        et: this.formatDate(this.endAt),
+                    });
+
+                    return `https://calendar.yahoo.com/?${params.toString()}`;
+                },
+                downloadIcs() {
+                    const ics = [
+                        'BEGIN:VCALENDAR',
+                        'VERSION:2.0',
+                        'PRODID:-//Auction Platform//Auction Reminder//EN',
+                        'BEGIN:VEVENT',
+                        'UID:auction-{{ $auction->id }}@auction-platform',
+                        `DTSTAMP:${this.formatDate(new Date().toISOString())}`,
+                        `DTSTART:${this.formatDate(this.startAt)}`,
+                        `DTEND:${this.formatDate(this.endAt)}`,
+                        `SUMMARY:${this.title.replace(/\n/g, ' ')}`,
+                        `DESCRIPTION:${`${this.description}\n\nView auction: ${this.url}`.replace(/\n/g, '\\n')}`,
+                        `URL:${this.url}`,
+                        'END:VEVENT',
+                        'END:VCALENDAR',
+                    ].join('\r\n');
+
+                    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+                    const objectUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    link.download = 'auction-reminder.ics';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    window.URL.revokeObjectURL(objectUrl);
+                    this.open = false;
+                },
+            };
+        }
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            window.watchSettings = watchSettings;
+            window.calendarDropdown = calendarDropdown;
+        });
+    </script>
+
+    <script>
+        if (window.Echo) {
+            window.Echo.channel('auctions.{{ $auction->id }}')
+                .listen('.bid.placed', () => {
+                    const watchButton = document.getElementById('watch-btn');
+                    if (watchButton) {
+                        watchButton.dispatchEvent(new CustomEvent('watch-refresh', { bubbles: true }));
                     }
                 });
-                const data = await response.json();
-                const btn = document.getElementById('watch-btn');
-                const txt = document.getElementById('watch-text');
-
-                if (data.watching) {
-                    btn.classList.add('border-yellow-400', 'bg-yellow-50', 'text-yellow-700');
-                    btn.classList.remove('border-gray-300', 'bg-white', 'text-gray-600');
-                    txt.textContent = 'Watching';
-                } else {
-                    btn.classList.remove('border-yellow-400', 'bg-yellow-50', 'text-yellow-700');
-                    btn.classList.add('border-gray-300', 'bg-white', 'text-gray-600');
-                    txt.textContent = 'Watch';
-                }
-            } catch (error) {
-                console.error('Watch toggle failed:', error);
-            }
         }
+    </script>
+
+    <script>
+        document.addEventListener('watch-refresh', async () => {
+            try {
+                const response = await fetch("{{ route('auctions.live-state', $auction) }}", {
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                if (!data.buy_it_now_available) {
+                    window.dispatchEvent(new CustomEvent('auction:bin-unavailable', {
+                        detail: { auctionId: {{ $auction->id }} }
+                    }));
+                }
+            } catch (_) {
+                // Fall back to the regular live-state polling already running on the page.
+            }
+        });
     </script>
 
     {{-- Auto-Bid Scripts --}}
@@ -938,6 +1333,13 @@
                         }
                     }
 
+                    window.dispatchEvent(new CustomEvent('auction:live-state', {
+                        detail: {
+                            auctionId,
+                            ...data,
+                        },
+                    }));
+
                     if (!Array.isArray(data.recent_bids) || data.recent_bids.length === 0) {
                         return;
                     }
@@ -1059,14 +1461,16 @@
 
                 const points = @json(json_decode($bidChartData, true));
                 const showPoints = window.matchMedia('(min-width: 640px)').matches;
+                const css = getComputedStyle(document.documentElement);
+                const token = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
 
                 const chart = new Chart(canvas, {
                     type: 'line',
                     data: {
                         datasets: [{
                             data: points,
-                            borderColor: '#6366f1',
-                            backgroundColor: 'rgba(199, 210, 254, 0.45)',
+                            borderColor: token('--color-primary', '#6366f1'),
+                            backgroundColor: 'color-mix(in srgb, ' + token('--color-primary', '#6366f1') + ' 24%, transparent)',
                             fill: true,
                             tension: 0.35,
                             pointRadius: showPoints ? 2 : 0,
@@ -1089,7 +1493,7 @@
                                     tooltipFormat: 'HH:mm',
                                 },
                                 ticks: {
-                                    color: '#6b7280',
+                                    color: token('--color-text-secondary', '#6b7280'),
                                 },
                                 grid: {
                                     display: false,
@@ -1097,14 +1501,14 @@
                             },
                             y: {
                                 ticks: {
-                                    color: '#6b7280',
+                                    color: token('--color-text-secondary', '#6b7280'),
                                     callback: (value) => {
                                         const num = Number(value);
                                         return Number.isInteger(num) ? `$${num}` : `$${num.toFixed(2)}`;
                                     },
                                 },
                                 grid: {
-                                    color: 'rgba(229, 231, 235, 0.8)',
+                                    color: 'color-mix(in srgb, ' + token('--color-text-muted', '#9ca3af') + ' 28%, transparent)',
                                 },
                             },
                         },

@@ -9,12 +9,18 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                @if(session('status'))
+                    <div class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        {{ session('status') }}
+                    </div>
+                @endif
+
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Generate New Report</h3>
-                <form action="{{ route('seller.tax-documents.generate') }}" method="POST" class="flex flex-wrap items-end gap-4">
+                <form action="{{ route('seller.tax-documents.generate') }}" method="POST" class="flex flex-wrap items-end gap-4" x-data="{ periodType: 'annual' }">
                     @csrf
                     <div>
                         <label for="period_type" class="block text-sm font-medium text-gray-700">Period Type</label>
-                        <select name="period_type" id="period_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <select name="period_type" id="period_type" x-model="periodType" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             <option value="annual">Annual Summary</option>
                             <option value="quarterly">Quarterly</option>
                             <option value="monthly">Monthly</option>
@@ -33,7 +39,7 @@
                         </select>
                     </div>
 
-                    <div id="quarter-div" class="hidden">
+                    <div x-show="periodType === 'quarterly'" x-cloak>
                         <label for="quarter" class="block text-sm font-medium text-gray-700">Quarter</label>
                         <select name="quarter" id="quarter" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             <option value="1">Q1 (Jan - Mar)</option>
@@ -43,7 +49,7 @@
                         </select>
                     </div>
 
-                    <div id="month-div" class="hidden">
+                    <div x-show="periodType === 'monthly'" x-cloak>
                         <label for="month" class="block text-sm font-medium text-gray-700">Month</label>
                         <select name="month" id="month" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             @foreach(range(1, 12) as $m)
@@ -116,14 +122,4 @@
 
         </div>
     </div>
-
-    @push('scripts')
-    <script>
-        document.getElementById('period_type').addEventListener('change', function() {
-            const val = this.value;
-            document.getElementById('quarter-div').classList.toggle('hidden', val !== 'quarterly');
-            document.getElementById('month-div').classList.toggle('hidden', val !== 'monthly');
-        });
-    </script>
-    @endpush
 </x-app-layout>

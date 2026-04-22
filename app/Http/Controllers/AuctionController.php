@@ -20,7 +20,7 @@ class AuctionController extends Controller
     {
         $query = Auction::active()
             ->with(['primaryCategory', 'media', 'brand', 'tags'])
-            ->withCount('bids');
+            ->withCount(['bids', 'lotItems']);
 
         // Keyword search
         if ($q = trim((string) $request->input('q', ''))) {
@@ -102,6 +102,7 @@ class AuctionController extends Controller
             'media',
             'brand',
             'tags',
+            'lotItems.media',
             'attributeValues.attribute',
             'highestBid.user',
             'winner',
@@ -112,9 +113,13 @@ class AuctionController extends Controller
 
         $user = auth()->user();
 
-        $isWatching = $user
-            ? AuctionWatcher::where('auction_id', $auction->id)->where('user_id', $user->id)->exists()
-            : false;
+        $watcher = $user
+            ? AuctionWatcher::where('auction_id', $auction->id)
+                ->where('user_id', $user->id)
+                ->first()
+            : null;
+
+        $isWatching = $watcher !== null;
 
         $autoBid = $user
             ? AutoBid::where('auction_id', $auction->id)
@@ -167,6 +172,7 @@ class AuctionController extends Controller
         return view('auctions.show', compact(
             'auction',
             'isWatching',
+            'watcher',
             'autoBid',
             'recentBids',
             'bidChartData',

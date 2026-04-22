@@ -98,3 +98,19 @@ test('followers receive notification when job runs', function () {
         [$follower], NewSellerListingNotification::class
     );
 });
+
+test('storefront shows follow seller control for authenticated buyers', function () {
+    $buyer = User::factory()->create();
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'seller_slug' => 'verified-seller',
+    ]);
+
+    $response = $this->actingAs($buyer)->get(route('storefront.show', $seller->seller_slug));
+
+    $response->assertOk()
+        ->assertSee('Follow Seller')
+        ->assertSee('followers');
+});

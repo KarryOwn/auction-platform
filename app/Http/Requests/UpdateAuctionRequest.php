@@ -67,6 +67,14 @@ class UpdateAuctionRequest extends FormRequest
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'sku' => ['nullable', 'string', 'max:100'],
             'serial_number' => ['nullable', 'string', 'max:100'],
+            'is_lot' => ['sometimes', 'nullable', 'boolean'],
+            'lot_items' => ['nullable', 'array', 'max:50'],
+            'lot_items.*.id' => ['nullable', 'integer'],
+            'lot_items.*.name' => ['required_with:lot_items', 'nullable', 'string', 'max:255'],
+            'lot_items.*.quantity' => ['required_with:lot_items', 'nullable', 'integer', 'min:1', 'max:999'],
+            'lot_items.*.condition' => ['nullable', 'string', 'max:100'],
+            'lot_items.*.description' => ['nullable', 'string', 'max:2000'],
+            'lot_items.*.image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
             'attributes' => ['nullable', 'array'],
             'return_policy_override' => ['nullable', Rule::in(['no_returns', 'returns_accepted', 'custom'])],
             'return_policy_custom_override' => ['nullable', 'string', 'max:2000'],
@@ -105,6 +113,10 @@ class UpdateAuctionRequest extends FormRequest
                             $validator->errors()->add('end_time', 'End time cannot be reduced once bids exist.');
                         }
                     }
+                }
+
+                if (($this->boolean('is_lot') || $auction->is_lot) && count(array_filter($this->input('lot_items', []), fn ($item) => filled($item['name'] ?? null))) < 1 && $this->boolean('is_lot')) {
+                    $validator->errors()->add('lot_items', 'Add at least one item when this auction is marked as a lot.');
                 }
             },
         ];

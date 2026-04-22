@@ -19,7 +19,9 @@ test('seller can preview draft auction', function () {
     $response->assertOk()
         ->assertSee('My Awesome Draft')
         ->assertSee('Preview Mode')
-        ->assertSee('Publish Now');
+        ->assertSee('Publish Now')
+        ->assertSee('Buyer actions are hidden in preview mode.')
+        ->assertDontSee('id="watch-btn"', false);
 });
 
 test('previewing an active auction redirects to regular show page', function () {

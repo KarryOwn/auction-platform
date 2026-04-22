@@ -3,7 +3,8 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="bg-white p-6 rounded shadow-sm flex gap-4 items-center">
+            <div class="bg-white p-6 rounded shadow-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex gap-4 items-center">
                 <img src="{{ $seller->seller_avatar_path ? asset('storage/'.$seller->seller_avatar_path) : 'https://via.placeholder.com/80' }}" class="w-20 h-20 rounded-full object-cover" alt="avatar">
                 <div>
                     <h3 class="font-semibold text-lg">{{ $seller->name }} <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Verified Seller</span></h3>
@@ -26,6 +27,28 @@
                         </p>
                     </div>
                 </div>
+                </div>
+                @auth
+                    @if(auth()->id() !== $seller->id)
+                        <div x-data="followSeller({
+                            following: {{ $isFollowing ? 'true' : 'false' }},
+                            count: {{ $followerCount }},
+                            url: '{{ route('sellers.follow', $seller) }}'
+                        })" class="w-full sm:w-auto">
+                            <div class="flex flex-col items-start gap-2 sm:items-end">
+                                <button type="button"
+                                        @click="toggle()"
+                                        :disabled="loading"
+                                        class="inline-flex min-h-11 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition"
+                                        :class="following ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100' : 'bg-indigo-600 text-white hover:bg-indigo-700'">
+                                    <span x-show="!loading" x-text="following ? 'Following ✓' : 'Follow Seller'"></span>
+                                    <span x-show="loading" x-cloak>Updating...</span>
+                                </button>
+                                <p class="text-sm text-gray-500"><span x-text="count"></span> followers</p>
+                            </div>
+                        </div>
+                    @endif
+                @endauth
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -61,3 +84,49 @@
         </div>
     </div>
 </x-app-layout>
+
+@push('scripts')
+<script>
+    window.followSeller = ({ following, count, url }) => ({
+        following,
+        count,
+        loading: false,
+        async toggle() {
+            if (this.loading) return;
+
+            const previousFollowing = this.following;
+            const previousCount = this.count;
+            this.loading = true;
+            this.following = !this.following;
+            this.count = Math.max(0, this.count + (this.following ? 1 : -1));
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    },
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Unable to update follow state.');
+                }
+
+                this.following = Boolean(data.following);
+                if (typeof data.follower_count !== 'undefined') {
+                    this.count = Number(data.follower_count);
+                }
+                window.toast?.success(data.message || 'Follow status updated.');
+            } catch (error) {
+                this.following = previousFollowing;
+                this.count = previousCount;
+                window.toast?.error(error.message || 'Unable to update follow state.');
+            } finally {
+                this.loading = false;
+            }
+        }
+    });
+</script>
+@endpush

@@ -160,34 +160,36 @@
         };
 
         const chartState = {};
+        const css = getComputedStyle(document.documentElement);
+        const token = (name, fallback) => (css.getPropertyValue(name).trim() || fallback);
         const metricMap = {
             bids_per_min: {
                 valueId: 'bids-per-min',
                 trendId: 'trend-bids-per-min',
                 canvasId: 'spark-bids-per-min',
                 sourceKey: 'bids_last_minute',
-                color: '#2563eb',
+                color: token('--color-info', '#2563eb'),
             },
             bids_per_5min: {
                 valueId: 'bids-per-5min',
                 trendId: 'trend-bids-per-5min',
                 canvasId: 'spark-bids-per-5min',
                 sourceKey: 'bids_last_5_minutes',
-                color: '#4f46e5',
+                color: token('--color-primary', '#4f46e5'),
             },
             active_bidders: {
                 valueId: 'active-bidders',
                 trendId: 'trend-active-bidders',
                 canvasId: 'spark-active-bidders',
                 sourceKey: 'unique_bidders_hour',
-                color: '#059669',
+                color: token('--color-success', '#059669'),
             },
             ending_soon: {
                 valueId: 'ending-soon',
                 trendId: 'trend-ending-soon',
                 canvasId: 'spark-ending-soon',
                 sourceKey: 'ending_in_5_minutes',
-                color: '#d97706',
+                color: token('--color-warning', '#d97706'),
             },
         };
 

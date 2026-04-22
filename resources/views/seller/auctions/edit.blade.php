@@ -13,6 +13,16 @@
                 <div class="bg-red-100 text-red-800 px-4 py-3 rounded">{{ $errors->first('auction') }}</div>
             @endif
 
+            @if($auction->isDraft() && $auction->cloned_from_auction_id)
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                    <p class="font-semibold">Relisted draft</p>
+                    <p class="mt-1">This draft was created from a previous auction. Review dates, pricing, inventory, and shipping details before publishing.</p>
+                    @if(!$auction->end_time)
+                        <p class="mt-2 font-medium">No end date is set yet. Configure the schedule before publishing.</p>
+                    @endif
+                </div>
+            @endif
+
             <div class="bg-white shadow-sm sm:rounded-lg p-6" x-data="auctionEdit({
                 processUrl: '{{ route('seller.auctions.images.upload', $auction) }}',
                 deleteTemplate: '{{ route('seller.auctions.images.delete', [$auction, 'media' => '__MEDIA_ID__']) }}',
@@ -28,15 +38,36 @@
                 maxFileSize: '{{ $imageMaxSizeMb }}MB',
                 acceptedTypes: @js($acceptedTypes),
             })" x-init="init()">
-                <form id="auction-form" method="POST" action="{{ route('seller.auctions.update', $auction) }}" class="space-y-6">
+                <form id="auction-form"
+                      method="POST"
+                      action="{{ route('seller.auctions.update', $auction) }}"
+                      enctype="multipart/form-data"
+                      class="space-y-6"
+                      x-data="autoSave({ url: '{{ route('seller.auctions.auto-save', $auction) }}' })"
+                      x-init="init()">
                     @csrf
                     @method('PATCH')
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">Draft editor</p>
+                            <p class="text-xs" :class="statusClass()" x-text="statusLabel()"></p>
+                        </div>
+                        @if($auction->isDraft())
+                            <a href="{{ route('seller.auctions.preview', $auction) }}"
+                               class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded-md border border-amber-300 bg-white text-sm font-medium text-amber-900 hover:bg-amber-50">
+                                Preview
+                            </a>
+                        @endif
+                    </div>
 
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-3">Images</h3>
                         <input type="file" name="file" class="filepond" x-ref="pondInput" multiple>
                         <p class="mt-2 text-sm text-gray-500">Drag and drop images to upload, reorder, and remove.</p>
                     </div>
+
+                    @include('seller.auctions.partials.lot-item-manager', ['auction' => $auction])
 
                     @php($authCertMedia = $auction->getFirstMedia('authenticity_cert'))
                     @php($authCertDownloadUrl = $authCertMedia && in_array($auction->status, [\App\Models\Auction::STATUS_ACTIVE, \App\Models\Auction::STATUS_COMPLETED], true) ? route('auctions.auth-cert.download', $auction) : '')
@@ -97,7 +128,7 @@
                         <div class="grid grid-cols-1 gap-4">
                             <div>
                                 <x-input-label for="title" value="Title" />
-                                <x-text-input id="title" name="title" type="text" class="mt-1 block w-full" :value="old('title', $auction->title)" />
+                                <x-text-input id="title" name="title" type="text" class="mt-1 block w-full" :value="old('title', $auction->title)" data-autosave />
                                 <x-input-error class="mt-2" :messages="$errors->get('title')" />
                             </div>
                             
@@ -169,13 +200,13 @@
 
                             <div>
                                 <x-input-label for="description" value="Description" />
-                                <textarea id="description" name="description" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">{{ old('description', $auction->description) }}</textarea>
+                                <textarea id="description" name="description" rows="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" data-autosave>{{ old('description', $auction->description) }}</textarea>
                                 <x-input-error class="mt-2" :messages="$errors->get('description')" />
                             </div>
                         </div>
                     </div>
 
-                    <div>
+                    <div x-data="{ buyItNowEnabled: {{ old('buy_it_now_enabled', $auction->buy_it_now_enabled) ? 'true' : 'false' }} }">
                         <h3 class="text-lg font-semibold text-gray-900 mb-3">Pricing</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -186,6 +217,15 @@
                             <div>
                                 <x-input-label for="reserve_price" value="Reserve Price" />
                                 <x-text-input id="reserve_price" name="reserve_price" type="number" step="0.01" min="0.01" class="mt-1 block w-full" :value="old('reserve_price', $auction->reserve_price)" />
+                                <label class="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="checkbox"
+                                           name="reserve_price_visible"
+                                           value="1"
+                                           @checked(old('reserve_price_visible', $auction->reserve_price_visible))
+                                           data-autosave
+                                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span>Show reserve price to bidders</span>
+                                </label>
                                 <x-input-error class="mt-2" :messages="$errors->get('reserve_price')" />
                             </div>
                             <div>
@@ -201,6 +241,29 @@
                                     @endforeach
                                 </select>
                                 <x-input-error class="mt-2" :messages="$errors->get('currency')" />
+                            </div>
+                        </div>
+                        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <label class="flex items-center gap-2 text-sm font-medium text-amber-900">
+                                <input type="checkbox"
+                                       name="buy_it_now_enabled"
+                                       value="1"
+                                       x-model="buyItNowEnabled"
+                                       class="rounded border-amber-300 text-amber-600 focus:ring-amber-500">
+                                <span>Enable Buy It Now</span>
+                            </label>
+                            <p class="mt-2 text-xs text-amber-800">The instant-purchase option automatically disappears once bidding reaches 75% of the BIN price.</p>
+                            <div x-show="buyItNowEnabled" x-cloak class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div>
+                                    <x-input-label for="buy_it_now_price" value="Buy It Now Price" />
+                                    <x-text-input id="buy_it_now_price" name="buy_it_now_price" type="number" step="0.01" min="0.01" class="mt-1 block w-full" :value="old('buy_it_now_price', $auction->buy_it_now_price)" />
+                                    <x-input-error class="mt-2" :messages="$errors->get('buy_it_now_price')" />
+                                </div>
+                                <div>
+                                    <x-input-label for="buy_it_now_expires_at" value="BIN expiry (optional)" />
+                                    <x-text-input id="buy_it_now_expires_at" name="buy_it_now_expires_at" type="datetime-local" class="mt-1 block w-full" :value="old('buy_it_now_expires_at', optional($auction->buy_it_now_expires_at)->format('Y-m-d\\TH:i'))" />
+                                    <x-input-error class="mt-2" :messages="$errors->get('buy_it_now_expires_at')" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -243,7 +306,7 @@
                         <h3 class="text-lg font-semibold text-gray-900 mb-3">Video</h3>
                         <x-input-label for="video_url" value="YouTube/Vimeo URL" />
                         <div class="flex gap-2 mt-1">
-                            <x-text-input id="video_url" name="video_url" type="url" class="block w-full" x-model="url" @input="update" />
+                            <x-text-input id="video_url" name="video_url" type="url" class="block w-full" x-model="url" @input="update" data-autosave />
                             <button type="button" class="px-3 py-2 text-sm rounded border" @click="clear">Clear</button>
                         </div>
                         <p class="mt-1 text-sm text-gray-500">Paste a YouTube or Vimeo URL.</p>
@@ -266,10 +329,58 @@
 
                 <div class="flex flex-wrap gap-3 pt-4 mt-4 border-t border-gray-200">
                     @if($auction->isDraft())
-                        <form method="POST" action="{{ route('seller.auctions.publish', $auction) }}">
-                            @csrf
-                            <x-secondary-button type="submit">Publish Auction</x-secondary-button>
-                        </form>
+                        <div x-data="listingFeePublish({
+                            previewUrl: '{{ route('seller.auctions.listing-fee-preview', $auction) }}',
+                            walletBalance: {{ (float) auth()->user()->availableBalance() }},
+                            modalName: 'confirm-publish-{{ $auction->id }}',
+                        })">
+                            <form method="POST" action="{{ route('seller.auctions.publish', $auction) }}" x-ref="publishForm">
+                                @csrf
+                                <x-secondary-button type="button" @click="preview()" x-bind:disabled="loading">
+                                    <span x-show="!loading">Publish Auction</span>
+                                    <span x-show="loading" x-cloak>Checking fee...</span>
+                                </x-secondary-button>
+                            </form>
+
+                            <x-modal name="confirm-publish-{{ $auction->id }}" max-width="md" focusable>
+                                <div class="p-6">
+                                    <h2 id="confirm-publish-{{ $auction->id }}-title" class="text-lg font-semibold text-gray-900">
+                                        Confirm auction publish
+                                    </h2>
+                                    <p class="mt-3 text-sm text-gray-600">
+                                        Publishing this auction will deduct a listing fee from your wallet.
+                                    </p>
+
+                                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 space-y-2">
+                                        <div class="flex items-center justify-between gap-4">
+                                            <span>Listing fee</span>
+                                            <span class="font-semibold">$<span x-text="fee.toFixed(2)"></span></span>
+                                        </div>
+                                        <div class="flex items-center justify-between gap-4">
+                                            <span>Available wallet balance</span>
+                                            <span class="font-semibold">$<span x-text="walletBalance.toFixed(2)"></span></span>
+                                        </div>
+                                    </div>
+
+                                    <p x-show="!canAfford()" x-cloak class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                        Insufficient wallet balance. Add funds before publishing this auction.
+                                    </p>
+
+                                    <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                        <x-secondary-button type="button" x-on:click="$dispatch('close-modal', 'confirm-publish-{{ $auction->id }}')">
+                                            Cancel
+                                        </x-secondary-button>
+                                        <a x-show="!canAfford()" x-cloak href="{{ route('user.wallet') }}"
+                                           class="inline-flex items-center justify-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">
+                                            Top Up Wallet
+                                        </a>
+                                        <x-primary-button type="button" x-show="canAfford()" @click="confirmPublish()">
+                                            Confirm Publish
+                                        </x-primary-button>
+                                    </div>
+                                </div>
+                            </x-modal>
+                        </div>
 
                         <form method="POST" action="{{ route('seller.auctions.destroy', $auction) }}" onsubmit="return confirm('Delete this draft?')">
                             @csrf
@@ -305,14 +416,14 @@
                 return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
             }
             // On load: convert UTC model values to local for display
-            document.querySelectorAll('#start_time, #end_time').forEach(input => {
+            document.querySelectorAll('#start_time, #end_time, #buy_it_now_expires_at').forEach(input => {
                 if (input.value) input.value = utcToLocal(input.value);
             });
             // On submit: convert local values to UTC
             const auctionForm = document.getElementById('auction-form');
             if (auctionForm) {
                 auctionForm.addEventListener('submit', function() {
-                    auctionForm.querySelectorAll('#start_time, #end_time').forEach(input => {
+                    auctionForm.querySelectorAll('#start_time, #end_time, #buy_it_now_expires_at').forEach(input => {
                         if (input.value) input.value = localToUtc(input.value);
                     });
                 });

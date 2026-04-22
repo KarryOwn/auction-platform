@@ -23,13 +23,29 @@
         </div>
 
         <div class="h-80 overflow-y-auto bg-slate-50 px-4 py-4 space-y-3" x-ref="messages">
-            <template x-if="messages.length === 0">
+            <template x-if="loading">
+                <div class="space-y-3">
+                    <div class="flex justify-start">
+                        <div class="max-w-[85%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                            <div class="h-3 w-40 animate-pulse rounded bg-slate-200"></div>
+                            <div class="mt-2 h-3 w-28 animate-pulse rounded bg-slate-200"></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <div class="max-w-[70%] rounded-2xl rounded-br-md bg-indigo-200 px-4 py-3">
+                            <div class="h-3 w-32 animate-pulse rounded bg-indigo-300"></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="!loading && messages.length === 0">
                 <div class="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-500">
                     Ask about bidding, payments, disputes, wallets, seller applications, or account issues.
                 </div>
             </template>
 
-            <template x-for="message in messages" :key="message.id ?? `${message.role}-${message.created_at}`">
+            <template x-for="message in loading ? [] : messages" :key="message.id ?? `${message.role}-${message.created_at}`">
                 <div :class="message.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div
                         :class="message.role === 'user'
@@ -58,14 +74,15 @@
                     rows="3"
                     maxlength="2000"
                     class="w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    x-bind:disabled="isRateLimited"
                     placeholder="How can we help?"
                 ></textarea>
                 <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs text-slate-400" x-text="statusText"></p>
+                    <p class="text-xs" :class="isRateLimited ? 'text-rose-500' : 'text-slate-400'" x-text="statusText"></p>
                     <button
                         type="submit"
                         class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-                        :disabled="sending || !draft.trim()"
+                        :disabled="sending || isRateLimited || !draft.trim()"
                     >
                         <span x-text="sending ? 'Sending...' : 'Send'"></span>
                     </button>
@@ -93,6 +110,7 @@
                 window.supportWidget = function () {
                     return {
                         open: false,
+                        loading: false,
                         sending: false,
                         conversationId: null,
                         draft: '',
@@ -100,11 +118,17 @@
                         canEscalate: false,
                         escalated: false,
                         statusText: 'AI support replies instantly.',
+                        typingPlaceholderId: null,
+                        isRateLimited: false,
+                        limit: 10,
+                        windowMs: 60 * 60 * 1000,
                         init() {
                             const storedId = window.localStorage.getItem('support_conversation_id');
                             if (storedId) {
                                 this.conversationId = storedId;
                             }
+
+                            this.syncRateLimitState();
                         },
                         toggle() {
                             this.open = !this.open;
@@ -113,6 +137,7 @@
                             }
                         },
                         async loadConversation() {
+                            this.loading = true;
                             try {
                                 const response = await fetch(`/support/chat/${this.conversationId}`, {
                                     headers: { Accept: 'application/json' },
@@ -124,17 +149,23 @@
                                 this.messages = data.messages || [];
                                 this.escalated = data.status === 'escalated' || data.status === 'closed';
                                 this.canEscalate = (this.messages.filter((message) => message.is_ai).length >= 2) && !this.escalated;
+                                this.syncRateLimitState();
                                 this.$nextTick(() => this.scrollToBottom());
                             } catch (_) {
                                 this.statusText = 'Unable to load previous support messages.';
+                            } finally {
+                                this.loading = false;
                             }
                         },
                         async send() {
-                            if (this.sending || !this.draft.trim()) {
+                            this.syncRateLimitState();
+
+                            if (this.sending || this.isRateLimited || !this.draft.trim()) {
                                 return;
                             }
 
                             const body = this.draft.trim();
+                            this.rememberOutgoingMessage();
                             this.messages.push({
                                 id: `local-${Date.now()}`,
                                 role: 'user',
@@ -144,7 +175,16 @@
                             });
                             this.draft = '';
                             this.sending = true;
-                            this.statusText = 'Waiting for AI support...';
+                            this.statusText = 'AI is typing...';
+                            this.typingPlaceholderId = `typing-${Date.now()}`;
+                            this.messages.push({
+                                id: this.typingPlaceholderId,
+                                role: 'assistant',
+                                body: 'AI is typing...',
+                                is_ai: true,
+                                is_typing: true,
+                                created_at: new Date().toISOString(),
+                            });
                             this.$nextTick(() => this.scrollToBottom());
 
                             try {
@@ -166,6 +206,7 @@
                                     throw new Error(data.message || 'Support request failed.');
                                 }
 
+                                this.removeTypingPlaceholder();
                                 this.conversationId = data.conversation_id;
                                 window.localStorage.setItem('support_conversation_id', this.conversationId);
                                 this.messages.push({
@@ -180,6 +221,11 @@
                                     ? 'Need more help? You can talk to a human.'
                                     : 'AI support replied.';
                             } catch (error) {
+                                this.removeTypingPlaceholder();
+                                if ((error.message || '').toLowerCase().includes('rate limit')) {
+                                    this.isRateLimited = true;
+                                    this.statusText = 'Limit reached. Try again later.';
+                                }
                                 this.messages.push({
                                     id: `error-${Date.now()}`,
                                     role: 'assistant',
@@ -190,6 +236,7 @@
                                 this.statusText = 'Support is temporarily unavailable.';
                             } finally {
                                 this.sending = false;
+                                this.syncRateLimitState();
                                 this.$nextTick(() => this.scrollToBottom());
                             }
                         },
@@ -230,6 +277,46 @@
                             if (node) {
                                 node.scrollTop = node.scrollHeight;
                             }
+                        },
+                        loadHistory() {
+                            try {
+                                return JSON.parse(window.localStorage.getItem('support_rate_limit_events') || '[]');
+                            } catch (_) {
+                                return [];
+                            }
+                        },
+                        saveHistory(history) {
+                            window.localStorage.setItem('support_rate_limit_events', JSON.stringify(history));
+                        },
+                        pruneHistory(history = this.loadHistory()) {
+                            const cutoff = Date.now() - this.windowMs;
+                            return history.filter((timestamp) => Number(timestamp) >= cutoff);
+                        },
+                        syncRateLimitState() {
+                            const history = this.pruneHistory();
+                            this.saveHistory(history);
+                            this.isRateLimited = history.length >= this.limit;
+                            if (this.isRateLimited) {
+                                this.statusText = 'Limit reached. Try again later.';
+                            } else if (!this.sending) {
+                                this.statusText = this.canEscalate
+                                    ? 'Need more help? You can talk to a human.'
+                                    : 'AI support replies instantly.';
+                            }
+                        },
+                        rememberOutgoingMessage() {
+                            const history = this.pruneHistory();
+                            history.push(Date.now());
+                            this.saveHistory(history);
+                            this.syncRateLimitState();
+                        },
+                        removeTypingPlaceholder() {
+                            if (!this.typingPlaceholderId) {
+                                return;
+                            }
+
+                            this.messages = this.messages.filter((message) => message.id !== this.typingPlaceholderId);
+                            this.typingPlaceholderId = null;
                         },
                     };
                 };

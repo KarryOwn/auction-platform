@@ -2,6 +2,8 @@
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
+        <input type="hidden" name="referral_code" value="{{ old('referral_code', session('referral_code', request('ref', ''))) }}">
+
         <!-- Name -->
         <div>
             <x-input-label for="name" :value="__('Name')" />

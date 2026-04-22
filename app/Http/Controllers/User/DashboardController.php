@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\DataExportRequest;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -51,6 +52,11 @@ class DashboardController extends Controller
             ->where('payment_status', 'pending')
             ->count();
 
+        $latestExportRequest = DataExportRequest::query()
+            ->where('user_id', $user->id)
+            ->latest()
+            ->first();
+
         return view('user.dashboard', compact(
             'activeBids',
             'wonItems',
@@ -58,6 +64,7 @@ class DashboardController extends Controller
             'activeBidCount',
             'wonUnpaidCount',
             'user',
+            'latestExportRequest',
         ));
     }
 }

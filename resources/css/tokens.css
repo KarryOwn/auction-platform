@@ -16,6 +16,11 @@
   
   --color-bid-live: #22c55e;
   --color-snipe: #f97316;
+  --color-bin-badge: #f59e0b;
+  --color-lot-badge: #7c3aed;
+  --color-vacation: #6b7280;
+  --color-cert-verified: #16a34a;
+  --color-preview-banner: #f59e0b;
 
   /* Spacing */
   --space-1: 4px;
@@ -53,6 +58,9 @@
   --leading-tight: 1.25;
   --leading-normal: 1.5;
   --leading-relaxed: 1.625;
+  --motion-fast: 150ms;
+  --motion-base: 300ms;
+  --motion-slow: 500ms;
 }
 
 :root.dark {

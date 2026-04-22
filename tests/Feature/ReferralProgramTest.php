@@ -18,6 +18,27 @@ test('middleware captures ref code in session', function () {
     $response->assertSessionHas('referral_code', 'ABC12345');
 });
 
+test('registration request uses submitted referral code', function () {
+    Event::fake([Registered::class]);
+
+    $referrer = User::factory()->create(['referral_code' => 'ABC12345', 'wallet_balance' => 0]);
+
+    $response = $this->post(route('register'), [
+        'name' => 'Referred User',
+        'email' => 'referred@example.com',
+        'password' => 'Password123!',
+        'password_confirmation' => 'Password123!',
+        'referral_code' => 'ABC12345',
+    ]);
+
+    $response->assertRedirect(route('dashboard', absolute: false));
+
+    $newUser = User::where('email', 'referred@example.com')->first();
+
+    expect($newUser)->not->toBeNull();
+    expect($newUser->referred_by_user_id)->toBe($referrer->id);
+});
+
 test('referral service links users and credits rewards', function () {
     $referrer = User::factory()->create(['referral_code' => 'XYZ98765', 'wallet_balance' => 0]);
     $newUser = User::factory()->create(['wallet_balance' => 0]);
@@ -61,4 +82,14 @@ test('invalid code does nothing', function () {
 
     expect($newUser->fresh()->referred_by_user_id)->toBeNull();
     expect(ReferralReward::count())->toBe(0);
+});
+
+test('authenticated user can view referrals page', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('user.referrals'));
+
+    $response->assertOk()
+        ->assertSee('Your Referral Link')
+        ->assertSee('Copy Link');
 });

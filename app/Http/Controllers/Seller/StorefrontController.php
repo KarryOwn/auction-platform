@@ -37,6 +37,10 @@ class StorefrontController extends Controller
 
         $averageRating = AuctionRating::averageForUser($seller->id);
         $ratingCount = AuctionRating::where('ratee_id', $seller->id)->count();
+        $followerCount = $seller->followers()->count();
+        $isFollowing = auth()->check()
+            ? auth()->user()->following()->where('seller_id', $seller->id)->exists()
+            : false;
 
         return view('seller.storefront.show', compact(
             'seller',
@@ -45,6 +49,8 @@ class StorefrontController extends Controller
             'stats',
             'averageRating',
             'ratingCount',
+            'followerCount',
+            'isFollowing',
         ));
     }
 

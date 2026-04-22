@@ -12,7 +12,7 @@ class BidHistoryController extends Controller
         $user = $request->user();
 
         $query = $user->bids()
-            ->with(['auction.media'])
+            ->with(['auction.media', 'retractionRequest'])
             ->latest();
 
         // Filter by auction status
@@ -46,11 +46,16 @@ class BidHistoryController extends Controller
             } elseif ($auction->status === 'cancelled') {
                 $bid->bid_status = 'cancelled';
             } elseif ($auction->isActive()) {
-                $highest = $auction->bids()->orderByDesc('amount')->first();
+                $highest = $auction->bids()->where('is_retracted', false)->orderByDesc('amount')->first();
                 $bid->bid_status = $highest && $highest->user_id === $user->id ? 'winning' : 'outbid';
             } else {
                 $bid->bid_status = 'ended';
             }
+
+            $bid->can_request_retraction = $auction->isActive()
+                && $bid->bid_status === 'winning'
+                && ! $bid->is_retracted
+                && $bid->retractionRequest === null;
         });
 
         return view('user.bid-history', compact('bids'));

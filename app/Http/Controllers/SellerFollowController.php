@@ -24,10 +24,18 @@ class SellerFollowController extends Controller
 
         if ($existing) {
             $user->following()->detach($seller->id);
-            return response()->json(['following' => false, 'message' => 'Unfollowed seller.']);
+            return response()->json([
+                'following' => false,
+                'message' => 'Unfollowed seller.',
+                'follower_count' => $seller->fresh()->followers()->count(),
+            ]);
         }
 
         $user->following()->attach($seller->id, ['notify_new_listings' => true]);
-        return response()->json(['following' => true, 'message' => 'Now following seller.']);
+        return response()->json([
+            'following' => true,
+            'message' => 'Now following seller.',
+            'follower_count' => $seller->fresh()->followers()->count(),
+        ]);
     }
 }

@@ -51,6 +51,27 @@ test('only allowed fields can be auto-saved', function () {
     expect($auction->status)->toBe(Auction::STATUS_DRAFT); // Did not change
 });
 
+test('reserve visibility can be auto-saved on draft auctions', function () {
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+    $auction = Auction::factory()->draft()->create([
+        'user_id' => $seller->id,
+        'reserve_price_visible' => false,
+    ]);
+
+    $response = $this->actingAs($seller)->patchJson(route('seller.auctions.auto-save', $auction), [
+        'reserve_price_visible' => 1,
+    ]);
+
+    $response->assertOk();
+
+    $auction->refresh();
+    expect($auction->reserve_price_visible)->toBeTrue();
+});
+
 test('cannot auto-save active auction', function () {
     $seller = User::factory()->create([
         'role' => 'seller',

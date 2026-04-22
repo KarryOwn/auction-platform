@@ -21,9 +21,20 @@
     };
 
     $compareId = $auction->id;
+    $auctionUrl = route('auctions.show', $auction);
+    $lotItemCount = $auction->lot_items_count
+        ?? ($auction->relationLoaded('lotItems') ? $auction->lotItems->count() : ($auction->is_lot ? $auction->lotItems()->count() : 0));
 @endphp
 
-<div {{ $attributes->merge(['class' => $cardClasses]) }}>
+<article
+    {{ $attributes->merge(['class' => $cardClasses]) }}
+    x-data="cardNavigation('{{ $auctionUrl }}')"
+    tabindex="0"
+    role="link"
+    aria-label="View auction {{ $auction->title }}"
+    @keydown.enter.prevent="open()"
+    @keydown.space.prevent="open()"
+>
     {{-- Image Section --}}
     <div class="relative aspect-video bg-gray-100 overflow-hidden flex-shrink-0">
         @if($auction->getCoverImageUrl('gallery'))
@@ -65,7 +76,7 @@
         {{-- Title --}}
         <div class="flex items-start justify-between gap-3">
             <h3 class="{{ $titleClasses }}">
-                <a href="{{ route('auctions.show', $auction) }}" class="hover:text-indigo-600 transition-colors" title="{{ $auction->title }}">
+                <a href="{{ $auctionUrl }}" class="hover:text-indigo-600 transition-colors" title="{{ $auction->title }}">
                     {{ $auction->title }}
                 </a>
             </h3>
@@ -81,6 +92,12 @@
         <div class="flex flex-wrap items-center gap-1.5 mb-3">
             @if($auction->condition)
                 <x-ui.badge color="blue" size="xs">{{ $auction->condition_label }}</x-ui.badge>
+            @endif
+            @if($auction->is_lot)
+                <x-ui.badge color="violet" size="xs">Lot of {{ $lotItemCount }} items</x-ui.badge>
+            @endif
+            @if($auction->isBuyItNowAvailable())
+                <x-ui.badge color="amber" size="xs">BIN: {{ format_price((float) $auction->buy_it_now_price) }}</x-ui.badge>
             @endif
             @if($auction->hasVerifiedCertificate())
                 <x-ui.badge color="green" size="xs">Authenticity verified</x-ui.badge>
@@ -151,4 +168,4 @@
             </x-ui.button>
         </div>
     </div>
-</div>
+</article>

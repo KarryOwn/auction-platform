@@ -7,6 +7,11 @@
 
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+            @if(request('source') === 'bin')
+                <div class="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    Buy It Now purchase completed successfully.
+                </div>
+            @endif
             <div class="bg-white shadow-sm sm:rounded-lg p-8">
                 {{-- Header --}}
                 <div class="flex justify-between items-start mb-8">

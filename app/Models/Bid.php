@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Bid extends Model
 {
@@ -53,6 +54,11 @@ class Bid extends Model
     public function autoBid(): BelongsTo
     {
         return $this->belongsTo(AutoBid::class);
+    }
+
+    public function retractionRequest(): HasOne
+    {
+        return $this->hasOne(BidRetractionRequest::class);
     }
 
 

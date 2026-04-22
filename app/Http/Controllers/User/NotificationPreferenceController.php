@@ -25,6 +25,7 @@ class NotificationPreferenceController extends Controller
             'preferences.*.database'         => 'boolean',
             'locale'                         => 'nullable|string|max:10',
             'display_currency'               => 'nullable|string|size:3|in:' . implode(',', config('auction.supported_currencies', ['USD'])),
+            'default_outbid_threshold'       => 'nullable|numeric|min:0.01',
         ]);
 
         // Merge submitted toggles with defaults (unchecked checkboxes won't be sent)
@@ -41,6 +42,9 @@ class NotificationPreferenceController extends Controller
         }
 
         $request->user()->update(['notification_preferences' => $merged]);
+        $request->user()->update([
+            'default_outbid_threshold' => $validated['default_outbid_threshold'] ?? null,
+        ]);
 
         if (isset($validated['locale']) || isset($validated['display_currency'])) {
             $request->user()->userPreference()->updateOrCreate(

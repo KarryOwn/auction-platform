@@ -126,3 +126,13 @@ test('destroy method soft deletes and anonymizes user', function () {
     expect($deletedUser->name)->toBe('Deleted User #' . $user->id);
     expect($deletedUser->email)->toBe('deleted-' . $user->id . '@deleted.invalid');
 });
+
+test('profile page shows deactivation option', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('profile.edit'));
+
+    $response->assertOk()
+        ->assertSee('Deactivate Account')
+        ->assertSee('Permanently Delete Account');
+});

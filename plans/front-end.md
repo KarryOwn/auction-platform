@@ -852,31 +852,6 @@ Bidders request retraction of their current highest bid. Admin approves/declines
 
 ---
 
-#### Feature 50 — Bidding Power-Ups / Credits
-
-**A. Feature Overview**
-
-Virtual bid credits system. Users earn/spend credits for power-ups (extra auto-bid slots, listing fee waivers).
-
-**B. Frontend Surface Area**
-
-- **User dashboard header** — credit balance badge.
-- **Power-ups page** (`/dashboard/credits`) — catalog of power-ups with credit costs.
-- **Credit transaction history**.
-
-**C. UX Flow**
-
-- Power-up card: name, description, cost badge. "Activate" button → confirmation → spend credits.
-- If insufficient credits: button disabled + tooltip "Not enough credits. Earn more by…"
-- Credit balance updates optimistically.
-
-**D. Complexity & Priority**
-
-- **Complexity**: High
-- **Priority**: Scaling
-
----
-
 #### Feature 55 — Outbid Threshold Alerts
 
 **A. Feature Overview**
@@ -1153,46 +1128,6 @@ All currency display is handled server-side via `format_price()`. The `formatDis
 
 ---
 
-#### Feature 124 — Payout Schedule
-
-**A. Feature Overview**
-
-Sellers choose payout schedule (instant/weekly/bi-weekly/monthly). Pending payout balance shown in seller wallet/revenue.
-
-**B. Frontend Surface Area**
-
-- **Seller storefront settings** — new "Payout Settings" section: schedule selector + day picker.
-- **Seller revenue/wallet** — "Pending Payout Balance: $X.XX" card.
-- **Admin payout batches** — table of batch history.
-
-**C. UX Flow**
-
-Payout settings in `seller/storefront/edit.blade.php`:
-
-```blade
-<div x-data="{ schedule: '{{ $user->payout_schedule }}' }">
-  <select name="payout_schedule" x-model="schedule">
-    <option value="instant">Instant (as earned)</option>
-    <option value="weekly">Weekly</option>
-    <option value="biweekly">Bi-weekly</option>
-    <option value="monthly">Monthly</option>
-  </select>
-  <div x-show="schedule === 'weekly' || schedule === 'biweekly'">
-    Day: <select name="payout_schedule_day">Monday–Sunday options</select>
-  </div>
-  <div x-show="schedule === 'monthly'">
-    Day of month: <input type="number" name="payout_schedule_day" min="1" max="28">
-  </div>
-</div>
-```
-
-**D. Complexity & Priority**
-
-- **Complexity**: High
-- **Priority**: Growth
-
----
-
 #### Feature 138 — Live Chat Support Widget
 
 **A. Feature Overview**
@@ -1400,63 +1335,6 @@ Delivery log table: endpoint URL, event type, HTTP status, timestamp, [Re-delive
 
 ---
 
-#### Feature 200 — Calendar Integration
-
-**A. Feature Overview**
-
-"Add to Calendar" dropdown on auction detail. Generates `.ics` download and Google Calendar link.
-
-**B. Frontend Surface Area**
-
-- **Auction detail** — "Add to Calendar" button with Alpine dropdown.
-
-**C. Frontend Architecture**
-
-```blade
-<div x-data="{ open: false }" class="relative" @click.outside="open = false">
-  <button @click="open = !open" class="flex items-center gap-2 text-sm border rounded-lg px-3 py-2">
-    📅 Add to Calendar
-    <svg ...chevron.../>
-  </button>
-  <div x-show="open" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border z-10">
-    <a href="{{ route('auctions.calendar.ics', $auction) }}" class="...">📥 Download .ics</a>
-    <a href="{{ route('auctions.calendar.google', $auction) }}" target="_blank" class="...">📅 Google Calendar</a>
-    <a href="{{ route('auctions.calendar.ics', $auction) }}" class="...">🍎 Apple Calendar</a>
-  </div>
-</div>
-```
-
-Show this button on active auctions only, in the countdown/timing area.
-
-**D. Complexity & Priority**
-
-- **Complexity**: Low
-- **Priority**: Growth
-
----
-
-#### Feature 203 — Elasticsearch Integration
-
-**A. Feature Overview**
-
-Replace SQL `ILIKE` search with Elasticsearch for relevance-ranked results. Graceful fallback to SQL.
-
-**B. Frontend Surface Area**
-
-- **Search form** (`auctions/index.blade.php`) — no change needed; the backend transparently switches between Elasticsearch and SQL.
-- **Search results** — add relevance indicators (optional: "Best Match" sort option).
-- **Loading state** — skeleton loaders while search results load.
-
-**C. UX Enhancements with Elasticsearch**
-
-- **Autocomplete** (future): `GET /api/v1/auctions?q=vintage&per_page=5` triggered on input with 300ms debounce.
-- **"No results"** empty state: "No auctions match '{query}'. Try a broader search or browse [Categories]."
-- **Search suggestions**: "Did you mean: [corrected term]?" (when Elasticsearch returns corrections).
-
-**D. Complexity & Priority**
-
-- **Complexity**: High
-- **Priority**: Scaling
 
 ---
 
@@ -1635,17 +1513,17 @@ async function checkEngineStatus() {
 **Goal**: Ensure every existing feature is pixel-perfect, accessible, and reliable.
 
 **Frontend work:**
-- [ ] Audit all existing Blade views against design tokens — replace any hardcoded colors
-- [ ] Add `aria-*` attributes to bid form, countdown, price display, modal
-- [ ] Add keyboard navigation to auction cards (Enter = navigate to detail)
-- [ ] Implement `prefers-reduced-motion` for all animations
-- [ ] Complete Feature 8 (Reserve toggle UI) — 1 day
-- [ ] Complete Feature 22 (Preview mode banner) — 1 day
-- [ ] Complete Feature 21 (Auto-save debounce) — 2 days
-- [ ] Complete Feature 74 (Return policy form + display) — 1 day
-- [ ] Complete Feature 58 (Deactivation UI) — 2 days
-- [ ] Complete Feature 59 (GDPR export request) — 2 days
-- [ ] Add skeleton loaders to all async-loaded sections
+- [x] Audit all existing Blade views against design tokens — replace any hardcoded colors
+- [x] Add `aria-*` attributes to bid form, countdown, price display, modal
+- [x] Add keyboard navigation to auction cards (Enter = navigate to detail)
+- [x] Implement `prefers-reduced-motion` for all animations
+- [x] Complete Feature 8 (Reserve toggle UI) — 1 day
+- [x] Complete Feature 22 (Preview mode banner) — 1 day
+- [x] Complete Feature 21 (Auto-save debounce) — 2 days
+- [x] Complete Feature 74 (Return policy form + display) — 1 day
+- [x] Complete Feature 58 (Deactivation UI) — 2 days
+- [x] Complete Feature 59 (GDPR export request) — 2 days
+- [x] Add skeleton loaders to all async-loaded sections
 
 **Testing coverage:**
 - Pest unit tests for all new Alpine functions
@@ -1659,20 +1537,20 @@ async function checkEngineStatus() {
 **Goal**: Ship features that directly drive revenue and seller productivity.
 
 **Frontend work:**
-- [ ] Feature 7 — BIN button component + purchase flow
-- [ ] Feature 67 — Listing fee preview + publish confirmation
-- [ ] Feature 73 — Tax document page (view already exists, wire API)
-- [ ] Feature 80 — Vacation mode dashboard card + buyer-facing banners
-- [ ] Feature 43 — Referral page (view exists, wire to backend)
-- [ ] Feature 45 — Follow seller toggle on storefronts
-- [ ] Feature 55 — Watch threshold settings modal
-- [ ] Feature 90 — Auth cert upload UI (already exists, verify wire-up)
-- [ ] Feature 97 — Featured categories on homepage (already implemented)
-- [ ] Feature 96 — Category commission hint in seller forms
-- [ ] Feature 120 — Currency display verification + mobile selector
-- [ ] Feature 138 — Support chat typing indicator + rate limit UX
-- [ ] API token management page (Feature 193)
-- [ ] Calendar dropdown on auction detail (Feature 200)
+- [x] Feature 7 — BIN button component + purchase flow
+- [x] Feature 67 — Listing fee preview + publish confirmation
+- [x] Feature 73 — Tax document page (view already exists, wire API)
+- [x] Feature 80 — Vacation mode dashboard card + buyer-facing banners
+- [x] Feature 43 — Referral page (view exists, wire to backend)
+- [x] Feature 45 — Follow seller toggle on storefronts
+- [x] Feature 55 — Watch threshold settings modal
+- [x] Feature 90 — Auth cert upload UI (already exists, verify wire-up)
+- [x] Feature 97 — Featured categories on homepage (already implemented)
+- [x] Feature 96 — Category commission hint in seller forms
+- [x] Feature 120 — Currency display verification + mobile selector
+- [x] Feature 138 — Support chat typing indicator + rate limit UX
+- [x] API token management page (Feature 193)
+- [x] Calendar dropdown on auction detail (Feature 200)
 
 ---
 
@@ -1681,12 +1559,11 @@ async function checkEngineStatus() {
 **Goal**: Power user features, analytics views, and growth mechanics.
 
 **Frontend work:**
-- [ ] Feature 9 — Re-listing button + warning banner
-- [ ] Feature 14 — Lot item manager (Alpine component + FilePond per item)
-- [ ] Feature 46 — User block UI (three-dot menu + settings page)
-- [ ] Feature 48 — Bid retraction request modal + admin queue
+- [x] Feature 9 — Re-listing button + warning banner
+- [x] Feature 14 — Lot item manager (Alpine component + FilePond per item)
+- [x] Feature 46 — User block UI (three-dot menu + settings page)
+- [x] Feature 48 — Bid retraction request modal + admin queue
 - [ ] Feature 50 — Credits balance + power-up store page
-- [ ] Feature 56 — Locale selector in preferences
 - [ ] Feature 124 — Payout schedule settings section
 - [ ] Feature 195 — Webhook endpoint management page
 - [ ] Analytics heatmap mobile scroll fix (Feature 170)
@@ -1700,8 +1577,6 @@ async function checkEngineStatus() {
 **Goal**: Platform ecosystem features for high-volume operation.
 
 **Frontend work:**
-- [ ] Elasticsearch autocomplete on search input
-- [ ] Feature 203 — Search no-results empty states + "did you mean?"
 - [ ] API documentation navigation improvements
 - [ ] Webhook test delivery UI
 - [ ] Advanced admin analytics export buttons

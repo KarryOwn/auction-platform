@@ -63,6 +63,14 @@ class StoreAuctionRequest extends FormRequest
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'sku' => ['nullable', 'string', 'max:100'],
             'serial_number' => ['nullable', 'string', 'max:100'],
+            'is_lot' => ['nullable', 'boolean'],
+            'lot_items' => ['nullable', 'array', 'max:50'],
+            'lot_items.*.id' => ['nullable', 'integer'],
+            'lot_items.*.name' => ['required_with:lot_items', 'nullable', 'string', 'max:255'],
+            'lot_items.*.quantity' => ['required_with:lot_items', 'nullable', 'integer', 'min:1', 'max:999'],
+            'lot_items.*.condition' => ['nullable', 'string', 'max:100'],
+            'lot_items.*.description' => ['nullable', 'string', 'max:2000'],
+            'lot_items.*.image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
             'attributes' => ['nullable', 'array'],
             'return_policy_override' => ['nullable', Rule::in(['no_returns', 'returns_accepted', 'custom'])],
             'return_policy_custom_override' => ['nullable', 'string', 'max:2000'],
@@ -90,6 +98,10 @@ class StoreAuctionRequest extends FormRequest
 
                 if ($startTime === null && $endTime->lessThanOrEqualTo(now())) {
                     $validator->errors()->add('end_time', 'End time must be in the future.');
+                }
+
+                if ($this->boolean('is_lot') && count(array_filter($this->input('lot_items', []), fn ($item) => filled($item['name'] ?? null))) < 1) {
+                    $validator->errors()->add('lot_items', 'Add at least one item when this auction is marked as a lot.');
                 }
             },
         ];

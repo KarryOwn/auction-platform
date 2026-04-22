@@ -38,6 +38,10 @@ class Auction extends Model implements HasMedia
         'starting_price',
         'current_price',
         'reserve_price',
+        'reserve_price_visible',
+        'buy_it_now_price',
+        'buy_it_now_enabled',
+        'buy_it_now_expires_at',
         'reserve_met',
         'min_bid_increment',
         'snipe_threshold_seconds',
@@ -73,6 +77,7 @@ class Auction extends Model implements HasMedia
         'brand_id',
         'sku',
         'serial_number',
+        'is_lot',
         'has_authenticity_cert',
         'authenticity_cert_status',
         'authenticity_cert_verified_at',
@@ -94,6 +99,10 @@ class Auction extends Model implements HasMedia
         'starting_price'           => 'decimal:2',
         'current_price'            => 'decimal:2',
         'reserve_price'            => 'decimal:2',
+        'reserve_price_visible'    => 'boolean',
+        'buy_it_now_price'         => 'decimal:2',
+        'buy_it_now_enabled'       => 'boolean',
+        'buy_it_now_expires_at'    => 'datetime',
         'min_bid_increment'        => 'decimal:2',
         'winning_bid_amount'       => 'decimal:2',
         'listing_fee_charged'      => 'decimal:2',
@@ -113,6 +122,7 @@ class Auction extends Model implements HasMedia
         'payment_deadline'         => 'datetime',
         'ending_soon_notified'     => 'boolean',
         'brand_id'                 => 'integer',
+        'is_lot'                   => 'boolean',
         'has_authenticity_cert'    => 'boolean',
         'authenticity_cert_verified_at' => 'datetime',
         'authenticity_cert_verified_by' => 'integer',
@@ -280,6 +290,11 @@ class Auction extends Model implements HasMedia
     public function questions(): HasMany
     {
         return $this->hasMany(AuctionQuestion::class);
+    }
+
+    public function lotItems(): HasMany
+    {
+        return $this->hasMany(AuctionLotItem::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function disputes(): HasMany

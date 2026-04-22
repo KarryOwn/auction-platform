@@ -48,6 +48,27 @@
                         </div>
                     </div>
 
+                    <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                        <h3 class="text-sm font-semibold text-amber-950">Watchlist defaults</h3>
+                        <p class="mt-1 text-sm text-amber-900">Use this as the starting point when you watch a listing. You can still override it per auction.</p>
+                        <div class="mt-4 max-w-sm">
+                            <label for="default_outbid_threshold" class="block text-sm font-medium text-gray-700 mb-1">Only notify me when I am outbid by at least</label>
+                            <div class="relative">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-gray-500">$</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    id="default_outbid_threshold"
+                                    name="default_outbid_threshold"
+                                    value="{{ old('default_outbid_threshold', auth()->user()->default_outbid_threshold) }}"
+                                    class="w-full rounded-lg border-gray-300 pl-7 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    placeholder="25.00"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full">
                             <thead>

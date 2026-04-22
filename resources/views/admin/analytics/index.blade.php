@@ -111,6 +111,11 @@
                 const periodSelect = document.getElementById('analytics-period');
                 const refreshBtn = document.getElementById('refresh-analytics');
                 const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                const categoryBody = document.getElementById('category-analytics-body');
+                const leaderboardBody = document.getElementById('leaderboard-body');
+                const buyerBody = document.getElementById('buyer-analytics-body');
+                const peakRecommendation = document.getElementById('peak-recommendation');
+                const heatmap = document.getElementById('bid-heatmap');
 
                 const formatMoney = (value) => '$' + Number(value || 0).toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -126,18 +131,33 @@
                     return 'bg-gray-100 text-gray-500';
                 };
 
+                const skeletonRows = (columns, count = 4) => Array.from({ length: count }, () => `
+                    <tr>
+                        <td colspan="${columns}" class="px-4 py-3">
+                            <div class="h-4 w-full animate-pulse rounded bg-gray-200"></div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                const loadingState = () => {
+                    categoryBody.innerHTML = skeletonRows(6);
+                    leaderboardBody.innerHTML = skeletonRows(7);
+                    buyerBody.innerHTML = skeletonRows(5);
+                    peakRecommendation.innerHTML = '<div class="h-4 w-2/3 animate-pulse rounded bg-indigo-200"></div>';
+                    heatmap.innerHTML = Array.from({ length: 40 }, () => '<div class="h-8 animate-pulse rounded-md bg-gray-200"></div>').join('');
+                    heatmap.style.gridTemplateColumns = 'repeat(8, minmax(0, 1fr))';
+                };
+
                 async function loadCategoryAnalytics(days) {
                     const response = await fetch(`{{ route('admin.analytics.categories') }}?days=${days}`, { headers: { Accept: 'application/json' } });
                     const payload = await response.json();
                     const rows = payload.data ?? [];
-                    const body = document.getElementById('category-analytics-body');
-
                     if (!rows.length) {
-                        body.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No category analytics available.</td></tr>';
+                        categoryBody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No category analytics available.</td></tr>';
                         return;
                     }
 
-                    body.innerHTML = rows.map((row) => `
+                    categoryBody.innerHTML = rows.map((row) => `
                         <tr>
                             <td class="px-4 py-3 font-medium text-gray-900">${row.category?.name ?? 'Unknown'}</td>
                             <td class="px-4 py-3 text-right">${Number(row.total_sales || 0).toLocaleString()}</td>
@@ -152,11 +172,10 @@
                 async function loadBidTiming(days) {
                     const response = await fetch(`{{ route('admin.analytics.bid-timing') }}?days=${days}`, { headers: { Accept: 'application/json' } });
                     const payload = await response.json();
-                    document.getElementById('peak-recommendation').textContent = payload.recommendation ?? 'Insufficient data';
+                    peakRecommendation.textContent = payload.recommendation ?? 'Insufficient data';
 
                     const data = payload.heatmap ?? [];
                     const maxBids = Math.max(0, ...data.map((item) => Number(item.total_bids || 0)));
-                    const grid = document.getElementById('bid-heatmap');
                     const lookup = new Map(data.map((item) => [`${item.day_of_week}-${item.hour_of_day}`, item]));
 
                     let html = '<div></div>';
@@ -172,22 +191,20 @@
                         }
                     });
 
-                    grid.style.gridTemplateColumns = '72px repeat(24, minmax(0, 1fr))';
-                    grid.innerHTML = html;
+                    heatmap.style.gridTemplateColumns = '72px repeat(24, minmax(0, 1fr))';
+                    heatmap.innerHTML = html;
                 }
 
                 async function loadLeaderboard(period) {
                     const response = await fetch(`{{ route('admin.analytics.leaderboard') }}?period=${period}`, { headers: { Accept: 'application/json' } });
                     const payload = await response.json();
                     const rows = payload.data ?? [];
-                    const body = document.getElementById('leaderboard-body');
-
                     if (!rows.length) {
-                        body.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No seller analytics available.</td></tr>';
+                        leaderboardBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No seller analytics available.</td></tr>';
                         return;
                     }
 
-                    body.innerHTML = rows.map((row, index) => `
+                    leaderboardBody.innerHTML = rows.map((row, index) => `
                         <tr>
                             <td class="px-4 py-3 font-semibold text-gray-900">#${index + 1}</td>
                             <td class="px-4 py-3 text-gray-900">${row.user?.name ?? 'Unknown'}</td>
@@ -204,14 +221,12 @@
                     const response = await fetch(`{{ route('admin.analytics.buyers') }}?days=${days}`, { headers: { Accept: 'application/json' } });
                     const payload = await response.json();
                     const rows = payload.data ?? [];
-                    const body = document.getElementById('buyer-analytics-body');
-
                     if (!rows.length) {
-                        body.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No buyer activity available.</td></tr>';
+                        buyerBody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">No buyer activity available.</td></tr>';
                         return;
                     }
 
-                    body.innerHTML = rows.map((row) => `
+                    buyerBody.innerHTML = rows.map((row) => `
                         <tr>
                             <td class="px-4 py-3">
                                 <div class="font-medium text-gray-900">${row.name}</div>
@@ -230,6 +245,7 @@
                 async function refresh() {
                     const value = periodSelect.value;
                     refreshBtn.disabled = true;
+                    loadingState();
                     try {
                         await Promise.all([
                             loadCategoryAnalytics(value),
@@ -237,6 +253,13 @@
                             loadLeaderboard(value),
                             loadBuyerAnalytics(value),
                         ]);
+                    } catch (_) {
+                        categoryBody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Unable to load category analytics.</td></tr>';
+                        leaderboardBody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-red-500">Unable to load leaderboard.</td></tr>';
+                        buyerBody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-red-500">Unable to load buyer activity.</td></tr>';
+                        peakRecommendation.textContent = 'Unable to load recommendation.';
+                        heatmap.innerHTML = '<div class="col-span-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Unable to load bid timing heatmap.</div>';
+                        heatmap.style.gridTemplateColumns = '1fr';
                     } finally {
                         refreshBtn.disabled = false;
                     }
