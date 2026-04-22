@@ -121,5 +121,16 @@ Schedule::job(new GenerateAnalyticsSnapshot)
     ->name('generate-analytics-snapshot')
     ->withoutOverlapping();
 
+use App\Jobs\DeliverWebhook;
+use App\Models\WebhookDelivery;
+
 // Regenerate API docs on deploy
 Schedule::command('l5-swagger:generate')->weekly()->name('regenerate-api-docs');
+
+Schedule::call(function () {
+    WebhookDelivery::where('status', 'failed')
+        ->where('attempt_count', '<', 5)
+        ->where('next_retry_at', '<=', now())
+        ->get()
+        ->each(fn ($d) => DeliverWebhook::dispatch($d->id));
+})->everyFiveMinutes()->name('retry-webhook-deliveries');

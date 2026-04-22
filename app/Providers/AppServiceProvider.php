@@ -48,6 +48,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Event::listen(\App\Events\BidPlaced::class, [\App\Listeners\DispatchWebhooksListener::class, 'handleBidPlaced']);
+        \Illuminate\Support\Facades\Event::listen(\App\Events\AuctionClosed::class, [\App\Listeners\DispatchWebhooksListener::class, 'handleAuctionClosed']);
+        \Illuminate\Support\Facades\Event::listen(\App\Events\AuctionCancelled::class, [\App\Listeners\DispatchWebhooksListener::class, 'handleAuctionCancelled']);
+
         Gate::policy(Auction::class, AuctionPolicy::class);
 
         RateLimiter::for('api', function (Request $request) {

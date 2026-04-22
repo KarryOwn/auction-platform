@@ -17,6 +17,8 @@ use App\Services\TagService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\V1\WebhookController as ApiV1WebhookController;
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -109,5 +111,13 @@ Route::prefix('v1')->name('api.v1.')->middleware(['throttle:api'])->group(functi
         Route::get('/me/bids', [ApiV1ProfileController::class, 'bids'])->name('profile.bids');
         Route::get('/me/wallet', [ApiV1ProfileController::class, 'wallet'])->name('profile.wallet');
         Route::get('/me/notifications', [ApiV1ProfileController::class, 'notifications'])->name('profile.notifications');
+
+        Route::prefix('/webhooks')->name('webhooks.')->group(function () {
+            Route::get('/',           [ApiV1WebhookController::class, 'index'])->name('index');
+            Route::post('/',          [ApiV1WebhookController::class, 'store'])->name('store');
+            Route::delete('/{endpoint}', [ApiV1WebhookController::class, 'destroy'])->name('destroy');
+            Route::get('/deliveries', [ApiV1WebhookController::class, 'deliveries'])->name('deliveries');
+            Route::post('/deliveries/{delivery}/redeliver', [ApiV1WebhookController::class, 'redeliver'])->name('redeliver');
+        });
     });
 });
