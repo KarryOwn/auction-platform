@@ -142,6 +142,56 @@
 
                         <dt class="text-sm font-medium text-gray-500">Description</dt>
                         <dd class="text-sm text-gray-900 col-span-2">{{ $auction->description ?? 'No description' }}</dd>
+
+                        <dt class="text-sm font-medium text-gray-500">Authenticity Certificate</dt>
+                        <dd class="text-sm text-gray-900 col-span-2"
+                            x-data="adminAuthCertReview({
+                                verifyUrl: '{{ route('admin.auctions.auth-cert.verify', $auction) }}',
+                                csrf: '{{ csrf_token() }}',
+                                initialStatus: @js($auction->authenticity_cert_status),
+                                initialNotes: @js($auction->authenticity_cert_notes),
+                            })">
+                            <div class="space-y-3 max-w-xl">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @php
+                                        $certColors = [
+                                            'none' => 'bg-gray-100 text-gray-700',
+                                            'uploaded' => 'bg-amber-100 text-amber-800',
+                                            'verified' => 'bg-green-100 text-green-800',
+                                            'rejected' => 'bg-red-100 text-red-800',
+                                        ];
+                                    @endphp
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $certColors[$auction->authenticity_cert_status] ?? 'bg-gray-100 text-gray-700' }}"
+                                          x-text="statusLabel"></span>
+
+                                    @if($auction->getFirstMedia('authenticity_cert'))
+                                        <a href="{{ route('auctions.auth-cert.download', $auction) }}" class="text-sm text-indigo-600 hover:underline">
+                                            View certificate
+                                        </a>
+                                    @else
+                                        <span class="text-sm text-gray-500">No file uploaded</span>
+                                    @endif
+                                </div>
+
+                                @if($auction->getFirstMedia('authenticity_cert'))
+                                    <div class="rounded-md border border-gray-200 bg-gray-50 p-3 space-y-3">
+                                        <label class="block text-sm text-gray-700">
+                                            Review notes
+                                            <textarea x-model="notes" rows="3" maxlength="500" class="mt-1 w-full rounded-md border-gray-300 text-sm"></textarea>
+                                        </label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" class="inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-60" :disabled="submitting" @click="submit('verified')">
+                                                Verify Certificate
+                                            </button>
+                                            <button type="button" class="inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-60" :disabled="submitting" @click="submit('rejected')">
+                                                Reject Certificate
+                                            </button>
+                                        </div>
+                                        <p class="text-xs text-gray-500" x-show="message" x-text="message"></p>
+                                    </div>
+                                @endif
+                            </div>
+                        </dd>
                     </dl>
                 </div>
 
@@ -265,6 +315,58 @@
 
     @push('scripts')
     <script>
+        if (!window.adminAuthCertReview) {
+            window.adminAuthCertReview = function (config) {
+                return {
+                    status: config.initialStatus || 'none',
+                    notes: config.initialNotes || '',
+                    submitting: false,
+                    message: '',
+                    get statusLabel() {
+                        return {
+                            none: 'No certificate',
+                            uploaded: 'Pending verification',
+                            verified: 'Verified',
+                            rejected: 'Rejected',
+                        }[this.status] || this.status;
+                    },
+                    async submit(status) {
+                        this.submitting = true;
+                        this.message = '';
+
+                        try {
+                            const response = await fetch(config.verifyUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': config.csrf,
+                                    'Accept': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    status,
+                                    notes: this.notes || null,
+                                }),
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                this.message = data.message || 'Unable to update certificate status.';
+                                return;
+                            }
+
+                            this.status = data.status;
+                            this.message = data.message || 'Certificate updated.';
+                        } catch (error) {
+                            this.message = 'Request failed.';
+                        } finally {
+                            this.submitting = false;
+                        }
+                    },
+                };
+            }
+        }
+
         if (!window.adminFeatureManager) {
             window.adminFeatureManager = function (config) {
                 return {

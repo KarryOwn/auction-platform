@@ -68,6 +68,11 @@ class AuctionController extends Controller
             });
         }
 
+        if ($request->boolean('authenticated_only')) {
+            $query->where('has_authenticity_cert', true)
+                ->where('authenticity_cert_status', 'verified');
+        }
+
         // Sort
         $sort = $request->input('sort', 'ending_soon');
         $query->when($sort === 'ending_soon', fn ($q) => $q->orderBy('end_time', 'asc'))

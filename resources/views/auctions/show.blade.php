@@ -172,6 +172,24 @@
                             </div>
                         </div>
 
+                        @if($auction->hasVerifiedCertificate())
+                            <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-green-900">Authenticity Verified</p>
+                                    <p class="text-sm text-green-800">This listing includes a certificate reviewed by staff.</p>
+                                </div>
+                                <a href="{{ route('auctions.auth-cert.download', $auction) }}"
+                                   class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded-md bg-green-700 text-white text-sm font-semibold hover:bg-green-800">
+                                    View Certificate
+                                </a>
+                            </div>
+                        @elseif($auction->authenticity_cert_status === 'uploaded')
+                            <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                                <p class="text-sm font-semibold text-amber-900">Certificate uploaded</p>
+                                <p class="text-sm text-amber-800">Verification is pending review by staff.</p>
+                            </div>
+                        @endif
+
                         {{-- Product Specifications --}}
                         <div class="mt-8 border-t pt-6">
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Specifications</h3>

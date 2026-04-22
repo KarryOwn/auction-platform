@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuctionController;
+use App\Http\Controllers\AuctionCertificateController;
 use App\Http\Controllers\AuctionRatingController;
 use App\Http\Controllers\AuctionQuestionController;
 use App\Http\Controllers\AuctionReportController;
@@ -166,6 +167,7 @@ Route::middleware('auth')->group(function () {
 
     // Auction detail & actions
     Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->middleware('track.auction.view')->name('auctions.show');
+    Route::get('/auctions/{auction}/auth-cert', [AuctionCertificateController::class, 'download'])->name('auctions.auth-cert.download');
     Route::get('/auctions/{auction}/live-state', [AuctionController::class, 'liveState'])->name('auctions.live-state');
     Route::get('/auctions/{auction}/rate', [AuctionRatingController::class, 'create'])->name('auctions.rate');
     Route::post('/auctions/{auction}/rate', [AuctionRatingController::class, 'store'])->name('auctions.rate.store');
@@ -258,6 +260,8 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::post('/auctions/{auction}/images', [AuctionCrudController::class, 'uploadImage'])->name('auctions.images.upload');
     Route::delete('/auctions/{auction}/images/{media}', [AuctionCrudController::class, 'deleteImage'])->name('auctions.images.delete');
     Route::post('/auctions/{auction}/images/reorder', [AuctionCrudController::class, 'reorderImages'])->name('auctions.images.reorder');
+    Route::post('/auctions/{auction}/auth-cert', [AuctionCrudController::class, 'uploadAuthCert'])->name('auctions.auth-cert.upload');
+    Route::delete('/auctions/{auction}/auth-cert', [AuctionCrudController::class, 'deleteAuthCert'])->name('auctions.auth-cert.delete');
 });
 
 Route::get('/sellers/{slug}', [StorefrontController::class, 'show'])->name('storefront.show');
@@ -276,6 +280,7 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/auctions/{auction}/feature', [AuctionManagementController::class, 'unfeature'])->name('auctions.unfeature');
     Route::post('/auctions/{auction}/force-cancel', [AuctionManagementController::class, 'forceCancel'])->name('auctions.force-cancel');
     Route::post('/auctions/{auction}/extend', [AuctionManagementController::class, 'extend'])->name('auctions.extend');
+    Route::post('/auctions/{auction}/auth-cert/verify', [AuctionManagementController::class, 'verifyCert'])->name('auctions.auth-cert.verify');
 
     // User Management
     Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');

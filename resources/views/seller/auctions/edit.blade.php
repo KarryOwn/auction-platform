@@ -38,6 +38,60 @@
                         <p class="mt-2 text-sm text-gray-500">Drag and drop images to upload, reorder, and remove.</p>
                     </div>
 
+                    @php($authCertMedia = $auction->getFirstMedia('authenticity_cert'))
+                    @php($authCertDownloadUrl = $authCertMedia && in_array($auction->status, [\App\Models\Auction::STATUS_ACTIVE, \App\Models\Auction::STATUS_COMPLETED], true) ? route('auctions.auth-cert.download', $auction) : '')
+                    <div class="border border-gray-200 rounded-lg p-4"
+                         x-data="authCertManager({
+                             uploadUrl: '{{ route('seller.auctions.auth-cert.upload', $auction) }}',
+                             deleteUrl: '{{ route('seller.auctions.auth-cert.delete', $auction) }}',
+                             downloadUrl: '{{ $authCertDownloadUrl }}',
+                             csrf: '{{ csrf_token() }}',
+                             initialStatus: @js($auction->authenticity_cert_status),
+                             initialHasFile: @js((bool) $authCertMedia),
+                             initialFileName: @js($authCertMedia?->file_name),
+                             initialNotes: @js($auction->authenticity_cert_notes),
+                         })">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Authenticity Certificate</h3>
+                                <p class="mt-1 text-sm text-gray-500">Upload one PDF or image up to 10 MB for staff review.</p>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                                  :class="badgeClass"
+                                  x-text="badgeText"></span>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                            <input type="file" x-ref="fileInput" accept=".pdf,image/jpeg,image/png,image/webp" class="block w-full text-sm text-gray-700">
+
+                            <div class="flex flex-wrap gap-3">
+                                <button type="button" class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60" :disabled="submitting" @click="upload">
+                                    Upload Certificate
+                                </button>
+                                <a x-show="hasFile && downloadUrl" :href="downloadUrl" class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    View Current Certificate
+                                </a>
+                                <button x-show="hasFile" type="button" class="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded-md border border-red-300 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60" :disabled="submitting" @click="remove">
+                                    Delete Certificate
+                                </button>
+                            </div>
+
+                            <template x-if="fileName">
+                                <p class="text-sm text-gray-600">
+                                    Current file: <span class="font-medium" x-text="fileName"></span>
+                                </p>
+                            </template>
+
+                            <template x-if="notes">
+                                <p class="text-sm text-gray-600">
+                                    Review notes: <span class="font-medium" x-text="notes"></span>
+                                </p>
+                            </template>
+
+                            <p class="text-sm" :class="messageClass" x-show="message" x-text="message"></p>
+                        </div>
+                    </div>
+
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 mb-3">Basic Info</h3>
                         <div class="grid grid-cols-1 gap-4">
@@ -356,6 +410,116 @@
                     this.embedUrl = vimeo ? `https://player.vimeo.com/video/${vimeo[1]}` : null;
                 }
             }
+        }
+
+        window.authCertManager = function (config) {
+            return {
+                status: config.initialStatus || 'none',
+                hasFile: Boolean(config.initialHasFile),
+                fileName: config.initialFileName || '',
+                notes: config.initialNotes || '',
+                downloadUrl: config.downloadUrl || '',
+                submitting: false,
+                message: '',
+                messageClass: 'text-gray-600',
+                get badgeText() {
+                    return {
+                        none: 'No certificate',
+                        uploaded: 'Pending verification',
+                        verified: 'Verified ✓',
+                        rejected: 'Rejected ✗',
+                    }[this.status] || this.status;
+                },
+                get badgeClass() {
+                    return {
+                        none: 'bg-gray-100 text-gray-700',
+                        uploaded: 'bg-amber-100 text-amber-800',
+                        verified: 'bg-green-100 text-green-800',
+                        rejected: 'bg-red-100 text-red-800',
+                    }[this.status] || 'bg-gray-100 text-gray-700';
+                },
+                async upload() {
+                    const file = this.$refs.fileInput.files[0];
+                    if (!file) {
+                        this.message = 'Choose a PDF or image first.';
+                        this.messageClass = 'text-red-600';
+                        return;
+                    }
+
+                    const body = new FormData();
+                    body.append('file', file);
+
+                    this.submitting = true;
+                    this.message = '';
+
+                    try {
+                        const response = await fetch(config.uploadUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': config.csrf,
+                                'Accept': 'application/json',
+                            },
+                            body,
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            this.message = data.message || 'Upload failed.';
+                            this.messageClass = 'text-red-600';
+                            return;
+                        }
+
+                        this.status = data.status || 'uploaded';
+                        this.hasFile = true;
+                        this.fileName = file.name;
+                        this.notes = '';
+                        this.downloadUrl = config.downloadUrl;
+                        this.$refs.fileInput.value = '';
+                        this.message = data.message || 'Certificate uploaded.';
+                        this.messageClass = 'text-green-700';
+                    } catch (error) {
+                        this.message = 'Upload failed.';
+                        this.messageClass = 'text-red-600';
+                    } finally {
+                        this.submitting = false;
+                    }
+                },
+                async remove() {
+                    this.submitting = true;
+                    this.message = '';
+
+                    try {
+                        const response = await fetch(config.deleteUrl, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': config.csrf,
+                                'Accept': 'application/json',
+                            },
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            this.message = data.message || 'Delete failed.';
+                            this.messageClass = 'text-red-600';
+                            return;
+                        }
+
+                        this.status = 'none';
+                        this.hasFile = false;
+                        this.fileName = '';
+                        this.notes = '';
+                        this.message = 'Certificate deleted.';
+                        this.messageClass = 'text-green-700';
+                    } catch (error) {
+                        this.message = 'Delete failed.';
+                        this.messageClass = 'text-red-600';
+                    } finally {
+                        this.submitting = false;
+                    }
+                },
+            };
         }
     </script>
 </x-app-layout>

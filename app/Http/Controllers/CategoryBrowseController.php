@@ -64,6 +64,10 @@ class CategoryBrowseController extends Controller
                     });
             });
         }
+        if ($request->boolean('authenticated_only')) {
+            $query->where('has_authenticity_cert', true)
+                ->where('authenticity_cert_status', 'verified');
+        }
 
         // Attribute filters
         if ($attrFilters = $request->input('attr')) {

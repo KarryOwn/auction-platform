@@ -59,6 +59,17 @@
                             </div>
                         @endif
 
+                        <div class="mb-5">
+                            <label class="inline-flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="authenticated_only" value="1" @checked(request()->boolean('authenticated_only'))
+                                       class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span>
+                                    <span class="block text-xs font-semibold text-gray-600">Authenticated items only</span>
+                                    <span class="block text-xs text-gray-500 mt-1">Show only listings with admin-verified certificates.</span>
+                                </span>
+                            </label>
+                        </div>
+
                         {{-- Sort Filter --}}
                         <div class="mb-6">
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Sort By</label>

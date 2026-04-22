@@ -73,6 +73,11 @@ class Auction extends Model implements HasMedia
         'brand_id',
         'sku',
         'serial_number',
+        'has_authenticity_cert',
+        'authenticity_cert_status',
+        'authenticity_cert_verified_at',
+        'authenticity_cert_verified_by',
+        'authenticity_cert_notes',
         'cloned_from_auction_id',
         'auto_saved_at',
     ];
@@ -108,6 +113,9 @@ class Auction extends Model implements HasMedia
         'payment_deadline'         => 'datetime',
         'ending_soon_notified'     => 'boolean',
         'brand_id'                 => 'integer',
+        'has_authenticity_cert'    => 'boolean',
+        'authenticity_cert_verified_at' => 'datetime',
+        'authenticity_cert_verified_by' => 'integer',
     ];
 
     public const CONDITIONS = [
@@ -178,10 +186,24 @@ class Auction extends Model implements HasMedia
             ->singleFile()
             ->acceptsMimeTypes($allowed)
             ->useDisk('public');
+
+        $this->addMediaCollection('authenticity_cert')
+            ->singleFile()
+            ->acceptsMimeTypes([
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ])
+            ->useDisk('local');
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
+        if ($media !== null && ! in_array($media->collection_name, ['images', 'cover'], true)) {
+            return;
+        }
+
         [$thumbWidth, $thumbHeight] = config('auction.images.conversions.thumbnail', [300, 300]);
         [$galleryWidth, $galleryHeight] = config('auction.images.conversions.gallery', [800, 600]);
         [$fullWidth, $fullHeight] = config('auction.images.conversions.full', [1920, 1080]);
@@ -325,6 +347,20 @@ class Auction extends Model implements HasMedia
     public function getConditionLabelAttribute(): ?string
     {
         return self::CONDITIONS[$this->condition] ?? null;
+    }
+
+    public function getAuthenticityBadgeAttribute(): ?string
+    {
+        return match ($this->authenticity_cert_status) {
+            'verified' => 'verified',
+            'uploaded' => 'pending_verification',
+            default => null,
+        };
+    }
+
+    public function hasVerifiedCertificate(): bool
+    {
+        return $this->authenticity_cert_status === 'verified';
     }
 
 

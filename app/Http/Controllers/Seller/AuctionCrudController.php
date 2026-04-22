@@ -371,6 +371,7 @@ class AuctionCrudController extends Controller
         $auctionId = $auction->id;
         $auction->clearMediaCollection('images');
         $auction->clearMediaCollection('cover');
+        $auction->clearMediaCollection('authenticity_cert');
         $auction->delete();
 
         AuditLog::record('auction.deleted.draft', Auction::class, $auctionId);
@@ -451,6 +452,63 @@ class AuctionCrudController extends Controller
         AuditLog::record('auction.images.reordered', Auction::class, $auction->id, [
             'order' => $validated['order'],
         ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function uploadAuthCert(Request $request, Auction $auction): JsonResponse
+    {
+        $this->authorize('uploadMedia', $auction);
+
+        $request->validate([
+            'file' => [
+                'required',
+                'file',
+                'mimetypes:application/pdf,image/jpeg,image/png,image/webp',
+                'max:10240',
+            ],
+        ]);
+
+        $auction->clearMediaCollection('authenticity_cert');
+
+        $media = $auction
+            ->addMediaFromRequest('file')
+            ->toMediaCollection('authenticity_cert');
+
+        $auction->update([
+            'has_authenticity_cert' => true,
+            'authenticity_cert_status' => 'uploaded',
+            'authenticity_cert_verified_at' => null,
+            'authenticity_cert_verified_by' => null,
+            'authenticity_cert_notes' => null,
+        ]);
+
+        AuditLog::record('auction.auth_cert.uploaded', Auction::class, $auction->id, [
+            'media_id' => $media->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Certificate uploaded. Our team will verify it shortly.',
+            'status' => $auction->fresh()->authenticity_cert_status,
+        ]);
+    }
+
+    public function deleteAuthCert(Request $request, Auction $auction): JsonResponse
+    {
+        $this->authorize('uploadMedia', $auction);
+
+        $auction->clearMediaCollection('authenticity_cert');
+
+        $auction->update([
+            'has_authenticity_cert' => false,
+            'authenticity_cert_status' => 'none',
+            'authenticity_cert_verified_at' => null,
+            'authenticity_cert_verified_by' => null,
+            'authenticity_cert_notes' => null,
+        ]);
+
+        AuditLog::record('auction.auth_cert.deleted', Auction::class, $auction->id);
 
         return response()->json(['success' => true]);
     }

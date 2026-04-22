@@ -72,6 +72,9 @@
             @if($auction->condition)
                 <x-ui.badge color="blue" size="xs">{{ $auction->condition_label }}</x-ui.badge>
             @endif
+            @if($auction->hasVerifiedCertificate())
+                <x-ui.badge color="green" size="xs">Authenticity verified</x-ui.badge>
+            @endif
             @if($auction->brand)
                 <span class="text-xs text-gray-500 font-medium">{{ $auction->brand->name }}</span>
             @endif

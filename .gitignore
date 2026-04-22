@@ -23,3 +23,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 storage/media-library/temp
+.codex
+AGENTS.md
+/plans

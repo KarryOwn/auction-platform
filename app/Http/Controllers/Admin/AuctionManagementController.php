@@ -7,9 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Auction;
 use App\Models\AuditLog;
 use App\Models\Bid;
+use App\Notifications\AuthCertStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Validation\Rule;
 
 class AuctionManagementController extends Controller
 {
@@ -223,6 +225,40 @@ class AuctionManagementController extends Controller
                 'featured_until_human' => null,
                 'featured_position' => null,
             ],
+        ]);
+    }
+
+    public function verifyCert(Request $request, Auction $auction): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['verified', 'rejected'])],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        if (! $auction->has_authenticity_cert || ! $auction->getFirstMedia('authenticity_cert')) {
+            return response()->json(['message' => 'No certificate has been uploaded for this auction.'], 422);
+        }
+
+        $auction->update([
+            'authenticity_cert_status' => $validated['status'],
+            'authenticity_cert_verified_at' => now(),
+            'authenticity_cert_verified_by' => $request->user()->id,
+            'authenticity_cert_notes' => $validated['notes'] ?? null,
+        ]);
+
+        AuditLog::record(
+            'auction.auth_cert.'.$validated['status'],
+            Auction::class,
+            $auction->id,
+            ['notes' => $validated['notes'] ?? null],
+        );
+
+        $auction->seller?->notify(new AuthCertStatusNotification($auction->fresh(['seller'])));
+
+        return response()->json([
+            'message' => "Certificate marked as {$validated['status']}.",
+            'status' => $validated['status'],
+            'notes' => $validated['notes'] ?? null,
         ]);
     }
 

@@ -87,6 +87,17 @@
                             </div>
                         @endif
 
+                        <div>
+                            <label class="inline-flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="authenticated_only" value="1" @checked(request()->boolean('authenticated_only'))
+                                       class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span>
+                                    <span class="block text-sm font-medium text-gray-700">Authenticated items only</span>
+                                    <span class="block text-xs text-gray-500">Only show listings with verified certificates.</span>
+                                </span>
+                            </label>
+                        </div>
+
                         {{-- Dynamic Attribute Filters --}}
                         @foreach($filterableAttributes as $attr)
                             <div>
@@ -158,6 +169,12 @@
                                     @if($auction->condition)
                                         <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 mb-2">
                                             {{ $auction->condition_label }}
+                                        </span>
+                                    @endif
+
+                                    @if($auction->hasVerifiedCertificate())
+                                        <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mb-2">
+                                            Authenticity verified
                                         </span>
                                     @endif
 
