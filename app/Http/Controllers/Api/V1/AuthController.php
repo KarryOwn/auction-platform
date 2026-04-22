@@ -14,6 +14,31 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/api/v1/auth/token",
+     *     summary="Create new API token",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password","device_name"},
+     *             @OA\Property(property="email", type="string", format="email"),
+     *             @OA\Property(property="password", type="string", format="password"),
+     *             @OA\Property(property="device_name", type="string"),
+     *             @OA\Property(property="abilities", type="array", @OA\Items(type="string"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Token generated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token", type="string"),
+     *             @OA\Property(property="token_type", type="string", example="Bearer"),
+     *             @OA\Property(property="abilities", type="array", @OA\Items(type="string"))
+     *         )
+     *     ),
+     *     @OA\Response(response=422, description="Validation Error")
+     * )
+     */
     public function token(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -46,6 +71,15 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/v1/auth/revoke",
+     *     summary="Revoke current API token",
+     *     tags={"Authentication"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="Token revoked")
+     * )
+     */
     public function revoke(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();

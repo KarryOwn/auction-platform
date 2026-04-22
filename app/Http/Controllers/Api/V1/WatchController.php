@@ -12,6 +12,23 @@ use Illuminate\Http\Request;
 
 class WatchController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/api/v1/auctions/{auction}/watch",
+     *     summary="Toggle watch status for an auction",
+     *     tags={"Watchlist"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(name="auction", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=false,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="outbid_threshold", type="number", nullable=true),
+     *             @OA\Property(property="price_alert_at", type="number", nullable=true)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Watchlist status toggled or updated")
+     * )
+     */
     public function toggle(Request $request, Auction $auction): JsonResponse
     {
         $this->ensureAbility($request, ApiAbilities::WATCHLIST_WRITE);

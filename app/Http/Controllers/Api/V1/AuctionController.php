@@ -9,13 +9,54 @@ use App\Models\Auction;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use OpenApi\Annotations as OA;
 
+/**
+ * @OA\Info(
+ *     version="1.0.0",
+ *     title="Auction Platform API",
+ *     description="Public REST API for auction platform integration.",
+ *     @OA\Contact(email="api@example.com")
+ * )
+ *
+ * @OA\SecurityScheme(
+ *     securityScheme="bearerAuth",
+ *     type="http",
+ *     scheme="bearer",
+ *     bearerFormat="Token"
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ErrorResponse",
+ *     type="object",
+ *     @OA\Property(property="error", type="string"),
+ *     @OA\Property(property="code", type="string"),
+ *     @OA\Property(property="message", type="string"),
+ *     @OA\Property(property="details", type="object")
+ * )
+ */
 class AuctionController extends Controller
 {
     public function __construct(
         protected BiddingStrategy $engine,
     ) {}
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/auctions",
+     *     summary="List active auctions",
+     *     tags={"Auctions"},
+     *     @OA\Parameter(name="q", in="query", description="Search keyword", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="category_id", in="query", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="min_price", in="query", @OA\Schema(type="number")),
+     *     @OA\Parameter(name="max_price", in="query", @OA\Schema(type="number")),
+     *     @OA\Parameter(name="sort", in="query", @OA\Schema(type="string", enum={"ending_soon","newest","price_asc","price_desc"})),
+     *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", maximum=50)),
+     *     @OA\Response(response=200, description="Paginated auction list",
+     *         @OA\JsonContent(ref="#/components/schemas/AuctionCollection")
+     *     )
+     * )
+     */
     public function index(Request $request): AnonymousResourceCollection
     {
         $validated = $request->validate([
@@ -69,6 +110,18 @@ class AuctionController extends Controller
         return AuctionResource::collection($auctions);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/auctions/{auction}",
+     *     summary="Get auction details",
+     *     tags={"Auctions"},
+     *     @OA\Parameter(name="auction", in="path", required=true, description="Auction ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Auction details",
+     *         @OA\JsonContent(ref="#/components/schemas/AuctionResource")
+     *     ),
+     *     @OA\Response(response=404, description="Not Found")
+     * )
+     */
     public function show(Auction $auction): AuctionResource
     {
         $auction->loadCount('bids');

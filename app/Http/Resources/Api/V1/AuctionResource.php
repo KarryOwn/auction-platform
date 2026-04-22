@@ -6,6 +6,43 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * @OA\Schema(
+ *     schema="AuctionResource",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer"),
+ *     @OA\Property(property="title", type="string"),
+ *     @OA\Property(property="description", type="string"),
+ *     @OA\Property(property="status", type="string"),
+ *     @OA\Property(property="current_price", type="number"),
+ *     @OA\Property(property="starting_price", type="number"),
+ *     @OA\Property(property="reserve_met", type="boolean"),
+ *     @OA\Property(property="reserve_price", type="number", nullable=true),
+ *     @OA\Property(property="min_bid_increment", type="number"),
+ *     @OA\Property(property="next_minimum_bid", type="number"),
+ *     @OA\Property(property="bid_count", type="integer"),
+ *     @OA\Property(property="currency", type="string"),
+ *     @OA\Property(property="condition", type="string"),
+ *     @OA\Property(property="condition_label", type="string"),
+ *     @OA\Property(property="end_time", type="string", format="date-time"),
+ *     @OA\Property(property="time_remaining", type="string"),
+ *     @OA\Property(property="seller", type="object"),
+ *     @OA\Property(property="brand", type="object", nullable=true),
+ *     @OA\Property(property="categories", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="images", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="links", type="object")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="AuctionCollection",
+ *     type="object",
+ *     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/AuctionResource")),
+ *     @OA\Property(property="links", type="object"),
+ *     @OA\Property(property="meta", type="object")
+ * )
+ */
 class AuctionResource extends JsonResource
 {
     public function toArray(Request $request): array

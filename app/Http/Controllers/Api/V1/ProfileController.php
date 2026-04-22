@@ -13,6 +13,15 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ProfileController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/api/v1/profile",
+     *     summary="Get user profile",
+     *     tags={"Profile"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="User Profile")
+     * )
+     */
     public function show(Request $request): UserResource
     {
         $this->ensureAbility($request, ApiAbilities::PROFILE_READ);
@@ -22,6 +31,16 @@ class ProfileController extends Controller
         return new UserResource($request->user());
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/profile/bids",
+     *     summary="Get user bids",
+     *     tags={"Profile"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="User Bids")
+     * )
+     */
     public function bids(Request $request): AnonymousResourceCollection
     {
         $this->ensureAbility($request, ApiAbilities::BIDS_READ);
@@ -35,6 +54,16 @@ class ProfileController extends Controller
         return BidResource::collection($bids);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/profile/wallet",
+     *     summary="Get user wallet details",
+     *     tags={"Profile"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="User Wallet")
+     * )
+     */
     public function wallet(Request $request): JsonResponse
     {
         $this->ensureAbility($request, ApiAbilities::WALLET_READ);
@@ -55,6 +84,16 @@ class ProfileController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/profile/notifications",
+     *     summary="Get user notifications",
+     *     tags={"Profile"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="User Notifications")
+     * )
+     */
     public function notifications(Request $request): JsonResponse
     {
         $this->ensureAbility($request, ApiAbilities::PROFILE_READ);

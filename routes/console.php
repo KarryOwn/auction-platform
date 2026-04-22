@@ -120,3 +120,6 @@ Schedule::job(new GenerateAnalyticsSnapshot)
     ->dailyAt('01:00')
     ->name('generate-analytics-snapshot')
     ->withoutOverlapping();
+
+// Regenerate API docs on deploy
+Schedule::command('l5-swagger:generate')->weekly()->name('regenerate-api-docs');
