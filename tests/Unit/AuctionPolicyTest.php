@@ -6,8 +6,6 @@ use App\Policies\AuctionPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
-
 it('allows verified seller to create auction', function () {
     $policy = new AuctionPolicy();
     $seller = User::factory()->create([

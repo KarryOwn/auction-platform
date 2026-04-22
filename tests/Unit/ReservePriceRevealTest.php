@@ -6,8 +6,6 @@ use App\Http\Resources\AuctionResource;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
-uses(TestCase::class);
-
 test('public reserve price is null when disabled', function () {
     $auction = Auction::factory()->make([
         'reserve_price' => 1000.00,
@@ -23,7 +21,7 @@ test('public reserve price is formatted when enabled', function () {
         'reserve_price_visible' => true,
     ]);
 
-    expect($auction->public_reserve_price)->toBe('1,000.50');
+    expect($auction->public_reserve_price)->toBe('$1,000.50');
 });
 
 test('auction resource exposes reserve price conditionally', function () {

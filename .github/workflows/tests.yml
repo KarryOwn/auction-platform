@@ -1,0 +1,108 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_pgsql, redis
+          coverage: xdebug
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Copy .env
+        run: cp .env.example .env.testing
+
+      - name: Generate key
+        run: php artisan key:generate --env=testing
+
+      - name: Run migrations
+        run: php artisan migrate --env=testing --force
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: testing
+          DB_USERNAME: sail
+          DB_PASSWORD: password
+          QUEUE_CONNECTION: sync
+          CACHE_STORE: array
+          SCOUT_DRIVER: database
+
+      - name: Run tests
+        run: php artisan test --parallel --coverage-clover=coverage.xml
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: testing
+          DB_USERNAME: sail
+          DB_PASSWORD: password
+          QUEUE_CONNECTION: sync
+          CACHE_STORE: array
+          SCOUT_DRIVER: database
+          AUCTION_ENGINE: sql
+
+      - name: Enforce services and models coverage floor
+        run: |
+          python3 - <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          tree = ET.parse('coverage.xml')
+          root = tree.getroot()
+
+          buckets = {
+            'app/Services/': {'covered': 0, 'total': 0},
+            'app/Models/': {'covered': 0, 'total': 0},
+          }
+
+          for file_node in root.findall('.//file'):
+            name = file_node.get('name', '')
+            key = next((k for k in buckets if k in name), None)
+            if key is None:
+              continue
+
+            for line in file_node.findall('line'):
+              if line.get('type') != 'stmt':
+                continue
+              buckets[key]['total'] += 1
+              if int(line.get('count', '0')) > 0:
+                buckets[key]['covered'] += 1
+
+          failed = False
+          for key, values in buckets.items():
+            total = values['total']
+            covered = values['covered']
+            percent = (covered / total * 100.0) if total > 0 else 0.0
+            print(f"{key} coverage: {percent:.2f}% ({covered}/{total})")
+            if percent < 80.0:
+              failed = True
+
+          if failed:
+            print('Coverage floor not met (required: 80% for app/Services and app/Models).')
+            sys.exit(1)
+          PY
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml

@@ -13,7 +13,7 @@
 
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature', 'Unit');
 
 /*
 |--------------------------------------------------------------------------
@@ -41,7 +41,41 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Create a verified seller with wallet balance.
+ */
+function createSeller(array $overrides = []): \App\Models\User
 {
-    // ..
+    return \App\Models\User::factory()->create(array_merge([
+        'role'                       => 'seller',
+        'seller_verified_at'         => now(),
+        'seller_application_status'  => 'approved',
+        'wallet_balance'             => 1000,
+    ], $overrides));
+}
+
+/**
+ * Create an active auction owned by a seller.
+ */
+function createActiveAuction(\App\Models\User $seller, array $overrides = []): \App\Models\Auction
+{
+    return \App\Models\Auction::factory()->create(array_merge([
+        'user_id'          => $seller->id,
+        'status'           => \App\Models\Auction::STATUS_ACTIVE,
+        'end_time'         => now()->addHour(),
+        'current_price'    => 100.00,
+        'starting_price'   => 100.00,
+        'min_bid_increment'=> 5.00,
+    ], $overrides));
+}
+
+/**
+ * Bind PessimisticSqlEngine for tests that don't need Redis.
+ */
+function useSqlBiddingEngine(): void
+{
+    app()->bind(
+        \App\Contracts\BiddingStrategy::class,
+        \App\Services\Bidding\PessimisticSqlEngine::class,
+    );
 }
