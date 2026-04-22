@@ -98,6 +98,8 @@
             </main>
         </div>
 
+        <x-support-chat-widget />
+
         @stack('scripts')
         @stack('modals')
 

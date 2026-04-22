@@ -140,6 +140,10 @@
                     <h3 class="text-lg font-semibold text-gray-800">Analytics Reports</h3>
                     <p class="text-sm text-gray-500 mt-1">Category trends, peak bidding windows, seller rankings, and buyer activity.</p>
                 </a>
+                <a href="{{ route('admin.support.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Support Inbox</h3>
+                    <p class="text-sm text-gray-500 mt-1">Review escalations, reply as staff, and close resolved support chats.</p>
+                </a>
             </div>
 
         </div>

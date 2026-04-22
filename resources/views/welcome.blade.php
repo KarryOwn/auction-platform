@@ -194,6 +194,8 @@
     </div>
 </div>
 
+<x-support-chat-widget />
+
 @if(isset($featuredCategories) && $featuredCategories->isNotEmpty())
 <section class="py-16 bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -537,5 +539,6 @@
             }
         });
     </script>
+    @stack('scripts')
 </body>
 </html>

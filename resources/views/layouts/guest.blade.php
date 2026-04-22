@@ -29,5 +29,9 @@
                 {{ $slot }}
             </div>
         </div>
+
+        <x-support-chat-widget />
+
+        @stack('scripts')
     </body>
 </html>

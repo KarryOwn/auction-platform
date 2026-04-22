@@ -12,6 +12,7 @@ use App\Http\Controllers\BidController;
 use App\Http\Controllers\CategoryBrowseController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\SupportChatController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AnalyticsController as AdminAnalyticsController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\MaintenanceController as AdminMaintenanceController;
 use App\Http\Controllers\Admin\SellerLeaderboardController as AdminSellerLeaderboardController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
+use App\Http\Controllers\Admin\SupportInboxController as AdminSupportInboxController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\DisputeController as AdminDisputeController;
@@ -101,6 +103,10 @@ Route::post('/preferences/currency', function (Request $request) {
 
     return back()->withCookie(cookie('display_currency', $currency, 60 * 24 * 365));
 })->name('preferences.currency');
+
+Route::post('/support/chat', [SupportChatController::class, 'send'])->name('support.chat.send');
+Route::get('/support/chat/{conversation}', [SupportChatController::class, 'show'])->name('support.chat.show');
+Route::post('/support/chat/{conversation}/escalate', [SupportChatController::class, 'escalate'])->name('support.chat.escalate');
 
 // Public user profiles
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('users.show');
@@ -365,6 +371,14 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
         Route::post('/', [AdminMaintenanceController::class, 'store'])->name('store');
         Route::patch('/{window}', [AdminMaintenanceController::class, 'update'])->name('update');
         Route::post('/{window}/cancel', [AdminMaintenanceController::class, 'cancel'])->name('cancel');
+    });
+
+    // Support Inbox
+    Route::prefix('/support')->name('support.')->group(function () {
+        Route::get('/', [AdminSupportInboxController::class, 'index'])->name('index');
+        Route::get('/{conversation}', [AdminSupportInboxController::class, 'show'])->name('show');
+        Route::post('/{conversation}/reply', [AdminSupportInboxController::class, 'reply'])->name('reply');
+        Route::post('/{conversation}/close', [AdminSupportInboxController::class, 'close'])->name('close');
     });
 
     // Refunds
