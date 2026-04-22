@@ -8,9 +8,12 @@ use App\Policies\AuctionPolicy;
 use App\Services\Bidding\BidRateLimiter;
 use App\Services\Bidding\PessimisticSqlEngine;
 use App\Services\Bidding\RedisAtomicEngine;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Stripe\Stripe;
 
@@ -46,6 +49,16 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Auction::class, AuctionPolicy::class);
+
+        RateLimiter::for('api', function (Request $request) {
+            return $request->user()
+                ? Limit::perMinute(60)->by((string) $request->user()->id)
+                : Limit::perMinute(10)->by($request->ip());
+        });
+
+        RateLimiter::for('api-bids', function (Request $request) {
+            return Limit::perMinute(20)->by((string) ($request->user()?->id ?? $request->ip()));
+        });
 
         if (app()->isLocal()) {
             DB::listen(function ($query) {

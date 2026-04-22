@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController as ApiV1AuthController;
+use App\Http\Controllers\Api\V1\AuctionController as ApiV1AuctionController;
+use App\Http\Controllers\Api\V1\BidController as ApiV1BidController;
+use App\Http\Controllers\Api\V1\CategoryController as ApiV1CategoryController;
+use App\Http\Controllers\Api\V1\ProfileController as ApiV1ProfileController;
+use App\Http\Controllers\Api\V1\WatchController as ApiV1WatchController;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\ExchangeRate;
@@ -78,3 +84,30 @@ Route::get('/exchange-rates', function () {
             ->get(['target_currency', 'rate', 'fetched_at'])
     );
 })->name('api.exchange-rates');
+
+Route::prefix('v1')->name('api.v1.')->middleware(['throttle:api'])->group(function () {
+    Route::post('/auth/token', [ApiV1AuthController::class, 'token'])->name('auth.token');
+    Route::delete('/auth/token', [ApiV1AuthController::class, 'revoke'])
+        ->middleware('auth:sanctum')
+        ->name('auth.revoke');
+
+    Route::get('/auctions', [ApiV1AuctionController::class, 'index'])->name('auctions.index');
+    Route::get('/auctions/{auction}', [ApiV1AuctionController::class, 'show'])->name('auctions.show');
+
+    Route::get('/categories', [ApiV1CategoryController::class, 'index'])->name('categories.index');
+    Route::get('/categories/{category}', [ApiV1CategoryController::class, 'show'])->name('categories.show');
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/auctions/{auction}/bids', [ApiV1BidController::class, 'index'])->name('bids.index');
+        Route::post('/auctions/{auction}/bids', [ApiV1BidController::class, 'store'])
+            ->middleware('throttle:api-bids')
+            ->name('bids.store');
+
+        Route::post('/auctions/{auction}/watch', [ApiV1WatchController::class, 'toggle'])->name('watch.toggle');
+
+        Route::get('/me', [ApiV1ProfileController::class, 'show'])->name('profile.show');
+        Route::get('/me/bids', [ApiV1ProfileController::class, 'bids'])->name('profile.bids');
+        Route::get('/me/wallet', [ApiV1ProfileController::class, 'wallet'])->name('profile.wallet');
+        Route::get('/me/notifications', [ApiV1ProfileController::class, 'notifications'])->name('profile.notifications');
+    });
+});
