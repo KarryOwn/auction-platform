@@ -14,6 +14,7 @@ class UserPreference extends Model
         'user_id',
         'theme',
         'locale',
+        'display_currency',
         'bid_increment_preference',
         'custom_increment_amount',
         'notification_email',

@@ -100,11 +100,15 @@ window.addEventListener('bid:placed', (e) => {
 
   const nextMinimum = resolveNextMinimum(data, amount);
 
-  const minBid = document.getElementById('min-bid');
-  if (minBid && nextMinimum !== null) {
-    const minLabel = formatAmount(nextMinimum);
-    if (minLabel) {
-      minBid.textContent = minLabel;
+  if (nextMinimum !== null && typeof window.updateBidMinimum === 'function') {
+    window.updateBidMinimum(nextMinimum);
+  } else {
+    const minBid = document.getElementById('min-bid');
+    if (minBid && nextMinimum !== null) {
+      const minLabel = formatAmount(nextMinimum);
+      if (minLabel) {
+        minBid.textContent = minLabel;
+      }
     }
   }
 
@@ -183,11 +187,15 @@ window.addEventListener('price:updated', (e) => {
 
   const nextMinimum = resolveNextMinimum(data, latestPrice);
   if (nextMinimum !== null) {
-    const minBid = document.getElementById('min-bid');
-    if (minBid) {
-      const minLabel = formatAmount(nextMinimum);
-      if (minLabel) {
-        minBid.textContent = minLabel;
+    if (typeof window.updateBidMinimum === 'function') {
+      window.updateBidMinimum(nextMinimum);
+    } else {
+      const minBid = document.getElementById('min-bid');
+      if (minBid) {
+        const minLabel = formatAmount(nextMinimum);
+        if (minLabel) {
+          minBid.textContent = minLabel;
+        }
       }
     }
 

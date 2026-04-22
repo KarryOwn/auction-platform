@@ -8,13 +8,7 @@
 ])
 
 @php
-    $symbol = match (strtoupper($currency)) {
-        'EUR' => '€',
-        'GBP' => '£',
-        default => '$',
-    };
-
-    $formattedAmount = number_format((float) $amount, 2);
+    $formattedAmount = format_price((float) $amount, strtoupper($currency));
 
     $sizeClasses = match ($size) {
         'sm' => 'text-base font-semibold',
@@ -35,6 +29,6 @@
             x-init="window.addEventListener('price-updated', (e) => { if (!id || e.detail.id === id) { flash = true; setTimeout(() => flash = false, 600) } })"
             :class="flash ? 'text-amber-500 scale-105 transition-all' : 'text-green-600 transition-all'"
          @endif>
-        {{ $symbol }}{{ $formattedAmount }}
+        {{ $formattedAmount }}
     </div>
 </div>

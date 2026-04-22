@@ -22,6 +22,8 @@
             })->count()
             : 0;
     @endphp
+    @php($selectedDisplayCurrency = display_currency())
+    @php($supportedDisplayCurrencies = config('auction.supported_currencies', ['USD']))
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-20 items-center">
@@ -120,6 +122,19 @@
 
             <!-- Right Actions -->
             <div class="hidden sm:flex sm:items-center sm:gap-4">
+                <form method="POST" action="{{ route('preferences.currency') }}" class="flex items-center">
+                    @csrf
+                    <label for="display-currency-desktop" class="sr-only">Display currency</label>
+                    <select id="display-currency-desktop"
+                            name="currency"
+                            onchange="this.form.submit()"
+                            class="rounded-full border-gray-200 bg-white text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @foreach($supportedDisplayCurrencies as $currency)
+                            <option value="{{ $currency }}" @selected($selectedDisplayCurrency === $currency)>{{ $currency }}</option>
+                        @endforeach
+                    </select>
+                </form>
+
                 @auth
                 <!-- Messages -->
                 <button @click="$dispatch('open-chat')" type="button" 
@@ -217,6 +232,19 @@
          class="hidden sm:hidden absolute top-20 w-full bg-white shadow-xl border-b border-gray-200"
          :class="{'block': open, 'hidden': ! open}">
         <div class="pt-2 pb-3 space-y-1">
+            <form method="POST" action="{{ route('preferences.currency') }}" class="px-4 pb-2">
+                @csrf
+                <label for="display-currency-mobile" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Display Currency</label>
+                <select id="display-currency-mobile"
+                        name="currency"
+                        onchange="this.form.submit()"
+                        class="w-full rounded-lg border-gray-200 bg-white text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @foreach($supportedDisplayCurrencies as $currency)
+                        <option value="{{ $currency }}" @selected($selectedDisplayCurrency === $currency)>{{ $currency }}</option>
+                    @endforeach
+                </select>
+            </form>
+
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>

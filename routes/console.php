@@ -9,6 +9,7 @@ use App\Jobs\CaptureAuctionSnapshots;
 use App\Jobs\CleanupStaleEscrowHolds;
 use App\Models\Category;
 use App\Services\CategoryService;
+use App\Services\ExchangeRateService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -97,3 +98,8 @@ Schedule::call(function () {
             $export->update(['status' => 'expired', 'file_path' => null]);
         });
 })->hourly()->name('purge-expired-exports');
+
+Schedule::call(fn () => app(ExchangeRateService::class)->refresh())
+    ->hourly()
+    ->name('refresh-exchange-rates')
+    ->withoutOverlapping();

@@ -20,6 +20,34 @@
                     @csrf
                     @method('PUT')
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label for="locale" class="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                            <input
+                                type="text"
+                                id="locale"
+                                name="locale"
+                                value="{{ old('locale', auth()->user()->userPreference?->locale ?? app()->getLocale()) }}"
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                placeholder="en"
+                            >
+                        </div>
+
+                        <div>
+                            <label for="display_currency" class="block text-sm font-medium text-gray-700 mb-1">Display Currency</label>
+                            <select
+                                id="display_currency"
+                                name="display_currency"
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                            >
+                                @php($selectedCurrency = old('display_currency', auth()->user()->userPreference?->display_currency ?? display_currency()))
+                                @foreach($supportedCurrencies as $currency)
+                                    <option value="{{ $currency }}" @selected($selectedCurrency === $currency)>{{ $currency }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full">
                             <thead>

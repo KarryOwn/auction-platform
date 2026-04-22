@@ -208,7 +208,7 @@
 
                                     <div class="flex items-end justify-between mt-2">
                                         <div>
-                                            <span class="text-green-600 font-bold text-xl">${{ number_format($auction->current_price, 2) }}</span>
+                                            <span class="text-green-600 font-bold text-xl">{{ format_price((float) $auction->current_price) }}</span>
                                             <span class="block text-xs text-gray-400">{{ $auction->bids_count ?? 0 }} {{ Str::plural('bid', $auction->bids_count ?? 0) }}</span>
                                         </div>
                                         <div class="flex items-center gap-2">

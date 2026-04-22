@@ -1,4 +1,6 @@
 <x-app-layout>
+    @php($displayCurrency = display_currency())
+    @php($displayRate = app(\App\Services\ExchangeRateService::class)->getRate('USD', $displayCurrency))
     <x-slot name="header">
         <div class="flex flex-col gap-2">
             {{-- Category Breadcrumbs --}}
@@ -146,12 +148,12 @@
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Starting Price</span>
-                                <span class="text-lg font-bold text-gray-800">${{ number_format($auction->starting_price, 2) }}</span>
+                                <span class="text-lg font-bold text-gray-800">{{ format_price((float) $auction->starting_price) }}</span>
                             </div>
                             @if($prediction && ($prediction['predicted_price'] ?? 0) > 0)
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide text-indigo-600">Expected Price</span>
-                                <span class="text-lg font-bold text-indigo-600">${{ number_format($prediction['predicted_price'], 2) }}</span>
+                                <span class="text-lg font-bold text-indigo-600">{{ format_price((float) $prediction['predicted_price']) }}</span>
                             </div>
                             @endif
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
@@ -160,7 +162,7 @@
                             </div>
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Min Increment</span>
-                                <span class="text-lg font-bold text-gray-800">${{ number_format($auction->min_bid_increment, 2) }}</span>
+                                <span class="text-lg font-bold text-gray-800">{{ format_price((float) $auction->min_bid_increment) }}</span>
                             </div>
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Seller</span>
@@ -374,7 +376,7 @@
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <span class="text-sm font-bold text-gray-900">${{ number_format($bid->amount, 2) }}</span>
+                                        <span class="text-sm font-bold text-gray-900">{{ format_price((float) $bid->amount) }}</span>
                                         <span class="block text-xs text-gray-400">{{ $bid->created_at->diffForHumans() }}</span>
                                     </div>
                                 </div>
@@ -485,8 +487,9 @@
                         <div class="text-center mb-6">
                             <span class="block text-sm text-gray-500 uppercase tracking-wide">Current Price</span>
                             <span id="price-display" class="text-5xl font-black text-green-600 transition-colors duration-300" aria-live="polite" aria-atomic="true">
-                                ${{ number_format($auction->current_price, 2) }}
+                                {{ format_price((float) $auction->current_price) }}
                             </span>
+                            <p class="mt-2 text-xs text-gray-400">Display only. Bids and payments are submitted in USD.</p>
                             @if($auction->highestBid && $auction->highestBid->user)
                                 <p class="text-xs text-gray-400 mt-1">
                                     by <span id="highest-bidder" class="font-medium">{{ $auction->highestBid->user->name }}</span>
@@ -524,8 +527,13 @@
                             <form id="bid-form" class="space-y-4" aria-describedby="countdown">
                                 <div>
                                     <label for="bid-amount" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Your Bid <span class="text-gray-400">(min $<span id="min-bid">{{ number_format($auction->minimumNextBid(), 2) }}</span>)</span>
+                                        Your Bid (USD)
                                     </label>
+                                    <p id="display-minimum-note" class="mb-3 text-xs text-gray-500">
+                                        Minimum bid:
+                                        <span class="font-semibold text-gray-700">{{ format_price((float) $auction->minimumNextBid()) }}</span>
+                                        <span class="text-gray-400">(equivalent of $<span id="min-bid-usd">{{ number_format($auction->minimumNextBid(), 2) }}</span> USD)</span>
+                                    </p>
                                     <div class="grid grid-cols-3 gap-2 mb-3"
                                      x-data="quickBid({ minBid: {{ (float) $auction->minimumNextBid() }}, currentPrice: {{ (float) $auction->current_price }}, increment: {{ (float) $auction->min_bid_increment }} })"
                                      x-init="init()">
@@ -564,7 +572,7 @@
                                 <p class="text-lg font-semibold">Auction has ended</p>
                                 @if($auction->winner)
                                     <p class="mt-1">Won by <span class="font-bold text-gray-800">{{ $auction->winner->name }}</span></p>
-                                    <p class="text-green-600 font-bold text-xl mt-1">${{ number_format($auction->winning_bid_amount, 2) }}</p>
+                                    <p class="text-green-600 font-bold text-xl mt-1">{{ format_price((float) $auction->winning_bid_amount) }}</p>
                                 @else
                                     <p class="mt-1 text-sm">No winner determined.</p>
                                 @endif
@@ -587,9 +595,9 @@
                             @if($autoBid)
                                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                                     <p class="text-sm text-blue-800">
-                                        Active up to <span class="font-bold">${{ number_format($autoBid->max_amount, 2) }}</span>
+                                        Active up to <span class="font-bold">{{ format_price((float) $autoBid->max_amount) }}</span>
                                     </p>
-                                    <p class="text-xs text-blue-700 mt-1">Up to 3 automatic bids per activation.</p>
+                                    <p class="text-xs text-blue-700 mt-1">Stored and submitted in USD ({{ '$' . number_format((float) $autoBid->max_amount, 2) }}). Up to 3 automatic bids per activation.</p>
                                     <button onclick="cancelAutoBid()" class="mt-2 text-xs text-red-600 hover:text-red-800 font-medium underline">
                                         Cancel Auto-Bid
                                     </button>
@@ -621,10 +629,55 @@
     {{-- Countdown Timer Script --}}
     <script>
         (function() {
+            const displayCurrency = @json($displayCurrency);
+            const displayRate = {{ json_encode($displayRate) }};
+            const zeroDecimalCurrencies = ['JPY', 'VND'];
             const countdownEl = document.getElementById('countdown');
             const snipeWarningEl = document.getElementById('snipe-warning');
             const snipeThreshold = {{ $auction->snipe_threshold_seconds ?? 30 }};
             let endTime = new Date(countdownEl.dataset.end).getTime();
+
+            window.formatDisplayPrice = function(amountUsd) {
+                const converted = Number(amountUsd) * Number(displayRate || 1);
+                const decimals = zeroDecimalCurrencies.includes(displayCurrency) ? 0 : 2;
+                const localized = Number(converted).toLocaleString(undefined, {
+                    minimumFractionDigits: decimals,
+                    maximumFractionDigits: decimals,
+                });
+
+                switch (displayCurrency) {
+                    case 'EUR':
+                        return '€' + localized;
+                    case 'GBP':
+                        return '£' + localized;
+                    case 'JPY':
+                        return '¥' + localized;
+                    case 'VND':
+                        return '₫' + localized;
+                    default:
+                        return '$' + Number(amountUsd).toFixed(2);
+                }
+            };
+
+            window.updateBidMinimum = function(nextMinUsd) {
+                const numericUsd = Number(nextMinUsd);
+
+                if (!Number.isFinite(numericUsd)) {
+                    return;
+                }
+
+                const input = document.getElementById('bid-amount');
+                const displayNoteEl = document.getElementById('display-minimum-note');
+
+                if (displayNoteEl) {
+                    displayNoteEl.innerHTML = `Minimum bid: <span class="font-semibold text-gray-700">${window.formatDisplayPrice(numericUsd)}</span> <span class="text-gray-400">(equivalent of $<span id="min-bid-usd">${numericUsd.toFixed(2)}</span> USD)</span>`;
+                }
+
+                if (input) {
+                    input.min = numericUsd.toFixed(2);
+                    input.value = numericUsd.toFixed(2);
+                }
+            };
 
             function updateCountdown() {
                 const now = Date.now();
@@ -704,12 +757,8 @@
                 if (response.ok) {
                     successDiv.textContent = data.message;
                     successDiv.classList.remove('hidden');
-                    document.getElementById('price-display').innerText = '$' + parseFloat(data.new_price).toFixed(2);
-                    // Update min bid
-                    const nextMin = (parseFloat(data.new_price) + {{ (float) $auction->min_bid_increment }}).toFixed(2);
-                    document.getElementById('min-bid').textContent = nextMin;
-                    document.getElementById('bid-amount').min = nextMin;
-                    document.getElementById('bid-amount').value = nextMin;
+                    document.getElementById('price-display').innerText = data.display_price ?? window.formatDisplayPrice(data.new_price);
+                    window.updateBidMinimum(data.minimum_next_bid ?? (parseFloat(data.new_price) + {{ (float) $auction->min_bid_increment }}));
                 } else {
                     errorDiv.textContent = data.message || 'Bid rejected.';
                     errorDiv.classList.remove('hidden');
@@ -776,8 +825,8 @@
                 if (response.ok) {
                     document.getElementById('auto-bid-status').innerHTML = `
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                            <p class="text-sm text-blue-800">Active up to <span class="font-bold">$${parseFloat(maxAmount).toFixed(2)}</span></p>
-                            <p class="text-xs text-blue-700 mt-1">Up to 3 automatic bids per activation.</p>
+                            <p class="text-sm text-blue-800">Active up to <span class="font-bold">${window.formatDisplayPrice(parseFloat(maxAmount))}</span></p>
+                            <p class="text-xs text-blue-700 mt-1">Stored and submitted in USD ($${parseFloat(maxAmount).toFixed(2)}). Up to 3 automatic bids per activation.</p>
                             <button onclick="cancelAutoBid()" class="mt-2 text-xs text-red-600 hover:text-red-800 font-medium underline">Cancel Auto-Bid</button>
                         </div>`;
                     document.getElementById('auto-bid-form').classList.add('hidden');
@@ -858,6 +907,13 @@
                     const currentPrice = Number(data.current_price ?? data.new_price);
 
                     if (Number.isFinite(currentPrice)) {
+                        const priceEl = document.getElementById('price-display');
+                        if (priceEl) {
+                            priceEl.textContent = data.display_price ?? window.formatDisplayPrice(currentPrice);
+                        }
+
+                        window.updateBidMinimum(data.next_minimum ?? (currentPrice + {{ (float) $auction->min_bid_increment }}));
+
                         window.dispatchEvent(new CustomEvent('price:updated', {
                             detail: {
                                 auctionId,

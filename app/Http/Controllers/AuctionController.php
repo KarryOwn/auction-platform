@@ -208,6 +208,9 @@ class AuctionController extends Controller
             [
                 'auction_id' => (int) $auction->id,
                 'new_price' => (float) $auction->current_price,
+                'display_price' => format_price((float) $auction->current_price),
+                'display_currency' => display_currency(),
+                'formatted_next_minimum' => format_price((float) $auction->minimumNextBid()),
                 'recent_bids' => $recentBids,
             ]
         ));
@@ -279,7 +282,7 @@ class AuctionController extends Controller
 
         return response()->json([
             'success'    => true,
-            'message'    => 'Auto-bid set up to $' . number_format($autoBid->max_amount, 2),
+            'message'    => 'Auto-bid set up to ' . format_price((float) $autoBid->max_amount),
             'auto_bid'   => $autoBid,
         ]);
     }

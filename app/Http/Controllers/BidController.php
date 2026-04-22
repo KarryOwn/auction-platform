@@ -18,6 +18,7 @@ class BidController extends Controller
         $validated = $request->validated();
 
         try {
+            $displayCurrency = display_currency();
             $bid = $this->biddingStrategy->placeBid(
                 auction: $auction,
                 user: $request->user(),
@@ -28,10 +29,17 @@ class BidController extends Controller
                 ],
             );
 
+            $freshAuction = $auction->fresh();
+            $minimumNextBid = (float) $freshAuction->minimumNextBid();
+
             return response()->json([
                 'success'   => true,
                 'message'   => 'Bid accepted!',
                 'new_price' => (float) $bid->amount,
+                'display_price' => format_price((float) $bid->amount, $displayCurrency),
+                'display_currency' => $displayCurrency,
+                'minimum_next_bid' => $minimumNextBid,
+                'formatted_minimum_next_bid' => format_price($minimumNextBid, $displayCurrency),
                 'bid_type'  => $bid->bid_type ?? 'manual',
             ]);
         } catch (BidValidationException $e) {

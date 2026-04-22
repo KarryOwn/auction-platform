@@ -150,7 +150,7 @@ class Auction extends Model implements HasMedia
         }
 
         return $this->reserve_price_visible
-            ? number_format((float) $this->reserve_price, 2)
+            ? format_price((float) $this->reserve_price)
             : null;
     }
 

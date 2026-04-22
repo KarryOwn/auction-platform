@@ -16,6 +16,7 @@ class AuctionResource extends JsonResource
             'id'                    => $this->id,
             'title'                 => $this->title,
             'current_price'         => (float) $this->current_price,
+            'formatted_current_price' => format_price((float) $this->current_price),
             'reserve_met'           => (bool) $this->reserve_met,
             'reserve_price'         => ($this->reserve_price_visible || $isOwner || $isStaff)
                                         ? (float) $this->reserve_price
@@ -23,9 +24,11 @@ class AuctionResource extends JsonResource
             'reserve_price_visible' => (bool) $this->reserve_price_visible,
             'has_reserve'           => $this->hasReserve(),
             'buy_it_now_price'      => (float) $this->buy_it_now_price,
+            'formatted_buy_it_now_price' => $this->buy_it_now_price !== null ? format_price((float) $this->buy_it_now_price) : null,
             'buy_it_now_enabled'    => (bool) $this->buy_it_now_enabled,
             'is_buy_it_now_available' => $this->isBuyItNowAvailable(),
             'next_minimum'          => (float) $this->minimumNextBid(),
+            'formatted_next_minimum' => format_price((float) $this->minimumNextBid()),
             'bid_count'             => (int) ($this->bids_count ?? $this->bid_count ?? 0),
             'highest_bidder_name'   => $this->highestBid?->user?->name,
         ];

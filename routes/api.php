@@ -2,6 +2,7 @@
 
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\ExchangeRate;
 use App\Models\User;
 use App\Models\Auction;
 use App\Contracts\BiddingStrategy;
@@ -69,3 +70,11 @@ Route::post('/stress-test/bid', function (Request $request) {
         return response()->json(['status' => 'failed', 'error' => $e->getMessage()], 409);
     }
 });
+
+Route::get('/exchange-rates', function () {
+    return response()->json(
+        ExchangeRate::where('base_currency', 'USD')
+            ->orderBy('target_currency')
+            ->get(['target_currency', 'rate', 'fetched_at'])
+    );
+})->name('api.exchange-rates');

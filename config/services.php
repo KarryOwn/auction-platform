@@ -53,4 +53,9 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+    'exchange_rate' => [
+        'api_key' => env('EXCHANGE_RATE_API_KEY'),
+        'url' => env('EXCHANGE_RATE_API_URL', 'https://api.exchangeratesapi.io/v1/latest'),
+    ],
+
 ];

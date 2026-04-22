@@ -47,6 +47,7 @@ use App\Http\Controllers\User\WithdrawalController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\StripeConnectController;
 use App\Models\Auction;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Cache;
@@ -77,6 +78,23 @@ Route::get('/api/categories/{id}/commission', function (int $id, CategoryService
         'commission_pct' => round($rate * 100, 2),
     ]);
 })->name('api.categories.commission');
+
+Route::post('/preferences/currency', function (Request $request) {
+    $validated = $request->validate([
+        'currency' => ['required', Rule::in(config('auction.supported_currencies', ['USD']))],
+    ]);
+
+    $currency = strtoupper($validated['currency']);
+
+    if ($request->user()) {
+        $request->user()->userPreference()->updateOrCreate(
+            ['user_id' => $request->user()->id],
+            ['display_currency' => $currency]
+        );
+    }
+
+    return back()->withCookie(cookie('display_currency', $currency, 60 * 24 * 365));
+})->name('preferences.currency');
 
 // Public user profiles
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('users.show');

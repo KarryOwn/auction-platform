@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\CaptureReferralCode::class,
             \App\Http\Middleware\EnsureNotBanned::class,
+            \App\Http\Middleware\SetUserLocale::class,
+            \App\Http\Middleware\SetDisplayCurrency::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

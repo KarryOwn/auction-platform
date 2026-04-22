@@ -42,6 +42,19 @@
 
                 <!-- Right Side Actions -->
                 <div class="hidden md:flex items-center gap-4">
+                    <form method="POST" action="{{ route('preferences.currency') }}" class="mr-2">
+                        @csrf
+                        <label for="welcome-display-currency" class="sr-only">Display currency</label>
+                        <select id="welcome-display-currency"
+                                name="currency"
+                                onchange="this.form.submit()"
+                                class="rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            @foreach(config('auction.supported_currencies', ['USD']) as $currency)
+                                <option value="{{ $currency }}" @selected(display_currency() === $currency)>{{ $currency }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+
                     @auth
                         <a href="{{ url('/dashboard') }}" class="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
                             Dashboard
@@ -154,7 +167,7 @@
                                 <div class="flex-1 min-w-0">
                                     <h3 class="text-white font-semibold truncate">{{ $auction->title }}</h3>
                                     <div class="text-indigo-200 text-sm font-bold flex items-center gap-2">
-                                        <span>${{ number_format($auction->current_price, 2) }}</span>
+                                        <span>{{ format_price((float) $auction->current_price) }}</span>
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                             <span class="flex h-1.5 w-1.5 relative mr-1.5">
                                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
