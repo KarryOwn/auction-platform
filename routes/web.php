@@ -60,7 +60,9 @@ Route::get('/', function () {
     $endingSoonAuctions = Cache::remember('ending_soon_auctions', 60, fn() => 
         Auction::active()->where('end_time', '<=', now()->addHours(6))->orderBy('end_time')->take(8)->get()
     );
-    return view('welcome', compact('liveCount', 'featuredAuctions', 'endingSoonAuctions'));
+    $featuredCategories = app(CategoryService::class)->getFeaturedCategories();
+
+    return view('welcome', compact('liveCount', 'featuredAuctions', 'endingSoonAuctions', 'featuredCategories'));
 });
 
 // Stripe Webhook (outside all middleware — no CSRF)
@@ -342,6 +344,9 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
     Route::patch('/categories/{category}/toggle', [AdminCategoryController::class, 'toggle'])->name('categories.toggle');
     Route::post('/categories/reorder', [AdminCategoryController::class, 'reorder'])->name('categories.reorder');
+    Route::post('/categories/{category}/feature', [AdminCategoryController::class, 'feature'])->name('categories.feature');
+    Route::delete('/categories/{category}/feature', [AdminCategoryController::class, 'unfeature'])->name('categories.unfeature');
+    Route::post('/categories/{category}/featured-banner', [AdminCategoryController::class, 'uploadFeaturedBanner'])->name('categories.featured-banner');
 
     // Brand Management
     Route::get('/brands', [AdminBrandController::class, 'index'])->name('brands.index');

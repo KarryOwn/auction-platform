@@ -12,6 +12,8 @@ class CategoryService
 {
     private const CACHE_TTL = 3600; // 1 hour
     private const ROOT_COUNTS_CACHE_KEY = 'categories:root_with_counts:v2';
+    private const FEATURED_CACHE_KEY = 'categories:featured:v1';
+    private const FEATURED_CACHE_TTL = 300;
 
     /**
      * Get the full nested category tree.
@@ -70,6 +72,20 @@ class CategoryService
             ->get();
 
         return $this->attachLiveAuctionCounts($categories);
+    }
+
+    public function getFeaturedCategories(): Collection
+    {
+        return Cache::remember(self::FEATURED_CACHE_KEY, self::FEATURED_CACHE_TTL, function () {
+            return Category::featured()
+                ->active()
+                ->with('children')
+                ->withCount(['auctions' => function (Builder $query) {
+                    $query->where('status', Auction::STATUS_ACTIVE)
+                        ->where('end_time', '>', now());
+                }])
+                ->get();
+        });
     }
 
     /**
@@ -158,6 +174,7 @@ class CategoryService
         Cache::forget('categories:tree:all');
         Cache::forget('categories:root_with_counts');
         Cache::forget(self::ROOT_COUNTS_CACHE_KEY);
+        Cache::forget(self::FEATURED_CACHE_KEY);
 
         // Clear attribute caches for all categories
         Category::all()->each(function (Category $category) {

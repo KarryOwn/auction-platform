@@ -17,6 +17,11 @@
                 <i class="{{ $category->icon }} text-indigo-600"></i>
             @endif
             {{ $category->name }}
+            @if($category->is_currently_featured)
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                    Featured
+                </span>
+            @endif
         </h2>
     </x-slot>
 

@@ -176,6 +176,71 @@
         </div>
     </div>
 </div>
+
+@if(isset($featuredCategories) && $featuredCategories->isNotEmpty())
+<section class="py-16 bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-700">Featured Categories</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-900 font-serif">Curated categories worth exploring</h2>
+            </div>
+            <a href="{{ route('categories.index') }}" class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                Browse all <span aria-hidden="true">&rarr;</span>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            @foreach($featuredCategories as $category)
+                <a href="{{ route('categories.show', $category) }}"
+                   class="group relative overflow-hidden rounded-3xl border border-gray-200 bg-gray-900 shadow-sm hover:shadow-xl transition-all duration-300 min-h-[320px]">
+                    @if($category->featured_banner_path)
+                        <img src="{{ asset('storage/' . $category->featured_banner_path) }}"
+                             alt="{{ $category->name }}"
+                             class="absolute inset-0 h-full w-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-500">
+                    @elseif($category->image_path)
+                        <img src="{{ asset('storage/' . $category->image_path) }}"
+                             alt="{{ $category->name }}"
+                             class="absolute inset-0 h-full w-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-500">
+                    @endif
+
+                    <div class="absolute inset-0 bg-gradient-to-br from-gray-950/85 via-gray-900/55 to-amber-900/45"></div>
+
+                    <div class="relative flex h-full flex-col justify-between p-6">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm">
+                                @if($category->icon)
+                                    <i class="{{ $category->icon }}"></i>
+                                @endif
+                                Featured
+                            </div>
+                            <span class="inline-flex items-center rounded-full bg-emerald-400/90 px-3 py-1 text-xs font-bold text-emerald-950">
+                                {{ number_format((int) ($category->auctions_count ?? 0)) }} live
+                            </span>
+                        </div>
+
+                        <div>
+                            <h3 class="text-3xl font-bold text-white">{{ $category->name }}</h3>
+                            <p class="mt-3 max-w-md text-sm leading-6 text-gray-200">
+                                {{ $category->featured_tagline ?: ($category->description ?: 'Explore curated items in this featured category.') }}
+                            </p>
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-white/15 pt-4 text-white">
+                            <span class="text-sm font-medium">Shop Now</span>
+                            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm group-hover:bg-white/25 transition">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
 <!-- Featured Auctions section -->
 <section class="py-16 bg-gray-50 border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

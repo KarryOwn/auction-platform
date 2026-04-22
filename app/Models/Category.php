@@ -26,6 +26,11 @@ class Category extends Model
         'sort_order',
         'commission_rate',
         'is_active',
+        'is_featured',
+        'featured_until',
+        'featured_sort_order',
+        'featured_banner_path',
+        'featured_tagline',
         'depth',
         'path',
     ];
@@ -34,6 +39,9 @@ class Category extends Model
         'sort_order' => 'integer',
         'commission_rate' => 'decimal:4',
         'is_active'  => 'boolean',
+        'is_featured' => 'boolean',
+        'featured_until' => 'datetime',
+        'featured_sort_order' => 'integer',
         'depth'      => 'integer',
     ];
 
@@ -112,6 +120,17 @@ class Category extends Model
         return $query->orderBy('sort_order')->orderBy('name');
     }
 
+    public function scopeFeatured(Builder $query): Builder
+    {
+        return $query->where('is_featured', true)
+            ->where(function (Builder $q) {
+                $q->whereNull('featured_until')
+                    ->orWhere('featured_until', '>', now());
+            })
+            ->orderBy('featured_sort_order')
+            ->orderBy('name');
+    }
+
     // ── Accessors / Helpers ───────────────────────────────
 
     /**
@@ -159,6 +178,12 @@ class Category extends Model
     public function getEffectiveCommissionPercentAttribute(): float
     {
         return round($this->effective_commission_rate * 100, 2);
+    }
+
+    public function getIsCurrentlyFeaturedAttribute(): bool
+    {
+        return $this->is_featured
+            && ($this->featured_until === null || $this->featured_until->isFuture());
     }
 
     /**

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 
 class WarmCache extends Command
 {
-    protected $signature = 'cache:warm {--key=* : Cache key(s) to warm: category_tree, featured_auctions, root_categories, live_auction_count}';
+    protected $signature = 'cache:warm {--key=* : Cache key(s) to warm: category_tree, featured_auctions, featured_categories, root_categories, live_auction_count}';
 
     protected $description = 'Warm up application caches for performance';
 
@@ -28,6 +28,7 @@ class WarmCache extends Command
         $warmers = [
             'category_tree' => fn () => Cache::remember('category_tree', 3600, fn () => $this->categoryService->getTree()),
             'featured_auctions' => fn () => Cache::remember('featured_auctions', 300, fn () => Auction::featured()->with('media')->take(8)->get()),
+            'featured_categories' => fn () => Cache::remember('categories:featured:v1', 300, fn () => $this->categoryService->getFeaturedCategories()),
             'root_categories' => fn () => Cache::remember('root_categories', 1800, fn () => Category::root()->with('children')->withCount('auctions')->get()),
             'live_auction_count' => fn () => Cache::remember('live_auction_count', 60, fn () => Auction::active()->count()),
         ];

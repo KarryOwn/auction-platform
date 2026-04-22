@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
+use App\Models\AuditLog;
 use App\Models\Category;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
@@ -153,5 +154,71 @@ class CategoryController extends Controller
         $this->categoryService->invalidateCache();
 
         return response()->json(['success' => true, 'message' => 'Categories reordered.']);
+    }
+
+    public function feature(Request $request, Category $category): JsonResponse
+    {
+        $validated = $request->validate([
+            'duration_hours' => ['required', 'integer', 'min:1', 'max:8760'],
+            'featured_sort_order' => ['nullable', 'integer', 'min:0'],
+            'featured_tagline' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        $featuredUntil = now()->addHours((int) $validated['duration_hours']);
+
+        $category->update([
+            'is_featured' => true,
+            'featured_until' => $featuredUntil,
+            'featured_sort_order' => $validated['featured_sort_order'] ?? 0,
+            'featured_tagline' => $validated['featured_tagline'] ?? null,
+        ]);
+
+        $this->categoryService->invalidateCache();
+
+        AuditLog::record('category.featured', 'category', $category->id, [
+            'featured_until' => $featuredUntil->toIso8601String(),
+            'featured_sort_order' => $validated['featured_sort_order'] ?? 0,
+            'featured_tagline' => $validated['featured_tagline'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Category featured until {$featuredUntil->format('M d, Y H:i')}.",
+        ]);
+    }
+
+    public function unfeature(Category $category): JsonResponse
+    {
+        $category->update([
+            'is_featured' => false,
+            'featured_until' => null,
+        ]);
+
+        $this->categoryService->invalidateCache();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Featured status removed.',
+        ]);
+    }
+
+    public function uploadFeaturedBanner(Request $request, Category $category): JsonResponse
+    {
+        $validated = $request->validate([
+            'banner' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $path = $validated['banner']->store('categories/banners', 'public');
+
+        $category->update([
+            'featured_banner_path' => $path,
+        ]);
+
+        $this->categoryService->invalidateCache();
+
+        return response()->json([
+            'success' => true,
+            'banner_url' => asset('storage/'.$path),
+        ]);
     }
 }

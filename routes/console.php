@@ -7,6 +7,8 @@ use App\Jobs\CreateRandomAuction;
 use App\Jobs\CloseExpiredAuctions;
 use App\Jobs\CaptureAuctionSnapshots;
 use App\Jobs\CleanupStaleEscrowHolds;
+use App\Models\Category;
+use App\Services\CategoryService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -56,6 +58,11 @@ Schedule::command('cache:warm --key=featured_auctions')
     ->name('warm-featured-auctions-cache')
     ->withoutOverlapping();
 
+Schedule::command('cache:warm --key=featured_categories')
+    ->everyFiveMinutes()
+    ->name('warm-featured-categories-cache')
+    ->withoutOverlapping();
+
 Schedule::command('cache:warm --key=category_tree --key=root_categories')
     ->hourly()
     ->name('warm-category-tree-and-roots-cache')
@@ -66,6 +73,15 @@ Schedule::call(fn () => app(\App\Services\VacationModeService::class)->autoDeact
     ->everyFiveMinutes()
     ->name('auto-deactivate-vacation-mode')
     ->withoutOverlapping();
+
+Schedule::call(function () {
+    Category::where('is_featured', true)
+        ->whereNotNull('featured_until')
+        ->where('featured_until', '<=', now())
+        ->update(['is_featured' => false]);
+
+    app(CategoryService::class)->invalidateCache();
+})->hourly()->name('unfeature-expired-categories');
 
 Schedule::call(function () {
     \App\Models\User::where('is_deactivated', true)
@@ -81,4 +97,3 @@ Schedule::call(function () {
             $export->update(['status' => 'expired', 'file_path' => null]);
         });
 })->hourly()->name('purge-expired-exports');
-
