@@ -8,10 +8,18 @@ return [
     |--------------------------------------------------------------------------
     |
     | Choose which bidding engine to use: 'redis' or 'sql'.
-    | Redis is recommended for high-frequency platforms.
+    | 'redis' = RedisAtomicEngine (auto-falls back to SQL if Redis unavailable)
+    | 'sql'   = PessimisticSqlEngine (forced, for maintenance or Redis-unavailable environments)
     |
     */
     'engine' => env('AUCTION_ENGINE', 'redis'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Operations Email
+    |--------------------------------------------------------------------------
+    */
+    'ops_email' => env('OPS_EMAIL', 'ops@example.com'),
 
     /*
     |--------------------------------------------------------------------------
