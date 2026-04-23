@@ -1,14 +1,20 @@
 :root {
-  /* Colors - Light Mode */
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
+  /* BidFlow theme - Light Mode */
+  --color-primary: #355e3b;
+  --color-primary-hover: #25452b;
+  --color-primary-soft: #eaf3ec;
+  --color-primary-ring: rgba(53, 94, 59, 0.28);
+  --color-accent: #c9802f;
+  --color-accent-hover: #a96724;
+  --color-accent-soft: #fff4e6;
   --color-surface: #ffffff;
-  --color-surface-raised: #ffffff;
-  --color-surface-sunken: #f9fafb;
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
+  --color-surface-raised: rgba(255, 255, 255, 0.94);
+  --color-surface-sunken: #f5f1e8;
+  --color-surface-tint: #fbf7ef;
+  --color-border: rgba(71, 55, 36, 0.12);
+  --color-text-primary: #1f2933;
+  --color-text-secondary: #667085;
+  --color-text-muted: #98a2b3;
   --color-success: #16a34a;
   --color-danger: #dc2626;
   --color-warning: #f59e0b;
@@ -17,7 +23,7 @@
   --color-bid-live: #22c55e;
   --color-snipe: #f97316;
   --color-bin-badge: #f59e0b;
-  --color-lot-badge: #7c3aed;
+  --color-lot-badge: #355e3b;
   --color-vacation: #6b7280;
   --color-cert-verified: #16a34a;
   --color-preview-banner: #f59e0b;
@@ -35,19 +41,20 @@
   --space-16: 64px;
 
   /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 20px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 rgb(31 41 51 / 0.04), 0 1px 0 rgb(71 55 36 / 0.06);
+  --shadow-md: 0 14px 30px -22px rgb(31 41 51 / 0.35), 0 3px 10px -6px rgb(31 41 51 / 0.16);
+  --shadow-lg: 0 24px 60px -36px rgb(31 41 51 / 0.45), 0 10px 24px -18px rgb(31 41 51 / 0.25);
 
   /* Typography */
-  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: "Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -64,16 +71,22 @@
 }
 
 :root.dark {
-  /* Colors - Dark Mode */
-  --color-primary: #818cf8;
-  --color-primary-hover: #a5b4fc;
-  --color-surface: #111827;
-  --color-surface-raised: #1f2937;
-  --color-surface-sunken: #030712;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text-primary: #f9fafb;
-  --color-text-secondary: #9ca3af;
-  --color-text-muted: #4b5563;
+  /* BidFlow theme - Dark Mode */
+  --color-primary: #8fc39a;
+  --color-primary-hover: #b6d8bd;
+  --color-primary-soft: rgba(143, 195, 154, 0.12);
+  --color-primary-ring: rgba(143, 195, 154, 0.28);
+  --color-accent: #e5a762;
+  --color-accent-hover: #f1bd82;
+  --color-accent-soft: rgba(229, 167, 98, 0.12);
+  --color-surface: #111816;
+  --color-surface-raised: #17211d;
+  --color-surface-sunken: #0b1210;
+  --color-surface-tint: #141d1a;
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-text-primary: #f8faf8;
+  --color-text-secondary: #c7d0c8;
+  --color-text-muted: #8f9a91;
   --color-success: #4ade80;
   --color-danger: #f87171;
   --color-warning: #fbbf24;

@@ -6,18 +6,18 @@
         <title>Messages</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="bg-gray-50 font-sans antialiased">
+    <body class="theme-shell font-sans antialiased">
         <div class="h-screen flex flex-col pt-4 overflow-y-auto w-full p-4">
             <h2 class="text-xl font-bold mb-4">Buyer Messages</h2>
             <div class="w-full">
-                <ul class="divide-y bg-white rounded-lg border shadow-sm">
+                <ul class="theme-card divide-y">
                     @foreach($conversations as $conversation)
                         <li class="p-3 flex justify-between items-center hover:bg-gray-50 transition">
                             <div class="truncate">
                                 <p class="font-medium truncate">{{ $conversation->auction->title }}</p>
                                 <p class="text-xs text-gray-500">Buyer: {{ $conversation->buyer->name }}</p>
                             </div>
-                            <a href="{{ route('seller.messages.show', $conversation) }}?layout=minimal" class="text-indigo-600 text-sm font-semibold ml-2 shrink-0 bg-indigo-50 px-3 py-1 rounded">Open</a>
+                            <a href="{{ route('seller.messages.show', $conversation) }}?layout=minimal" class="theme-link text-sm ml-2 shrink-0 bg-brand-soft px-3 py-1 rounded-full">Open</a>
                         </li>
                     @endforeach
                 </ul>
@@ -40,7 +40,7 @@
                                     <p class="font-medium text-gray-900">{{ $conversation->auction->title }}</p>
                                     <p class="text-sm text-gray-500">Buyer: {{ $conversation->buyer->name }}</p>
                                 </div>
-                                <a href="{{ route('seller.messages.show', $conversation) }}" class="text-white bg-indigo-600 px-4 py-2 rounded-md hover:bg-indigo-700 transition">View Discussion</a>
+                                <a href="{{ route('seller.messages.show', $conversation) }}" class="theme-button theme-button-primary text-sm">View Discussion</a>
                             </li>
                         @empty
                             <li class="py-4 text-center text-gray-500">No messages yet.</li>

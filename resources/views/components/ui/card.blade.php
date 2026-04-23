@@ -12,20 +12,20 @@
         default => 'p-6',
     };
 
-    $baseClasses = 'bg-white dark:bg-gray-800 rounded-xl overflow-hidden';
+    $baseClasses = 'theme-card overflow-hidden';
     
     if ($border) {
-        $baseClasses .= ' border border-gray-200 dark:border-gray-700';
+        $baseClasses .= ' border border-[var(--color-border)]';
     }
 
     if ($hover) {
-        $baseClasses .= ' hover:shadow-md transition-shadow duration-200 cursor-pointer';
+        $baseClasses .= ' theme-card-hover cursor-pointer';
     }
 @endphp
 
 <div {{ $attributes->merge(['class' => $baseClasses]) }}>
     @if(isset($header))
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-[var(--color-border)]">
             {{ $header }}
         </div>
     @endif
@@ -35,7 +35,7 @@
     </div>
 
     @if(isset($footer))
-        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+        <div class="px-6 py-4 border-t border-[var(--color-border)] bg-surface-tint">
             {{ $footer }}
         </div>
     @endif

@@ -24,12 +24,12 @@
 
         @stack('head')
     </head>
-    <body class="font-sans text-gray-900 bg-gray-50 dark:bg-gray-900 dark:text-gray-100" data-authenticated="@auth true @else false @endauth">
-        <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-indigo-600 focus:rounded-lg focus:shadow-lg">
+    <body class="font-sans text-gray-900 bg-surface-sunken dark:bg-gray-900 dark:text-gray-100" data-authenticated="@auth true @else false @endauth">
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-brand focus:rounded-lg focus:shadow-lg">
             Skip to main content
         </a>
 
-        <div id="page-progress" class="fixed left-0 top-0 z-[120] h-0.5 w-0 bg-indigo-600 opacity-0 transition-all duration-300 pointer-events-none"></div>
+        <div id="page-progress" class="fixed left-0 top-0 z-[120] h-0.5 w-0 bg-brand opacity-0 transition-all duration-300 pointer-events-none"></div>
 
         <!-- Global Toast Container -->
         <div
@@ -50,7 +50,7 @@
                     x-transition:leave="transition ease-in duration-200"
                     x-transition:leave-start="opacity-100 translate-y-0 pointer-events-auto"
                     x-transition:leave-end="opacity-0 translate-y-2 pointer-events-none"
-                    class="pointer-events-auto relative w-full flex items-start gap-4 px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg shadow-lg border-gray-200 dark:border-gray-700"
+                    class="theme-card pointer-events-auto relative w-full flex items-start gap-4 px-4 py-3"
                 >
                     <div class="flex-shrink-0 pt-0.5">
                         <template x-if="toast.type === 'success'">
@@ -70,7 +70,7 @@
                         <p class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="toast.message"></p>
                     </div>
                     <div class="flex-shrink-0 flex">
-                        <button type="button" @click="toasts = toasts.filter(i => i.id !== toast.id)" class="inline-flex rounded-md bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <button type="button" @click="toasts = toasts.filter(i => i.id !== toast.id)" class="inline-flex rounded-md bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
                             <span class="sr-only">Close</span>
                             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
                         </button>
@@ -79,13 +79,13 @@
             </template>
         </div>
 
-        <div class="min-h-screen">
+        <div class="theme-shell min-h-screen">
             @include('layouts.navigation')
             @include('partials.maintenance-banner')
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="bg-white shadow">
+                <header class="theme-page-header">
                     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>

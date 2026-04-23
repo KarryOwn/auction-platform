@@ -43,7 +43,7 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Conversion Funnel</h3>
 
                 <div class="space-y-3">
-                    <div class="mx-auto w-full max-w-4xl text-white px-4 py-4 bg-blue-600" style="clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);">
+                    <div class="mx-auto w-full max-w-4xl text-white px-4 py-4 bg-[#1f3425]" style="clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);">
                         <div class="flex items-center justify-between text-sm sm:text-base font-medium">
                             <span>Views</span>
                             <span>{{ $funnel['views'] }}</span>
@@ -51,7 +51,7 @@
                         </div>
                     </div>
 
-                    <div class="mx-auto w-[88%] max-w-4xl text-white px-4 py-4 bg-indigo-600" style="clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);">
+                    <div class="mx-auto w-[88%] max-w-4xl text-white px-4 py-4 bg-[#355e3b]" style="clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);">
                         <div class="flex items-center justify-between text-sm sm:text-base font-medium">
                             <span>Watchers</span>
                             <span>{{ $funnel['watchers'] }}</span>
@@ -59,7 +59,7 @@
                         </div>
                     </div>
 
-                    <div class="mx-auto w-[76%] max-w-4xl text-white px-4 py-4 bg-purple-600" style="clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);">
+                    <div class="mx-auto w-[76%] max-w-4xl text-white px-4 py-4 bg-[#7a5a2b]" style="clip-path: polygon(10% 0%, 90% 0%, 100% 100%, 0% 100%);">
                         <div class="flex items-center justify-between text-sm sm:text-base font-medium">
                             <span>Bidders</span>
                             <span>{{ $funnel['bidders'] }}</span>

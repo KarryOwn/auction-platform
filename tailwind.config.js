@@ -13,9 +13,24 @@ export default {
 
     theme: {
         extend: {
+            colors: {
+                brand: {
+                    DEFAULT: 'var(--color-primary)',
+                    hover: 'var(--color-primary-hover)',
+                    soft: 'var(--color-primary-soft)',
+                    accent: 'var(--color-accent)',
+                },
+                surface: {
+                    DEFAULT: 'var(--color-surface)',
+                    raised: 'var(--color-surface-raised)',
+                    sunken: 'var(--color-surface-sunken)',
+                    tint: 'var(--color-surface-tint)',
+                },
+            },
             fontFamily: {
                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
                 serif: ['"Playfair Display"', ...defaultTheme.fontFamily.serif],
+                display: ['"Playfair Display"', ...defaultTheme.fontFamily.serif],
             },
             animation: {
                 blob: "blob 7s infinite",

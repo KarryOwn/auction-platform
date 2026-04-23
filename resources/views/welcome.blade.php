@@ -9,20 +9,16 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800|playfair-display:600,700" rel="stylesheet" />
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        .font-serif { font-family: 'Playfair Display', serif; }
-        .font-sans { font-family: 'Inter', sans-serif; }
-    </style>
 </head>
-<body class="antialiased text-gray-900 bg-gray-50 font-sans">
+<body class="theme-shell antialiased text-gray-900 font-sans">
     <!-- Navbar -->
-    <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 transition-all duration-300" id="navbar">
+    <nav class="theme-topbar fixed w-full z-50 transition-all duration-300" id="navbar">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-20 items-center">
                 <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
                     <a href="{{ url('/') }}" class="flex items-center gap-2 group">
-                        <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center transform group-hover:-rotate-12 transition-transform duration-300 shadow-lg shadow-indigo-200">
+                        <div class="w-10 h-10 bg-brand text-white rounded-xl flex items-center justify-center transform group-hover:-rotate-12 transition-transform duration-300 shadow-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
@@ -33,10 +29,10 @@
 
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex items-center gap-8">
-                    <div class="hidden md:flex space-x-8 text-sm font-medium text-gray-600">
-                        <a href="{{ route('auctions.index') }}" class="hover:text-indigo-600 transition-colors">Browse Auctions</a>
-                        <a href="{{ route('categories.index') }}" class="hover:text-indigo-600 transition-colors">Categories</a>
-                        <a href="#how-it-works" class="hover:text-indigo-600 transition-colors">How it Works</a>
+                    <div class="hidden md:flex space-x-8 text-sm font-semibold text-gray-600">
+                        <a href="{{ route('auctions.index') }}" class="hover:text-brand transition-colors">Browse Auctions</a>
+                        <a href="{{ route('categories.index') }}" class="hover:text-brand transition-colors">Categories</a>
+                        <a href="#how-it-works" class="hover:text-brand transition-colors">How it Works</a>
                     </div>
                 </div>
 
@@ -48,7 +44,7 @@
                         <select id="welcome-display-currency"
                                 name="currency"
                                 onchange="this.form.submit()"
-                                class="rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                class="rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm focus:border-brand focus:ring-brand">
                             @foreach(config('auction.supported_currencies', ['USD']) as $currency)
                                 <option value="{{ $currency }}" @selected(display_currency() === $currency)>{{ $currency }}</option>
                             @endforeach
@@ -56,19 +52,19 @@
                     </form>
 
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+                        <a href="{{ auth()->user()->isStaff() ? route('admin.dashboard') : route('dashboard') }}" class="text-sm font-semibold text-gray-700 hover:text-brand transition-colors">
                             Dashboard
                         </a>
                         <!-- Profile Dropdown simplified for welcome page, user can go to dashboard -->
-                        <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold ml-2">
+                        <div class="h-8 w-8 rounded-full bg-brand-soft flex items-center justify-center text-brand font-bold ml-2">
                             {{ substr(Auth::user()->name, 0, 1) }}
                         </div>
                     @else
-                        <a href="{{ route('login') }}" class="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+                        <a href="{{ route('login') }}" class="text-sm font-semibold text-gray-700 hover:text-brand transition-colors">
                             Sign In
                         </a>
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all duration-200">
+                            <a href="{{ route('register') }}" class="theme-button theme-button-primary text-sm">
                                 Create Account
                             </a>
                         @endif
@@ -88,24 +84,24 @@
         </div>
 
         <!-- Mobile Menu -->
-        <div class="md:hidden hidden bg-white border-b border-gray-200 absolute w-full" id="mobile-menu">
+        <div class="md:hidden hidden bg-white/95 backdrop-blur-xl border-b border-[var(--color-border)] absolute w-full" id="mobile-menu">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="{{ route('auctions.index') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Browse Auctions</a>
-                <a href="{{ route('categories.index') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Categories</a>
-                <a href="#how-it-works" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">How it Works</a>
+                <a href="{{ route('auctions.index') }}" class="block px-3 py-2 rounded-md text-base font-semibold text-gray-700 hover:text-brand hover:bg-brand-soft">Browse Auctions</a>
+                <a href="{{ route('categories.index') }}" class="block px-3 py-2 rounded-md text-base font-semibold text-gray-700 hover:text-brand hover:bg-brand-soft">Categories</a>
+                <a href="#how-it-works" class="block px-3 py-2 rounded-md text-base font-semibold text-gray-700 hover:text-brand hover:bg-brand-soft">How it Works</a>
             </div>
             <div class="pt-4 pb-4 border-t border-gray-200">
                 <div class="flex items-center px-5 gap-4">
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="block w-full text-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                        <a href="{{ auth()->user()->isStaff() ? route('admin.dashboard') : route('dashboard') }}" class="theme-button theme-button-primary block w-full text-center text-base">
                             Go to Dashboard
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="block w-1/2 text-center px-4 py-2 border border-gray-300 rounded-lg text-base font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <a href="{{ route('login') }}" class="theme-button theme-button-secondary block w-1/2 text-center text-base">
                             Sign In
                         </a>
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="block w-1/2 text-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                            <a href="{{ route('register') }}" class="theme-button theme-button-primary block w-1/2 text-center text-base">
                                 Register
                             </a>
                         @endif
@@ -120,7 +116,7 @@
     </div>
 
     <!-- Hero Section -->
-<div class="relative pt-12 pb-20 lg:pt-28 lg:pb-32 overflow-hidden bg-gradient-to-br from-indigo-900 to-purple-900">
+<div class="relative pt-12 pb-20 lg:pt-28 lg:pb-32 overflow-hidden bg-gradient-to-br from-[#1f3425] via-[#355e3b] to-[#8a5520]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
             <div class="lg:col-span-6 text-center lg:text-left mb-16 lg:mb-0">
@@ -427,15 +423,15 @@
     <!-- CTA Section -->
     <div class="bg-gray-900 py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-gradient-to-r from-indigo-900 to-gray-800 rounded-3xl p-8 sm:p-16 text-center relative overflow-hidden shadow-2xl border border-gray-700">
+            <div class="bg-gradient-to-r from-[#1f3425] via-[#355e3b] to-[#8a5520] rounded-3xl p-8 sm:p-16 text-center relative overflow-hidden shadow-2xl border border-white/10">
                 <!-- Decorative elements -->
                 <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white opacity-5 mix-blend-overlay"></div>
-                <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-indigo-500 opacity-10 mix-blend-overlay"></div>
+                <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[#c9802f] opacity-10 mix-blend-overlay"></div>
                 
                 <h2 class="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-white mb-6 relative z-10">Ready to start bidding?</h2>
-                <p class="text-indigo-100 text-lg sm:text-xl max-w-2xl mx-auto mb-10 relative z-10">Join thousands of users discovering unique items every day. Creating an account takes less than a minute.</p>
+                <p class="text-green-50 text-lg sm:text-xl max-w-2xl mx-auto mb-10 relative z-10">Join thousands of users discovering unique items every day. Creating an account takes less than a minute.</p>
                 <div class="flex flex-col sm:flex-row justify-center gap-4 relative z-10">
-                    <a href="{{ route('register') }}" class="inline-flex justify-center items-center px-8 py-4 text-base font-bold rounded-xl text-indigo-900 bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-lg">
+                    <a href="{{ route('register') }}" class="inline-flex justify-center items-center px-8 py-4 text-base font-bold rounded-xl text-[#1f3425] bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-lg">
                         Create Free Account
                     </a>
                     <a href="{{ route('auctions.index') }}" class="inline-flex justify-center items-center px-8 py-4 text-base font-bold rounded-xl text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-200 backdrop-blur-sm">

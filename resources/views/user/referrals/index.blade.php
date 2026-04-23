@@ -13,36 +13,36 @@
                 </div>
             @endif
 
-            <div class="overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-xl sm:p-8">
+            <div class="theme-card overflow-hidden p-6 sm:p-8">
                 <div class="grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-200">Referral dashboard</p>
-                        <h3 class="mt-2 text-3xl font-black tracking-tight">Invite friends. Track every reward.</h3>
-                        <p class="mt-3 text-sm leading-6 text-slate-300">Share your referral link with buyers and sellers. Credited rewards land directly in your wallet.</p>
+                        <p class="theme-eyebrow">Referral dashboard</p>
+                        <h3 class="mt-2 text-3xl font-black tracking-tight text-gray-900">Invite friends. Track every reward.</h3>
+                        <p class="mt-3 text-sm leading-6 text-gray-600">Share your referral link with buyers and sellers. Credited rewards land directly in your wallet.</p>
                     </div>
-                    <div class="rounded-2xl border border-white/10 bg-white/10 p-4">
-                        <p class="text-xs uppercase tracking-[0.2em] text-slate-300">Next milestone</p>
-                        <p class="mt-2 text-2xl font-bold">{{ $nextMilestone === 0 ? 'Milestone reached' : "{$nextMilestone} credited referrals to go" }}</p>
-                        <div class="mt-4 h-2 rounded-full bg-white/10">
-                            <div class="h-2 rounded-full bg-indigo-300" style="width: {{ min(100, ($creditedCount / 5) * 100) }}%"></div>
+                    <div class="rounded-2xl border border-[var(--color-border)] bg-brand-soft p-4">
+                        <p class="text-xs uppercase tracking-[0.2em] text-gray-500">Next milestone</p>
+                        <p class="mt-2 text-2xl font-bold text-gray-900">{{ $nextMilestone === 0 ? 'Milestone reached' : "{$nextMilestone} credited referrals to go" }}</p>
+                        <div class="mt-4 h-2 rounded-full bg-white/80">
+                            <div class="h-2 rounded-full bg-brand" style="width: {{ min(100, ($creditedCount / 5) * 100) }}%"></div>
                         </div>
                     </div>
                 </div>
 
                 <div x-data="{ copied: false }" class="mt-6 grid gap-3 lg:grid-cols-[1fr_auto]">
-                    <input type="text" readonly value="{{ $referralLink }}" class="w-full rounded-2xl border-white/10 bg-white/10 text-white shadow-sm placeholder:text-slate-300">
+                    <input type="text" readonly value="{{ $referralLink }}" class="w-full rounded-2xl border-gray-200 bg-white text-gray-900 shadow-sm focus:border-brand focus:ring-brand">
                     <button type="button"
                             @click="navigator.clipboard.writeText('{{ $referralLink }}').then(() => { copied = true; setTimeout(() => copied = false, 2000); })"
-                            class="inline-flex min-h-11 items-center justify-center rounded-2xl bg-indigo-400 px-5 py-2.5 font-bold text-slate-950 hover:bg-indigo-300">
+                            class="theme-button theme-button-primary inline-flex min-h-11 items-center justify-center">
                         <span x-show="!copied">Copy Link</span>
                         <span x-show="copied" x-cloak>Copied</span>
                     </button>
                 </div>
 
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <a href="mailto:?subject={{ rawurlencode('Join me on BidFlow') }}&body={{ rawurlencode($referralLink) }}" class="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">Share by Email</a>
-                    <a href="https://twitter.com/intent/tweet?text={{ rawurlencode('Join me on BidFlow auctions: ' . $referralLink) }}" target="_blank" rel="noopener" class="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">Share on X</a>
-                    <a href="{{ route('user.credits.index') }}" class="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10">Spend credits</a>
+                    <a href="mailto:?subject={{ rawurlencode('Join me on BidFlow') }}&body={{ rawurlencode($referralLink) }}" class="theme-button theme-button-secondary text-sm">Share by Email</a>
+                    <a href="https://twitter.com/intent/tweet?text={{ rawurlencode('Join me on BidFlow auctions: ' . $referralLink) }}" target="_blank" rel="noopener" class="theme-button theme-button-secondary text-sm">Share on X</a>
+                    <a href="{{ route('user.credits.index') }}" class="theme-button theme-button-secondary text-sm">Spend credits</a>
                 </div>
             </div>
 

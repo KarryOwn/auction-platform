@@ -53,7 +53,7 @@
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 {{-- Profile Header --}}
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-32"></div>
+                <div class="bg-gradient-to-r from-[#1f3425] via-[#355e3b] to-[#c9802f] h-32"></div>
                 <div class="px-6 pb-6">
                     <div class="flex items-end -mt-12 mb-4">
                         <div class="w-24 h-24 rounded-full border-4 border-white bg-gray-200 overflow-hidden flex-shrink-0">

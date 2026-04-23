@@ -1,31 +1,41 @@
-<x-app-layout>
-    <x-slot name="header"><h2 class="font-semibold text-xl text-gray-800 leading-tight">Conversation: {{ $conversation->auction->title }}</h2></x-slot>
+@php($isMinimal = request('layout') === 'minimal')
 
-    <div class="py-8">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            <div id="thread" class="bg-white p-6 rounded shadow-sm space-y-3">
-                @foreach($conversation->messages as $message)
-                    <x-message-bubble :message="$message" :isOwn="$message->sender_id === auth()->id()" />
-                @endforeach
+@if($isMinimal)
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Conversation</title>
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    </head>
+    <body class="theme-shell font-sans antialiased">
+        <div class="min-h-screen p-4">
+            <div class="mx-auto max-w-4xl space-y-4">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <p class="theme-eyebrow">Conversation</p>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ $conversation->auction->title }}</h1>
+                    </div>
+                    <a href="{{ route('messages.index') }}?layout=minimal" class="theme-link text-sm">Back</a>
+                </div>
+
+                @include('messages.partials.thread', ['conversation' => $conversation, 'storeRoute' => route('messages.store', $conversation)])
             </div>
-
-            <form method="POST" action="{{ route('messages.store', $conversation) }}" class="bg-white p-4 rounded shadow-sm space-y-2">
-                @csrf
-                <textarea name="body" rows="3" class="w-full rounded border-gray-300" required></textarea>
-                <button class="px-4 py-2 bg-indigo-600 text-white rounded">Send</button>
-            </form>
         </div>
-    </div>
 
-    <script type="module">
-        Echo.private(`conversation.{{ $conversation->id }}`)
-            .listen('.message.sent', (e) => {
-                const thread = document.getElementById('thread');
-                const own = e.sender_id === {{ auth()->id() }};
-                const wrapper = document.createElement('div');
-                wrapper.className = `flex ${own ? 'justify-end' : 'justify-start'}`;
-                wrapper.innerHTML = `<div class="max-w-lg px-3 py-2 rounded-lg ${own ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800'}"><p class="text-sm">${e.body}</p></div>`;
-                thread.appendChild(wrapper);
-            });
-    </script>
-</x-app-layout>
+        @include('messages.partials.realtime-script', ['conversation' => $conversation])
+    </body>
+    </html>
+@else
+    <x-app-layout>
+        <x-slot name="header"><h2 class="font-semibold text-xl text-gray-800 leading-tight">Conversation: {{ $conversation->auction->title }}</h2></x-slot>
+
+        <div class="py-8">
+            <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+                @include('messages.partials.thread', ['conversation' => $conversation, 'storeRoute' => route('messages.store', $conversation)])
+            </div>
+        </div>
+
+        @include('messages.partials.realtime-script', ['conversation' => $conversation])
+    </x-app-layout>
+@endif

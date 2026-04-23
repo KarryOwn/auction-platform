@@ -11,7 +11,7 @@
         'red' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
         'blue' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
         'amber' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
-        'indigo' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+        'indigo' => 'bg-brand-soft text-brand dark:bg-green-900 dark:text-green-300',
         'orange' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
         default => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
     };
@@ -31,7 +31,7 @@
         default => 'text-xs px-2.5 py-0.5',
     };
 
-    $classes = "inline-flex items-center font-medium rounded-full {$sizeClasses} {$colorClasses}";
+    $classes = "inline-flex items-center font-bold rounded-full {$sizeClasses} {$colorClasses}";
 @endphp
 
 <span {{ $attributes->merge(['class' => $classes]) }}>

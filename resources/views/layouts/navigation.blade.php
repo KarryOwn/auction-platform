@@ -1,4 +1,4 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300">
+<nav x-data="{ open: false }" class="theme-topbar sticky top-0 z-40 transition-all duration-300">
     @php
         $authUser = Auth::user();
         $isStaffNavigation = $authUser?->isStaff() ?? false;
@@ -50,7 +50,7 @@
                         <!-- Admin Dropdown -->
                         <x-dropdown align="left" width="48">
                             <x-slot name="trigger">
-                                <button class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-indigo-600 focus:outline-none transition duration-150 ease-in-out">
+                                <button class="inline-flex items-center px-3 py-2 rounded-full border border-transparent text-sm font-semibold leading-5 text-gray-600 hover:text-brand hover:bg-brand-soft focus:outline-none transition duration-150 ease-in-out">
                                     <span>{{ __('Admin') }}</span>
                                     <svg class="ml-1 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -77,7 +77,7 @@
                         <!-- Seller Dropdown -->
                         <x-dropdown align="left" width="48">
                             <x-slot name="trigger">
-                                <button class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-indigo-600 focus:outline-none transition duration-150 ease-in-out">
+                                <button class="inline-flex items-center px-3 py-2 rounded-full border border-transparent text-sm font-semibold leading-5 text-gray-600 hover:text-brand hover:bg-brand-soft focus:outline-none transition duration-150 ease-in-out">
                                     <span>{{ __('Seller Portal') }}</span>
                                     @if($unreadMessageCount > 0)
                                         <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700 font-bold border border-indigo-200">{{ $unreadMessageCount }}</span>
@@ -125,7 +125,7 @@
                     <select id="display-currency-desktop"
                             name="currency"
                             onchange="this.form.submit()"
-                            class="rounded-full border-gray-200 bg-white text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            class="rounded-full border-gray-200 bg-white text-sm font-medium text-gray-700 shadow-sm focus:border-brand focus:ring-brand">
                         @foreach($supportedDisplayCurrencies as $currency)
                             <option value="{{ $currency }}" @selected($selectedDisplayCurrency === $currency)>{{ $currency }}</option>
                         @endforeach
@@ -136,7 +136,7 @@
                 <!-- Messages -->
                 @unless($isStaffNavigation)
                     <button @click="$dispatch('open-chat')" type="button"
-                       class="relative p-1 text-gray-400 hover:text-gray-600 transition">
+                       class="relative p-2 text-gray-500 hover:text-brand hover:bg-brand-soft rounded-full transition">
                         <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
@@ -153,8 +153,8 @@
                 <!-- User Dropdown Menu -->
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 text-sm font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all shadow-sm">
-                            <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 font-bold flex items-center justify-center text-xs">
+                        <button class="inline-flex items-center gap-2 px-3 py-2 border border-[var(--color-border)] text-sm font-semibold rounded-full text-gray-700 bg-white/85 hover:bg-brand-soft focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-all shadow-sm">
+                            <div class="w-6 h-6 rounded-full bg-brand-soft text-brand font-bold flex items-center justify-center text-xs">
                                 {{ substr(Auth::user()->name, 0, 1) }}
                             </div>
                             <span class="hidden lg:block">{{ Auth::user()->name }}</span>
@@ -223,21 +223,20 @@
                     </x-slot>
                 </x-dropdown>
                 @else
-                <a href="{{ route('login') }}" class="text-sm font-medium text-gray-700 hover:text-indigo-600 transition">{{ __('Log in') }}</a>
+                <a href="{{ route('login') }}" class="text-sm font-semibold text-gray-700 hover:text-brand transition">{{ __('Log in') }}</a>
                 @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="ml-4 inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-full text-sm font-medium text-white hover:bg-indigo-700 transition">{{ __('Register') }}</a>
+                    <a href="{{ route('register') }}" class="theme-button theme-button-primary ml-4 text-sm">{{ __('Register') }}</a>
                 @endif
                 @endauth
             </div>
 
             <!-- Hamburger Button (Mobile) -->
             <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
+                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-brand hover:bg-brand-soft focus:outline-none focus:bg-brand-soft focus:text-brand transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                </button>
             </div>
         </div>
     </div>
@@ -250,7 +249,7 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 -translate-y-2"
-         class="hidden sm:hidden absolute top-20 w-full bg-white shadow-xl border-b border-gray-200"
+         class="hidden sm:hidden absolute top-20 w-full bg-white/95 backdrop-blur-xl shadow-xl border-b border-[var(--color-border)]"
          :class="{'block': open, 'hidden': ! open}">
         <div class="pt-2 pb-3 space-y-1">
             <form method="POST" action="{{ route('preferences.currency') }}" class="px-4 pb-2">
@@ -259,7 +258,7 @@
                 <select id="display-currency-mobile"
                         name="currency"
                         onchange="this.form.submit()"
-                        class="w-full rounded-lg border-gray-200 bg-white text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        class="w-full rounded-lg border-gray-200 bg-white text-sm font-medium text-gray-700 shadow-sm focus:border-brand focus:ring-brand">
                     @foreach($supportedDisplayCurrencies as $currency)
                         <option value="{{ $currency }}" @selected($selectedDisplayCurrency === $currency)>{{ $currency }}</option>
                     @endforeach
@@ -315,7 +314,7 @@
         <div class="pt-4 pb-4 border-t border-gray-200">
             <div class="px-4 flex items-center mb-4">
                 <div class="flex-shrink-0">
-                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-lg">
+                    <div class="w-10 h-10 rounded-full bg-brand-soft text-brand font-bold flex items-center justify-center text-lg">
                         {{ substr(Auth::user()->name, 0, 1) }}
                     </div>
                 </div>

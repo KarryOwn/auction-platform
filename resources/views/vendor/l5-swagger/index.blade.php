@@ -6,6 +6,8 @@
     <link rel="stylesheet" type="text/css" href="{{ l5_swagger_asset($documentation, 'swagger-ui.css') }}">
     <link rel="icon" type="image/png" href="{{ l5_swagger_asset($documentation, 'favicon-32x32.png') }}" sizes="32x32"/>
     <link rel="icon" type="image/png" href="{{ l5_swagger_asset($documentation, 'favicon-16x16.png') }}" sizes="16x16"/>
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800|playfair-display:600,700" rel="stylesheet" />
     <style>
     html
     {
@@ -22,12 +24,14 @@
 
     body {
       margin:0;
-      background: #fafafa;
+      background: #f5f1e8;
+      color: #1f2933;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
     }
 
     .docs-topbar {
         align-items: center;
-        background: #0f172a;
+        background: linear-gradient(135deg, #1f3425, #355e3b);
         color: #fff;
         display: flex;
         flex-wrap: wrap;
@@ -37,15 +41,15 @@
     }
 
     .docs-topbar-title {
-        font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+        font-family: "Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif;
         font-size: 20px;
         font-weight: 700;
         letter-spacing: -0.02em;
     }
 
     .docs-topbar-subtitle {
-        color: #cbd5e1;
-        font-family: ui-sans-serif, system-ui, sans-serif;
+        color: #eaf3ec;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
         font-size: 13px;
         margin-top: 2px;
     }
@@ -59,8 +63,8 @@
     .docs-nav a {
         border: 1px solid rgba(255,255,255,.18);
         border-radius: 999px;
-        color: #e0f2fe;
-        font-family: ui-sans-serif, system-ui, sans-serif;
+        color: #fef7ed;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
         font-size: 13px;
         font-weight: 700;
         padding: 8px 12px;

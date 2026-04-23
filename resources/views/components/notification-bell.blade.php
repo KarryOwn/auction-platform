@@ -161,14 +161,14 @@
          class="absolute right-0 top-12 mt-2 w-80 bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl border border-white/50 z-[60] p-4 overflow-hidden"
          x-init="$watch('toast', val => { if (val) setTimeout(() => toast = null, 5000) })">
          
-         <div class="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-rose-50/50 pointer-events-none"></div>
-         <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-rose-500 pointer-events-none rounded-l-2xl"></div>
+         <div class="absolute inset-0 bg-gradient-to-br from-brand-soft/70 to-orange-50/60 pointer-events-none"></div>
+         <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-brand to-brand-accent pointer-events-none rounded-l-2xl"></div>
          
         <template x-if="toast">
             <div class="relative">
                 <div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shadow-inner mt-0.5">
-                        <svg class="w-4 h-4 text-indigo-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-brand-soft flex items-center justify-center shadow-inner mt-0.5">
+                        <svg class="w-4 h-4 text-brand animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-bold text-gray-900 leading-tight tracking-tight" x-text="toast.title"></p>
@@ -180,12 +180,12 @@
                 </div>
                 <div class="mt-3 ml-11 flex items-center gap-3">
                     <a x-show="!toast.conversationId && toast.auctionId" :href="'/auctions/' + toast.auctionId"
-                       class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors group">
+                       class="inline-flex items-center text-xs font-semibold text-brand hover:text-brand-hover transition-colors group">
                         View Auction 
                         <svg class="w-3 h-3 ml-1 transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </a>
                     <a x-show="toast.conversationId" :href="'/messages/' + toast.conversationId"
-                       class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors group">
+                       class="inline-flex items-center text-xs font-semibold text-brand hover:text-brand-hover transition-colors group">
                         View Message
                         <svg class="w-3 h-3 ml-1 transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </a>
@@ -203,16 +203,16 @@
          x-transition:leave="transition-all ease-in duration-200 origin-top-right"
          x-transition:leave-start="opacity-100 scale-100 translate-y-0"
          x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-         class="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-indigo-500/10 border border-gray-100 z-50 overflow-hidden ring-1 ring-black ring-opacity-5">
+         class="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden ring-1 ring-black ring-opacity-5">
          
          <div class="absolute inset-0 bg-gradient-to-br from-white/60 to-gray-50/60 pointer-events-none"></div>
 
         <div class="relative p-4 border-b border-gray-100/80 flex items-center justify-between bg-white/40 backdrop-blur-sm">
             <h3 class="font-bold text-gray-900 text-sm flex items-center gap-2">
                 Notifications
-                <span x-show="unreadCount > 0" class="bg-indigo-100 text-indigo-800 text-[10px] px-2 py-0.5 rounded-full font-bold" x-text="unreadCount + ' New'"></span>
+                <span x-show="unreadCount > 0" class="bg-brand-soft text-brand text-[10px] px-2 py-0.5 rounded-full font-bold" x-text="unreadCount + ' New'"></span>
             </h3>
-            <button x-show="unreadCount > 0" @click="markAllRead()" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 group focus:outline-none">
+            <button x-show="unreadCount > 0" @click="markAllRead()" class="text-xs font-semibold text-brand hover:text-brand-hover transition-colors flex items-center gap-1 group focus:outline-none">
                 <svg class="w-3 h-3 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 Mark all read
             </button>
@@ -264,4 +264,3 @@
         </div>
     </div>
 </div>
-
