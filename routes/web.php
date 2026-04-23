@@ -401,6 +401,7 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::prefix('/support')->name('support.')->group(function () {
         Route::get('/', [AdminSupportInboxController::class, 'index'])->name('index');
         Route::get('/{conversation}', [AdminSupportInboxController::class, 'show'])->name('show');
+        Route::get('/{conversation}/messages', [AdminSupportInboxController::class, 'messages'])->name('messages');
         Route::post('/{conversation}/reply', [AdminSupportInboxController::class, 'reply'])->name('reply');
         Route::post('/{conversation}/close', [AdminSupportInboxController::class, 'close'])->name('close');
     });

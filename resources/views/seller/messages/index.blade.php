@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Messages</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -10,16 +11,24 @@
         <div class="h-screen flex flex-col pt-4 overflow-y-auto w-full p-4">
             <h2 class="text-xl font-bold mb-4">Buyer Messages</h2>
             <div class="w-full">
-                <ul class="theme-card divide-y">
-                    @foreach($conversations as $conversation)
+                <ul class="theme-card divide-y overflow-hidden">
+                    @forelse($conversations as $conversation)
                         <li class="p-3 flex justify-between items-center hover:bg-gray-50 transition">
-                            <div class="truncate">
+                            <div class="min-w-0 truncate">
                                 <p class="font-medium truncate">{{ $conversation->auction->title }}</p>
                                 <p class="text-xs text-gray-500">Buyer: {{ $conversation->buyer->name }}</p>
+                                @if($conversation->messages_count > 0)
+                                    <p class="mt-1 text-xs text-gray-400">{{ $conversation->messages_count }} {{ Illuminate\Support\Str::plural('message', $conversation->messages_count) }}</p>
+                                @endif
                             </div>
                             <a href="{{ route('seller.messages.show', $conversation) }}?layout=minimal" class="theme-link text-sm ml-2 shrink-0 bg-brand-soft px-3 py-1 rounded-full">Open</a>
                         </li>
-                    @endforeach
+                    @empty
+                        <li class="px-4 py-10 text-center">
+                            <p class="text-sm font-semibold text-gray-900">No messages yet.</p>
+                            <p class="mt-1 text-sm text-gray-500">Buyer conversations will appear here when shoppers contact you.</p>
+                        </li>
+                    @endforelse
                 </ul>
                 <div class="mt-4">{{ $conversations->appends(['layout' => 'minimal'])->links() }}</div>
             </div>

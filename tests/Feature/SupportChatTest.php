@@ -156,6 +156,48 @@ test('staff can reply to and close escalated support conversations', function ()
     expect($conversation->fresh()->status)->toBe(SupportConversation::STATUS_CLOSED);
 });
 
+test('staff can fetch support conversation messages for live refresh', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $conversation = SupportConversation::create([
+        'status' => SupportConversation::STATUS_ESCALATED,
+        'channel' => 'widget',
+        'last_message_at' => now()->subMinute(),
+    ]);
+
+    SupportMessage::create([
+        'conversation_id' => $conversation->id,
+        'role' => 'user',
+        'body' => 'I still need help.',
+        'is_ai' => false,
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.support.messages', $conversation))
+        ->assertOk()
+        ->assertJsonPath('conversation_id', $conversation->id)
+        ->assertJsonPath('status', SupportConversation::STATUS_ESCALATED)
+        ->assertJsonPath('messages.0.body', 'I still need help.');
+});
+
+test('support escalation notification links to admin support inbox conversation', function () {
+    $conversation = SupportConversation::create([
+        'status' => SupportConversation::STATUS_ESCALATED,
+        'channel' => 'widget',
+        'last_message_at' => now(),
+    ]);
+
+    $payload = (new SupportEscalationNotification($conversation))->toArray(User::factory()->make([
+        'role' => User::ROLE_ADMIN,
+    ]));
+
+    expect($payload['type'])->toBe('support_escalation')
+        ->and($payload['support_conversation_id'])->toBe($conversation->id)
+        ->and($payload['url'])->toBe(route('admin.support.show', $conversation));
+});
+
 test('support chat send endpoint is rate limited after ten messages per hour', function () {
     fakeGeminiResponse();
 

@@ -38,6 +38,12 @@
                 maxFileSize: '{{ $imageMaxSizeMb }}MB',
                 acceptedTypes: @js($acceptedTypes),
             })" x-init="init()">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Images</h3>
+                    <input type="file" name="file" class="filepond" x-ref="pondInput" multiple>
+                    <p class="mt-2 text-sm text-gray-500">Drag and drop images to upload, reorder, and remove.</p>
+                </div>
+
                 <form id="auction-form"
                       method="POST"
                       action="{{ route('seller.auctions.update', $auction) }}"
@@ -59,12 +65,6 @@
                                 Preview
                             </a>
                         @endif
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Images</h3>
-                        <input type="file" name="file" class="filepond" x-ref="pondInput" multiple>
-                        <p class="mt-2 text-sm text-gray-500">Drag and drop images to upload, reorder, and remove.</p>
                     </div>
 
                     @include('seller.auctions.partials.lot-item-manager', ['auction' => $auction])
@@ -137,9 +137,9 @@
                                     <x-input-label for="categories" value="Categories (Select up to 3)" />
                                     <div x-data="categorySelect()">
                                         <select x-ref="select" id="categories" name="categories[]" multiple class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" autocomplete="off">
-                                            @php
+                                            <?php
                                                 $selectedCategories = old('categories', $auction->categories->pluck('id')->toArray());
-                                            @endphp
+                                            ?>
                                             @foreach($categoryOptions as $value => $label)
                                                 <option value="{{ $value }}" @selected(in_array($value, $selectedCategories))>{{ $label }}</option>
                                             @endforeach
@@ -485,6 +485,10 @@
             return {
                 pond: null,
                 init() {
+                    if (!this.$refs.pondInput || typeof initAuctionFilepond !== 'function') {
+                        return;
+                    }
+
                     this.pond = initAuctionFilepond(this.$refs.pondInput, {
                         processUrl: options.processUrl,
                         deleteUrlTemplate: options.deleteTemplate,

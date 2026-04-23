@@ -45,9 +45,11 @@ class SupportEscalationNotification extends Notification implements ShouldQueue
         return [
             'type' => 'support_escalation',
             'conversation_id' => $this->conversation->id,
+            'support_conversation_id' => $this->conversation->id,
             'message' => "Support conversation #{$this->conversation->id} requires human follow-up.",
             'title' => 'Support escalation',
             'status' => $this->conversation->status,
+            'url' => route('admin.support.show', $this->conversation),
         ];
     }
 }

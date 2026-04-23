@@ -108,6 +108,13 @@ test('authenticity certificate download requires authentication and an eligible 
     $this->actingAs($viewer)
         ->get(route('auctions.auth-cert.download', $draftAuction))
         ->assertForbidden();
+
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    $this->actingAs($admin)
+        ->get(route('auctions.auth-cert.download', $draftAuction))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf');
 });
 
 test('admin can verify an authenticity certificate and notify the seller', function () {
@@ -154,6 +161,48 @@ test('admin can verify an authenticity certificate and notify the seller', funct
         AuthCertStatusNotification::class,
         fn (AuthCertStatusNotification $notification) => $notification->auction->is($auction)
     );
+});
+
+test('admin certificate approvals queue lists uploaded certificates', function () {
+    Storage::fake('local');
+
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $seller = verifiedSeller();
+
+    $pendingAuction = Auction::factory()->create([
+        'user_id' => $seller->id,
+        'title' => 'Pending Certificate Watch',
+        'status' => Auction::STATUS_ACTIVE,
+        'start_time' => now()->subHour(),
+        'end_time' => now()->addDay(),
+    ]);
+    $pendingAuction->addMedia(fakePdfUpload('pending-certificate.pdf'))
+        ->toMediaCollection('authenticity_cert');
+    $pendingAuction->update([
+        'has_authenticity_cert' => true,
+        'authenticity_cert_status' => 'uploaded',
+    ]);
+
+    $verifiedAuction = Auction::factory()->create([
+        'user_id' => $seller->id,
+        'title' => 'Verified Certificate Watch',
+        'status' => Auction::STATUS_ACTIVE,
+        'start_time' => now()->subHour(),
+        'end_time' => now()->addDay(),
+        'has_authenticity_cert' => true,
+        'authenticity_cert_status' => 'verified',
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('admin.auctions.index', [
+        'auth_cert' => 'uploaded',
+    ]));
+
+    $response->assertOk()
+        ->assertSee('Certificate Approvals (1)')
+        ->assertSee('Pending Certificate Watch')
+        ->assertSee('Needs review')
+        ->assertSee(route('admin.auctions.show', $pendingAuction), false)
+        ->assertDontSee('Verified Certificate Watch');
 });
 
 test('auction search can be filtered to verified authenticated items only', function () {

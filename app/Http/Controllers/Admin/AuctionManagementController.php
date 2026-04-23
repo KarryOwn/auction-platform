@@ -26,6 +26,11 @@ class AuctionManagementController extends Controller
             $query->where('status', $status);
         }
 
+        if ($authCertStatus = $request->input('auth_cert')) {
+            $query->where('has_authenticity_cert', true)
+                ->where('authenticity_cert_status', $authCertStatus);
+        }
+
         if ($search = trim((string) $request->input('search', ''))) {
             $query->where(function ($searchQuery) use ($search) {
                 $searchQuery->where('title', 'ilike', "%{$search}%")
@@ -45,11 +50,16 @@ class AuctionManagementController extends Controller
             'draft'     => Auction::where('status', 'draft')->count(),
         ];
 
+        $certificateApprovalCount = Auction::query()
+            ->where('has_authenticity_cert', true)
+            ->where('authenticity_cert_status', 'uploaded')
+            ->count();
+
         if ($request->wantsJson()) {
             return response()->json($auctions);
         }
 
-        return view('admin.auctions.index', compact('auctions', 'statusCounts'));
+        return view('admin.auctions.index', compact('auctions', 'statusCounts', 'certificateApprovalCount'));
     }
 
     /**

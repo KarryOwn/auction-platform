@@ -37,7 +37,8 @@ class SellerApplicationSubmittedNotification extends Notification implements Sho
             'user_id' => $this->application->user_id,
             'status' => $this->application->status,
             'title' => 'Seller application submitted',
-            'message' => 'Seller application has been submitted and need to review.',
+            'message' => 'Seller application has been submitted and needs review.',
+            'url' => route('admin.seller-applications.show', $this->application),
         ];
     }
 }

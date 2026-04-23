@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auction;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AuctionCertificateController extends Controller
 {
-    public function download(Auction $auction): BinaryFileResponse
+    public function download(Request $request, Auction $auction): BinaryFileResponse
     {
-        if (! in_array($auction->status, [Auction::STATUS_ACTIVE, Auction::STATUS_COMPLETED], true)) {
+        $isStaffReview = $request->user()?->isStaff() ?? false;
+
+        if (! $isStaffReview && ! in_array($auction->status, [Auction::STATUS_ACTIVE, Auction::STATUS_COMPLETED], true)) {
             abort(403);
         }
 

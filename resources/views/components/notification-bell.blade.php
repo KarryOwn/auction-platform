@@ -60,6 +60,8 @@
                             body: notification.message || '',
                             auctionId: notification.auction_id || null,
                             conversationId: notification.conversation_id || null,
+                            applicationId: notification.application_id || null,
+                            url: notification.url || null,
                         };
 
                         if (isOutbid) {
@@ -114,6 +116,18 @@
         },
 
         handleClick(n) {
+            if (n.data.url) {
+                window.location.href = n.data.url;
+                return;
+            }
+            if (n.data.support_conversation_id) {
+                window.location.href = '/admin/support/' + n.data.support_conversation_id;
+                return;
+            }
+            if (n.data.application_id) {
+                window.location.href = '/admin/seller-applications/' + n.data.application_id;
+                return;
+            }
             if (n.data.conversation_id) {
                 window.location.href = '/messages/' + n.data.conversation_id;
                 return;
@@ -184,9 +198,19 @@
                         View Auction 
                         <svg class="w-3 h-3 ml-1 transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </a>
-                    <a x-show="toast.conversationId" :href="'/messages/' + toast.conversationId"
+                    <a x-show="toast.url" :href="toast.url"
+                       class="inline-flex items-center text-xs font-semibold text-brand hover:text-brand-hover transition-colors group">
+                        Open
+                        <svg class="w-3 h-3 ml-1 transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </a>
+                    <a x-show="!toast.url && toast.conversationId" :href="'/messages/' + toast.conversationId"
                        class="inline-flex items-center text-xs font-semibold text-brand hover:text-brand-hover transition-colors group">
                         View Message
+                        <svg class="w-3 h-3 ml-1 transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </a>
+                    <a x-show="!toast.url && toast.applicationId" :href="'/admin/seller-applications/' + toast.applicationId"
+                       class="inline-flex items-center text-xs font-semibold text-brand hover:text-brand-hover transition-colors group">
+                        Review Application
                         <svg class="w-3 h-3 ml-1 transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </a>
                 </div>

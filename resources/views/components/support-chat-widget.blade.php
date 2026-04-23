@@ -122,6 +122,7 @@
                         isRateLimited: false,
                         limit: 10,
                         windowMs: 60 * 60 * 1000,
+                        refreshTimer: null,
                         init() {
                             const storedId = window.localStorage.getItem('support_conversation_id');
                             if (storedId) {
@@ -134,6 +135,11 @@
                             this.open = !this.open;
                             if (this.open && this.conversationId && this.messages.length === 0) {
                                 this.loadConversation();
+                            }
+                            if (this.open) {
+                                this.startLiveRefresh();
+                            } else {
+                                this.stopLiveRefresh();
                             }
                         },
                         async loadConversation() {
@@ -149,6 +155,7 @@
                                 this.messages = data.messages || [];
                                 this.escalated = data.status === 'escalated' || data.status === 'closed';
                                 this.canEscalate = (this.messages.filter((message) => message.is_ai).length >= 2) && !this.escalated;
+                                this.startLiveRefresh();
                                 this.syncRateLimitState();
                                 this.$nextTick(() => this.scrollToBottom());
                             } catch (_) {
@@ -209,6 +216,7 @@
                                 this.removeTypingPlaceholder();
                                 this.conversationId = data.conversation_id;
                                 window.localStorage.setItem('support_conversation_id', this.conversationId);
+                                this.startLiveRefresh();
                                 this.messages.push({
                                     id: `ai-${Date.now()}`,
                                     role: 'assistant',
@@ -259,6 +267,7 @@
                                 }
                                 this.escalated = true;
                                 this.canEscalate = false;
+                                this.startLiveRefresh();
                                 this.messages.push({
                                     id: `escalated-${Date.now()}`,
                                     role: 'assistant',
@@ -276,6 +285,50 @@
                             const node = this.$refs.messages;
                             if (node) {
                                 node.scrollTop = node.scrollHeight;
+                            }
+                        },
+                        startLiveRefresh() {
+                            if (!this.conversationId || this.refreshTimer) {
+                                return;
+                            }
+
+                            this.refreshTimer = window.setInterval(() => this.refreshConversation(), 4000);
+                        },
+                        stopLiveRefresh() {
+                            if (!this.refreshTimer) {
+                                return;
+                            }
+
+                            window.clearInterval(this.refreshTimer);
+                            this.refreshTimer = null;
+                        },
+                        async refreshConversation() {
+                            if (!this.open || !this.conversationId || this.sending) {
+                                return;
+                            }
+
+                            try {
+                                const response = await fetch(`/support/chat/${this.conversationId}`, {
+                                    headers: { Accept: 'application/json' },
+                                });
+                                if (!response.ok) {
+                                    return;
+                                }
+
+                                const data = await response.json();
+                                const freshMessages = data.messages || [];
+                                const currentLastId = this.messages.filter((message) => Number.isInteger(message.id)).at(-1)?.id;
+                                const freshLastId = freshMessages.at(-1)?.id;
+
+                                this.escalated = data.status === 'escalated' || data.status === 'closed';
+                                this.canEscalate = (freshMessages.filter((message) => message.is_ai).length >= 2) && !this.escalated;
+
+                                if (freshMessages.length !== this.messages.filter((message) => Number.isInteger(message.id)).length || freshLastId !== currentLastId) {
+                                    this.messages = freshMessages;
+                                    this.$nextTick(() => this.scrollToBottom());
+                                }
+                            } catch (_) {
+                                // Keep the widget usable if a transient refresh fails.
                             }
                         },
                         loadHistory() {

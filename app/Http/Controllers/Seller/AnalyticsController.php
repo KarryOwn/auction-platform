@@ -32,7 +32,7 @@ class AnalyticsController extends Controller
         $topAuctions = Auction::query()
             ->where('user_id', $sellerId)
             ->withCount(['views', 'bids'])
-            ->orderByDesc('views_count')
+            ->orderByDesc('auctions.views_count')
             ->limit(10)
             ->get();
 

@@ -153,6 +153,14 @@
                     <h3 class="text-lg font-semibold text-gray-800">Support Inbox</h3>
                     <p class="text-sm text-gray-500 mt-1">Review escalations, reply as staff, and close resolved support chats.</p>
                 </a>
+                <a href="{{ route('admin.seller-applications.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Seller Approvals</h3>
+                    <p class="text-sm text-gray-500 mt-1">Review pending seller applications and approve or reject marketplace access.</p>
+                </a>
+                <a href="{{ route('admin.auctions.index', ['auth_cert' => 'uploaded']) }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Certificate Approvals</h3>
+                    <p class="text-sm text-gray-500 mt-1">Review uploaded authenticity certificates and verify or reject listing badges.</p>
+                </a>
             </div>
 
         </div>

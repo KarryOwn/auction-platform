@@ -24,21 +24,35 @@
                     <div class="border-b border-gray-100 px-6 py-4">
                         <h3 class="text-lg font-semibold text-gray-900">Messages</h3>
                     </div>
-                    <div class="max-h-[32rem] space-y-4 overflow-y-auto bg-slate-50 px-6 py-6">
+                    <div
+                        x-data="adminSupportThread({
+                            endpoint: '{{ route('admin.support.messages', $conversation) }}',
+                            initialMessages: @js($conversation->messages->map(fn ($message) => [
+                                'id' => $message->id,
+                                'role' => $message->role,
+                                'body' => $message->body,
+                                'is_ai' => $message->is_ai,
+                                'created_at' => $message->created_at?->toISOString(),
+                            ])->values()),
+                        })"
+                        x-init="init()"
+                        x-ref="thread"
+                        class="max-h-[32rem] space-y-4 overflow-y-auto bg-slate-50 px-6 py-6"
+                    >
                         @forelse($conversation->messages as $message)
-                            <div class="{{ $message->role === 'user' ? 'flex justify-end' : 'flex justify-start' }}">
-                                <div class="{{ $message->role === 'user' ? 'max-w-[80%] rounded-2xl rounded-br-md bg-indigo-600 px-4 py-3 text-sm text-white' : 'max-w-[80%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm' }}">
-                                    <div class="mb-1 text-[11px] font-semibold uppercase tracking-wide {{ $message->role === 'user' ? 'text-indigo-100' : 'text-slate-400' }}">
+                            <div class="{{ $message->role === 'user' ? 'flex justify-end' : 'flex justify-start' }}" data-static-message>
+                                <div class="{{ $message->role === 'user' ? 'max-w-[80%] rounded-2xl rounded-br-md bg-brand px-4 py-3 text-sm text-white' : 'max-w-[80%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm' }}">
+                                    <div class="mb-1 text-[11px] font-semibold uppercase tracking-wide {{ $message->role === 'user' ? 'text-white/80' : 'text-slate-400' }}">
                                         {{ $message->role === 'assistant' ? ($message->is_ai ? 'AI assistant' : 'Assistant') : ucfirst($message->role) }}
                                     </div>
                                     <p class="whitespace-pre-line">{{ $message->body }}</p>
-                                    <div class="mt-2 text-[11px] {{ $message->role === 'user' ? 'text-indigo-100' : 'text-slate-400' }}">
+                                    <div class="mt-2 text-[11px] {{ $message->role === 'user' ? 'text-white/80' : 'text-slate-400' }}">
                                         {{ $message->created_at->format('M d, Y H:i') }}
                                     </div>
                                 </div>
                             </div>
                         @empty
-                            <div class="text-sm text-gray-500">No messages yet.</div>
+                            <div class="text-sm text-gray-500" data-static-message>No messages yet.</div>
                         @endforelse
                     </div>
                 </section>
@@ -91,4 +105,92 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            if (!window.adminSupportThread) {
+                window.adminSupportThread = function ({ endpoint, initialMessages }) {
+                    return {
+                        endpoint,
+                        messages: initialMessages || [],
+                        timer: null,
+                        init() {
+                            this.render();
+                            this.timer = window.setInterval(() => this.refresh(), 4000);
+                        },
+                        async refresh() {
+                            try {
+                                const response = await fetch(this.endpoint, {
+                                    headers: { Accept: 'application/json' },
+                                });
+                                if (!response.ok) {
+                                    return;
+                                }
+
+                                const data = await response.json();
+                                const freshMessages = data.messages || [];
+                                const currentLastId = this.messages.at(-1)?.id;
+                                const freshLastId = freshMessages.at(-1)?.id;
+
+                                if (freshMessages.length !== this.messages.length || freshLastId !== currentLastId) {
+                                    this.messages = freshMessages;
+                                    this.render();
+                                }
+                            } catch (_) {
+                                // Keep the static server-rendered thread available on transient failures.
+                            }
+                        },
+                        render() {
+                            const node = this.$refs.thread;
+                            if (!node) {
+                                return;
+                            }
+
+                            node.querySelectorAll('[data-static-message]').forEach((element) => element.remove());
+
+                            if (this.messages.length === 0) {
+                                node.innerHTML = '<div class="text-sm text-gray-500">No messages yet.</div>';
+                                return;
+                            }
+
+                            node.innerHTML = '';
+                            this.messages.forEach((message) => node.appendChild(this.renderMessage(message)));
+                            node.scrollTop = node.scrollHeight;
+                        },
+                        renderMessage(message) {
+                            const wrapper = document.createElement('div');
+                            const isUser = message.role === 'user';
+                            wrapper.className = isUser ? 'flex justify-end' : 'flex justify-start';
+
+                            const bubble = document.createElement('div');
+                            bubble.className = isUser
+                                ? 'max-w-[80%] rounded-2xl rounded-br-md bg-brand px-4 py-3 text-sm text-white'
+                                : 'max-w-[80%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm';
+
+                            const label = document.createElement('div');
+                            label.className = `mb-1 text-[11px] font-semibold uppercase tracking-wide ${isUser ? 'text-white/80' : 'text-slate-400'}`;
+                            label.textContent = message.role === 'assistant'
+                                ? (message.is_ai ? 'AI assistant' : 'Assistant')
+                                : `${message.role.charAt(0).toUpperCase()}${message.role.slice(1)}`;
+
+                            const body = document.createElement('p');
+                            body.className = 'whitespace-pre-line';
+                            body.textContent = message.body || '';
+
+                            const timestamp = document.createElement('div');
+                            timestamp.className = `mt-2 text-[11px] ${isUser ? 'text-white/80' : 'text-slate-400'}`;
+                            timestamp.textContent = new Date(message.created_at).toLocaleString();
+
+                            bubble.appendChild(label);
+                            bubble.appendChild(body);
+                            bubble.appendChild(timestamp);
+                            wrapper.appendChild(bubble);
+
+                            return wrapper;
+                        },
+                    };
+                };
+            }
+        </script>
+    @endpush
 </x-app-layout>

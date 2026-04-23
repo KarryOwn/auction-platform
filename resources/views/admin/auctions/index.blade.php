@@ -20,6 +20,10 @@
                         {{ ucfirst($s) }} ({{ $statusCounts[$s] }})
                     </a>
                 @endforeach
+                <a href="{{ route('admin.auctions.index', ['auth_cert' => 'uploaded']) }}"
+                   class="px-4 py-2 rounded-md text-sm font-medium {{ request('auth_cert') === 'uploaded' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">
+                    Certificate Approvals ({{ $certificateApprovalCount }})
+                </a>
             </div>
 
             {{-- Search --}}
@@ -27,6 +31,9 @@
                 <form method="GET" action="{{ route('admin.auctions.index') }}" class="flex gap-2">
                     @if(request('status'))
                         <input type="hidden" name="status" value="{{ request('status') }}">
+                    @endif
+                    @if(request('auth_cert'))
+                        <input type="hidden" name="auth_cert" value="{{ request('auth_cert') }}">
                     @endif
                           <input type="text" name="search" value="{{ request('search') }}"
                               placeholder="Search auctions by title or seller..."
@@ -49,6 +56,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bids</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ends At</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -79,6 +87,25 @@
                                     @endphp
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $colors[$auction->status] ?? 'bg-gray-100 text-gray-800' }}">
                                         {{ ucfirst($auction->status) }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @php
+                                        $certColors = [
+                                            'none' => 'bg-gray-100 text-gray-700',
+                                            'uploaded' => 'bg-amber-100 text-amber-800',
+                                            'verified' => 'bg-green-100 text-green-800',
+                                            'rejected' => 'bg-red-100 text-red-800',
+                                        ];
+                                        $certLabels = [
+                                            'none' => 'None',
+                                            'uploaded' => 'Needs review',
+                                            'verified' => 'Verified',
+                                            'rejected' => 'Rejected',
+                                        ];
+                                    @endphp
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $certColors[$auction->authenticity_cert_status] ?? 'bg-gray-100 text-gray-800' }}">
+                                        {{ $certLabels[$auction->authenticity_cert_status] ?? ucfirst((string) $auction->authenticity_cert_status) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -142,7 +169,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-12 text-center text-gray-500">No auctions found.</td>
+                                <td colspan="9" class="px-6 py-12 text-center text-gray-500">No auctions found.</td>
                             </tr>
                         @endforelse
                     </tbody>

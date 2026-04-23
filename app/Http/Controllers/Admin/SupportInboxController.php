@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SupportConversation;
 use App\Models\SupportMessage;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -39,6 +40,17 @@ class SupportInboxController extends Controller
         ]);
 
         return view('admin.support.show', compact('conversation'));
+    }
+
+    public function messages(SupportConversation $conversation): JsonResponse
+    {
+        return response()->json([
+            'conversation_id' => $conversation->id,
+            'status' => $conversation->status,
+            'messages' => $conversation->messages()
+                ->orderBy('created_at')
+                ->get(['id', 'role', 'body', 'is_ai', 'created_at']),
+        ]);
     }
 
     public function reply(Request $request, SupportConversation $conversation): RedirectResponse

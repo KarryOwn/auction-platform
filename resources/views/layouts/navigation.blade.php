@@ -61,6 +61,8 @@
                                 <x-dropdown-link :href="route('admin.dashboard')">{{ __('Dashboard') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.analytics.index')">{{ __('Analytics') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.support.index')">{{ __('Support Inbox') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.seller-applications.index')">{{ __('Seller Approvals') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.auctions.index', ['auth_cert' => 'uploaded'])">{{ __('Certificate Approvals') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.auctions.index')">{{ __('Manage Auctions') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.users.index')">{{ __('Manage Users') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.reports.index')">{{ __('Reports') }}</x-dropdown-link>
@@ -281,6 +283,8 @@
                     <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">{{ __('Admin Monitor') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.analytics.index')" :active="request()->routeIs('admin.analytics.*')">{{ __('Analytics') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.support.index')" :active="request()->routeIs('admin.support.*')">{{ __('Support Inbox') }}</x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.seller-applications.index')" :active="request()->routeIs('admin.seller-applications.*')">{{ __('Seller Approvals') }}</x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.auctions.index', ['auth_cert' => 'uploaded'])" :active="request()->routeIs('admin.auctions.*') && request('auth_cert') === 'uploaded'">{{ __('Certificate Approvals') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.auctions.index')" :active="request()->routeIs('admin.auctions.*')">{{ __('Manage Auctions') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">{{ __('Manage Users') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">{{ __('Reports') }}</x-responsive-nav-link>

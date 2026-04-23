@@ -56,3 +56,21 @@ test('seller auction index shows relist action and warning copy for completed au
         ->assertSeeText('Re-list')
         ->assertSeeText('Re-listing creates a new draft');
 });
+
+test('auction edit initializes image uploader outside autosave form', function () {
+    $seller = createSeller();
+    $auction = Auction::factory()->draft()->create([
+        'user_id' => $seller->id,
+    ]);
+
+    $response = $this->actingAs($seller)->get(route('seller.auctions.edit', $auction));
+
+    $response->assertOk()
+        ->assertSee('x-data="auctionEdit', false)
+        ->assertSee('x-ref="pondInput"', false)
+        ->assertSee(route('seller.auctions.images.upload', $auction), false);
+
+    $html = $response->getContent();
+
+    expect(strpos($html, 'x-ref="pondInput"'))->toBeLessThan(strpos($html, '<form id="auction-form"'));
+});

@@ -21,6 +21,31 @@ test('buyer can load minimal message thread', function () {
         ->assertSee(route('messages.index') . '?layout=minimal', false);
 });
 
+test('buyer can load minimal message inbox in chat drawer', function () {
+    [$buyer, $seller, $conversation] = createMessageThread();
+
+    $response = $this->actingAs($buyer)->get(route('messages.index', [
+        'layout' => 'minimal',
+    ]));
+
+    $response->assertOk()
+        ->assertSee('My Messages')
+        ->assertSee($conversation->auction->title)
+        ->assertSee('Seller: ' . $seller->name)
+        ->assertSee('1 message')
+        ->assertSee(route('messages.show', $conversation) . '?layout=minimal', false);
+});
+
+test('buyer minimal message inbox shows an empty state', function () {
+    $buyer = User::factory()->create();
+
+    $this->actingAs($buyer)
+        ->get(route('messages.index', ['layout' => 'minimal']))
+        ->assertOk()
+        ->assertSee('No messages yet.')
+        ->assertSee('Start a conversation from an auction page and it will appear here.');
+});
+
 test('seller can load minimal message thread', function () {
     [$buyer, $seller, $conversation] = createMessageThread();
 
@@ -35,6 +60,35 @@ test('seller can load minimal message thread', function () {
         ->assertSee('Hello from buyer')
         ->assertSee('Write a message...')
         ->assertSee(route('seller.messages.index') . '?layout=minimal', false);
+});
+
+test('seller can load minimal message inbox in chat drawer', function () {
+    [$buyer, $seller, $conversation] = createMessageThread();
+
+    $response = $this->actingAs($seller)->get(route('seller.messages.index', [
+        'layout' => 'minimal',
+    ]));
+
+    $response->assertOk()
+        ->assertSee('Buyer Messages')
+        ->assertSee($conversation->auction->title)
+        ->assertSee('Buyer: ' . $buyer->name)
+        ->assertSee('1 message')
+        ->assertSee(route('seller.messages.show', $conversation) . '?layout=minimal', false);
+});
+
+test('seller minimal message inbox shows an empty state', function () {
+    $seller = User::factory()->create([
+        'role' => User::ROLE_SELLER,
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+
+    $this->actingAs($seller)
+        ->get(route('seller.messages.index', ['layout' => 'minimal']))
+        ->assertOk()
+        ->assertSee('No messages yet.')
+        ->assertSee('Buyer conversations will appear here when shoppers contact you.');
 });
 
 function createMessageThread(): array
