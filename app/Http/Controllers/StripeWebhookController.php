@@ -117,6 +117,7 @@ class StripeWebhookController extends Controller
             $locked = User::lockForUpdate()->find($user->id);
             $locked->decrement('wallet_balance', $amount);
             $locked->decrement('held_balance', $amount);
+            $locked->decrement('pending_payout_balance', min($amount, (float) $locked->pending_payout_balance));
             $locked->refresh();
 
             WalletTransaction::create([
@@ -152,6 +153,7 @@ class StripeWebhookController extends Controller
             $amount,
             'Withdrawal hold released — payout failed',
         );
+        $user->decrement('pending_payout_balance', min($amount, (float) $user->fresh()->pending_payout_balance));
 
         Log::warning('StripeWebhook: payout failed, hold released', [
             'user_id' => $user->id,

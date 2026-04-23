@@ -1563,12 +1563,12 @@ async function checkEngineStatus() {
 - [x] Feature 14 — Lot item manager (Alpine component + FilePond per item)
 - [x] Feature 46 — User block UI (three-dot menu + settings page)
 - [x] Feature 48 — Bid retraction request modal + admin queue
-- [ ] Feature 50 — Credits balance + power-up store page
-- [ ] Feature 124 — Payout schedule settings section
-- [ ] Feature 195 — Webhook endpoint management page
-- [ ] Analytics heatmap mobile scroll fix (Feature 170)
-- [ ] Admin degradation banner (Feature 210)
-- [ ] Admin webhook delivery log (Feature 195)
+- [x] Feature 50 — Credits balance + power-up store page
+- [x] Feature 124 — Payout schedule settings section
+- [x] Feature 195 — Webhook endpoint management page
+- [x] Analytics heatmap mobile scroll fix (Feature 170)
+- [x] Admin degradation banner (Feature 210)
+- [x] Admin webhook delivery log (Feature 195)
 
 ---
 
@@ -1577,12 +1577,12 @@ async function checkEngineStatus() {
 **Goal**: Platform ecosystem features for high-volume operation.
 
 **Frontend work:**
-- [ ] API documentation navigation improvements
-- [ ] Webhook test delivery UI
-- [ ] Advanced admin analytics export buttons
-- [ ] Seller leaderboard public page (optional)
-- [ ] Power-up purchase flow with Stripe integration
-- [ ] Referral dashboard enhancements
+- [x] API documentation navigation improvements
+- [x] Webhook test delivery UI
+- [x] Advanced admin analytics export buttons
+- [x] Seller leaderboard public page (optional)
+- [x] Power-up purchase flow with Stripe integration
+- [x] Referral dashboard enhancements
 
 ---
 

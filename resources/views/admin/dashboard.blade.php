@@ -7,6 +7,15 @@
 
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div id="degradation-banner" class="mb-6 hidden rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-amber-950 shadow-sm" role="alert" aria-live="polite">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p class="text-sm font-bold uppercase tracking-[0.18em] text-amber-700">Bidding engine degraded mode</p>
+                        <p class="mt-1 text-sm font-medium">Redis is unavailable. Platform bidding is operational on SQL fallback with reduced performance.</p>
+                    </div>
+                    <span class="inline-flex w-fit rounded-full bg-amber-200 px-3 py-1 text-xs font-bold text-amber-900">SQL fallback active</span>
+                </div>
+            </div>
 
             {{-- Stats Cards --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -344,6 +353,10 @@
                 .then((r) => r.json())
                 .then((json) => {
                     const d = json.data;
+                    const degradationBanner = document.getElementById('degradation-banner');
+                    if (degradationBanner) {
+                        degradationBanner.classList.toggle('hidden', !d.engine_degraded);
+                    }
 
                     Object.entries(metricMap).forEach(([metricKey, metricConfig]) => {
                         const value = d[metricConfig.sourceKey] ?? 0;

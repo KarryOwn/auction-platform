@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\BiddingStrategy;
 use App\Http\Controllers\Controller;
 use App\Models\Auction;
 use App\Models\AuditLog;
 use App\Models\Bid;
 use App\Models\ReportedAuction;
 use App\Models\User;
+use App\Services\Bidding\PessimisticSqlEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -61,6 +63,7 @@ class DashboardController extends Controller
                                         ->select('id', 'title', 'current_price')
                                         ->first(),
             'redis_keys'           => $this->getRedisAuctionCount(),
+            'engine_degraded'      => app(BiddingStrategy::class) instanceof PessimisticSqlEngine,
             'timestamp'            => now()->toIso8601String(),
         ];
 

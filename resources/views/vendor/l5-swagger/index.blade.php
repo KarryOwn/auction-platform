@@ -24,6 +24,53 @@
       margin:0;
       background: #fafafa;
     }
+
+    .docs-topbar {
+        align-items: center;
+        background: #0f172a;
+        color: #fff;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: space-between;
+        padding: 14px 24px;
+    }
+
+    .docs-topbar-title {
+        font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    .docs-topbar-subtitle {
+        color: #cbd5e1;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        margin-top: 2px;
+    }
+
+    .docs-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .docs-nav a {
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 999px;
+        color: #e0f2fe;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 8px 12px;
+        text-decoration: none;
+    }
+
+    .docs-nav a:hover {
+        background: rgba(255,255,255,.1);
+        color: #fff;
+    }
     </style>
     @if(config('l5-swagger.defaults.ui.display.dark_mode'))
         <style>
@@ -117,6 +164,17 @@
 </head>
 
 <body @if(config('l5-swagger.defaults.ui.display.dark_mode')) id="dark-mode" @endif>
+<div class="docs-topbar" data-api-docs-navigation>
+    <div>
+        <div class="docs-topbar-title">BidFlow API Documentation</div>
+        <div class="docs-topbar-subtitle">Use Bearer tokens from Developer Settings to authorize private API calls.</div>
+    </div>
+    <nav class="docs-nav" aria-label="API documentation navigation">
+        <a href="{{ url('/') }}">Marketplace Home</a>
+        <a href="{{ route('user.api-tokens.index') }}">Create API Token</a>
+        <a href="{{ route('user.webhooks.index') }}">Webhook Endpoints</a>
+    </nav>
+</div>
 <div id="swagger-ui"></div>
 
 <script src="{{ l5_swagger_asset($documentation, 'swagger-ui-bundle.js') }}"></script>

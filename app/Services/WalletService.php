@@ -36,11 +36,11 @@ class WalletService
     /**
      * Withdraw funds from a user's available (non-held) balance.
      */
-    public function withdraw(User $user, float $amount, string $description = 'Withdrawal'): WalletTransaction
+    public function withdraw(User $user, float $amount, string $description = 'Withdrawal', ?Model $reference = null): WalletTransaction
     {
         $this->assertPositive($amount);
 
-        return DB::transaction(function () use ($user, $amount, $description) {
+        return DB::transaction(function () use ($user, $amount, $description, $reference) {
             $user = User::lockForUpdate()->findOrFail($user->id);
 
             $available = $user->availableBalance();
@@ -58,6 +58,7 @@ class WalletService
                 WalletTransaction::TYPE_WITHDRAWAL,
                 $amount,
                 $description,
+                $reference,
             );
         });
     }

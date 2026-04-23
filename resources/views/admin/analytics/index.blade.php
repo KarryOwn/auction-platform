@@ -18,6 +18,21 @@
 
     <div class="py-8">
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+            <section class="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 shadow-sm">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-700">Advanced exports</p>
+                        <p class="mt-1 text-sm text-indigo-900">Download CSV snapshots for deeper analysis or offline reporting.</p>
+                    </div>
+                    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        <a data-analytics-export="categories" href="{{ route('admin.analytics.export', ['report' => 'categories', 'days' => 30]) }}" class="rounded-xl bg-white px-4 py-2 text-center text-sm font-semibold text-slate-800 shadow-sm hover:text-indigo-700">Export Categories</a>
+                        <a data-analytics-export="bid-timing" href="{{ route('admin.analytics.export', ['report' => 'bid-timing', 'days' => 30]) }}" class="rounded-xl bg-white px-4 py-2 text-center text-sm font-semibold text-slate-800 shadow-sm hover:text-indigo-700">Export Heatmap</a>
+                        <a data-analytics-export="leaderboard" href="{{ route('admin.analytics.export', ['report' => 'leaderboard', 'period' => 30]) }}" class="rounded-xl bg-white px-4 py-2 text-center text-sm font-semibold text-slate-800 shadow-sm hover:text-indigo-700">Export Sellers</a>
+                        <a data-analytics-export="buyers" href="{{ route('admin.analytics.export', ['report' => 'buyers', 'days' => 30]) }}" class="rounded-xl bg-white px-4 py-2 text-center text-sm font-semibold text-slate-800 shadow-sm hover:text-indigo-700">Export Buyers</a>
+                    </div>
+                </div>
+            </section>
+
             <section class="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
                 <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                     <div class="flex items-center justify-between">
@@ -51,7 +66,9 @@
                     <div id="peak-recommendation" class="mt-4 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-800">
                         Loading recommendation...
                     </div>
-                    <div id="bid-heatmap" class="mt-4 grid grid-cols-8 gap-2 text-xs"></div>
+                    <div class="mt-4 overflow-x-auto pb-2" data-analytics-heatmap-scroll>
+                        <div id="bid-heatmap" class="grid min-w-[56rem] grid-cols-8 gap-2 text-xs"></div>
+                    </div>
                 </div>
             </section>
 
@@ -116,6 +133,7 @@
                 const buyerBody = document.getElementById('buyer-analytics-body');
                 const peakRecommendation = document.getElementById('peak-recommendation');
                 const heatmap = document.getElementById('bid-heatmap');
+                const exportLinks = document.querySelectorAll('[data-analytics-export]');
 
                 const formatMoney = (value) => '$' + Number(value || 0).toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -245,6 +263,11 @@
                 async function refresh() {
                     const value = periodSelect.value;
                     refreshBtn.disabled = true;
+                    exportLinks.forEach((link) => {
+                        const report = link.dataset.analyticsExport;
+                        const key = report === 'leaderboard' ? 'period' : 'days';
+                        link.href = `{{ url('/admin/analytics/export') }}/${report}?${key}=${value}`;
+                    });
                     loadingState();
                     try {
                         await Promise.all([

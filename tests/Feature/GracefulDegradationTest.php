@@ -72,4 +72,27 @@ class GracefulDegradationTest extends TestCase
         $this->expectException(\App\Exceptions\BidValidationException::class);
         $limiter->check($user, $auction);
     }
+
+    public function test_admin_live_metrics_exposes_degraded_engine_state()
+    {
+        $this->app->bind(BiddingStrategy::class, PessimisticSqlEngine::class);
+
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $response = $this->actingAs($admin)->getJson(route('admin.metrics.live'));
+
+        $response->assertOk()
+            ->assertJsonPath('data.engine_degraded', true);
+    }
+
+    public function test_admin_dashboard_includes_degradation_banner()
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'));
+
+        $response->assertOk()
+            ->assertSee('degradation-banner', false)
+            ->assertSee('Bidding engine degraded mode');
+    }
 }

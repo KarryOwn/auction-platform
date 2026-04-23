@@ -13,6 +13,7 @@ use App\Http\Controllers\CategoryBrowseController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\SupportChatController;
+use App\Http\Controllers\SellerLeaderboardPublicController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AnalyticsController as AdminAnalyticsController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Admin\SellerLeaderboardController as AdminSellerLeaderb
 use App\Http\Controllers\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Admin\SupportInboxController as AdminSupportInboxController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\WebhookDeliveryController as AdminWebhookDeliveryController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Admin\AuditLogController;
@@ -51,6 +53,9 @@ use App\Http\Controllers\User\WonAuctionsController;
 use App\Http\Controllers\User\WatchlistController;
 use App\Http\Controllers\User\WalletController;
 use App\Http\Controllers\User\ApiTokenController;
+use App\Http\Controllers\User\CreditsController;
+use App\Http\Controllers\User\PayoutSettingsController;
+use App\Http\Controllers\User\WebhookEndpointController;
 use App\Http\Controllers\User\NotificationPreferenceController;
 use App\Http\Controllers\User\WithdrawalController;
 use App\Http\Controllers\StripeWebhookController;
@@ -178,6 +183,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/wallet/stripe/cancel', fn () => redirect()->route('user.wallet')->with('error', 'Payment cancelled.'))->name('user.wallet.stripe.cancel');
     Route::post('/dashboard/wallet/withdraw', [WithdrawalController::class, 'store'])->name('user.wallet.withdraw');
     Route::get('/dashboard/wallet/export', [WalletController::class, 'exportTransactions'])->name('user.wallet.export');
+    Route::put('/dashboard/wallet/payout-settings', [PayoutSettingsController::class, 'update'])->name('user.payout-settings.update');
+    Route::get('/dashboard/credits', [CreditsController::class, 'index'])->name('user.credits.index');
+    Route::post('/dashboard/credits/power-ups', [CreditsController::class, 'store'])->name('user.credits.power-ups.store');
+    Route::post('/dashboard/credits/power-ups/stripe', [CreditsController::class, 'stripeCheckout'])->name('user.credits.power-ups.stripe');
+    Route::get('/dashboard/credits/power-ups/stripe/success', [CreditsController::class, 'stripeSuccess'])->name('user.credits.stripe.success');
 
     // Stripe Connect (bank account onboarding)
     Route::get('/dashboard/wallet/connect', [StripeConnectController::class, 'onboard'])->name('wallet.connect.onboard');
@@ -197,6 +207,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/api-tokens', [ApiTokenController::class, 'index'])->name('user.api-tokens.index');
     Route::post('/dashboard/api-tokens', [ApiTokenController::class, 'store'])->name('user.api-tokens.store');
     Route::delete('/dashboard/api-tokens/{token}', [ApiTokenController::class, 'destroy'])->name('user.api-tokens.destroy');
+    Route::get('/dashboard/webhooks', [WebhookEndpointController::class, 'index'])->name('user.webhooks.index');
+    Route::post('/dashboard/webhooks', [WebhookEndpointController::class, 'store'])->name('user.webhooks.store');
+    Route::post('/dashboard/webhooks/{endpoint}/test', [WebhookEndpointController::class, 'testDelivery'])->name('user.webhooks.test');
+    Route::delete('/dashboard/webhooks/{endpoint}', [WebhookEndpointController::class, 'destroy'])->name('user.webhooks.destroy');
+    Route::post('/dashboard/webhook-deliveries/{delivery}/redeliver', [WebhookEndpointController::class, 'redeliver'])->name('user.webhooks.redeliver');
 
     // GDPR Export
     Route::post('/dashboard/data-export', [\App\Http\Controllers\User\DataExportController::class, 'requestExport'])->name('user.data-export.request');
@@ -315,6 +330,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::delete('/auctions/{auction}/auth-cert', [AuctionCrudController::class, 'deleteAuthCert'])->name('auctions.auth-cert.delete');
 });
 
+Route::get('/sellers/leaderboard', SellerLeaderboardPublicController::class)->name('sellers.leaderboard');
 Route::get('/sellers/{slug}', [StorefrontController::class, 'show'])->name('storefront.show');
 
 Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(function () {
@@ -327,6 +343,7 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     // Analytics Reports
     Route::prefix('/analytics')->name('analytics.')->group(function () {
         Route::get('/', [AdminAnalyticsController::class, 'index'])->name('index');
+        Route::get('/export/{report}', [AdminAnalyticsController::class, 'export'])->name('export');
         Route::get('/categories', [AdminCategoryAnalyticsController::class, 'index'])->name('categories');
         Route::get('/bid-timing', [AdminBidTimingController::class, 'heatmap'])->name('bid-timing');
         Route::get('/leaderboard', [AdminSellerLeaderboardController::class, 'index'])->name('leaderboard');
@@ -366,6 +383,7 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
 
     // Audit Logs
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/webhook-deliveries', [AdminWebhookDeliveryController::class, 'index'])->name('webhook-deliveries.index');
 
     // Payment Management
     Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');

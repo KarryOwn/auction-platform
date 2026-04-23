@@ -22,10 +22,28 @@ class ReferralController extends Controller
             ->where('status', 'pending')
             ->sum('referrer_reward');
 
+        $referralCount = $user->referrals()->count();
+        $creditedCount = ReferralReward::where('referrer_id', $user->id)
+            ->where('status', 'credited')
+            ->count();
+        $earnedThisMonth = ReferralReward::where('referrer_id', $user->id)
+            ->where('status', 'credited')
+            ->where('credited_at', '>=', now()->startOfMonth())
+            ->sum('referrer_reward');
+        $conversionRate = $referralCount > 0
+            ? round(($creditedCount / $referralCount) * 100)
+            : 0;
+        $nextMilestone = max(0, 5 - $creditedCount);
+
         return view('user.referrals.index', [
             'referrals' => $referrals,
             'totalEarned' => $totalEarned,
             'pendingEarned' => $pendingEarned,
+            'referralCount' => $referralCount,
+            'creditedCount' => $creditedCount,
+            'earnedThisMonth' => $earnedThisMonth,
+            'conversionRate' => $conversionRate,
+            'nextMilestone' => $nextMilestone,
             'referralLink' => route('register', ['ref' => $user->referral_code]),
         ]);
     }

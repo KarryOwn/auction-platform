@@ -42,6 +42,7 @@ class WithdrawalController extends Controller
             $amount,
             "Withdrawal hold — pending payout",
         );
+        $user->increment('pending_payout_balance', $amount);
 
         try {
             // Transfer from your platform account TO the connected account
@@ -83,6 +84,7 @@ class WithdrawalController extends Controller
                 $amount,
                 'Withdrawal hold released — Stripe error',
             );
+            $user->decrement('pending_payout_balance', min($amount, (float) $user->fresh()->pending_payout_balance));
 
             Log::error('WithdrawalController: transfer failed', [
                 'user_id' => $user->id,

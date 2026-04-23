@@ -57,9 +57,12 @@ class User extends Authenticatable implements HasMedia
         'ban_reason',
         'wallet_balance',
         'held_balance',
+        'pending_payout_balance',
         'default_outbid_threshold',
         'stripe_connect_account_id',
         'stripe_connect_onboarded',
+        'payout_schedule',
+        'payout_schedule_day',
         'notification_preferences',
         'seller_verified_at',
         'seller_application_status',
@@ -98,6 +101,8 @@ class User extends Authenticatable implements HasMedia
     protected $attributes = [
         'return_policy_type' => 'no_returns',
         'vacation_mode' => false,
+        'payout_schedule' => 'manual',
+        'pending_payout_balance' => 0,
     ];
 
     /**
@@ -114,6 +119,7 @@ class User extends Authenticatable implements HasMedia
             'banned_at'                  => 'datetime',
             'wallet_balance'             => 'decimal:2',
             'held_balance'               => 'decimal:2',
+            'pending_payout_balance'      => 'decimal:2',
             'default_outbid_threshold'   => 'decimal:2',
             'stripe_connect_onboarded'   => 'boolean',
             'notification_preferences'   => 'array',
@@ -459,6 +465,16 @@ class User extends Authenticatable implements HasMedia
     {
         return $this->stripe_connect_onboarded
             && ! empty($this->stripe_connect_account_id);
+    }
+
+    public function payoutScheduleLabel(): string
+    {
+        return match ($this->payout_schedule) {
+            'daily' => 'Daily automatic payouts',
+            'weekly' => 'Weekly automatic payouts',
+            'monthly' => 'Monthly automatic payouts',
+            default => 'Manual payouts',
+        };
     }
 
     /**

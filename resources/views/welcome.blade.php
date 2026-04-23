@@ -469,8 +469,8 @@
                     <ul class="space-y-3 text-sm text-gray-600">
                         <li><a href="{{ route('auctions.index') }}" class="hover:text-indigo-600 transition-colors">All Auctions</a></li>
                         <li><a href="{{ route('categories.index') }}" class="hover:text-indigo-600 transition-colors">Categories</a></li>
+                        <li><a href="{{ route('sellers.leaderboard') }}" class="hover:text-indigo-600 transition-colors">Top Sellers</a></li>
                         <li><a href="#" class="hover:text-indigo-600 transition-colors">Ending Soon</a></li>
-                        <li><a href="#" class="hover:text-indigo-600 transition-colors">Recently Sold</a></li>
                     </ul>
                 </div>
                 
@@ -485,10 +485,11 @@
                 </div>
 
                 <div>
-                    <h4 class="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Company</h4>
+                    <h4 class="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Developers</h4>
                     <ul class="space-y-3 text-sm text-gray-600">
-                        <li><a href="#" class="hover:text-indigo-600 transition-colors">About Us</a></li>
-                        <li><a href="#" class="hover:text-indigo-600 transition-colors">Careers</a></li>
+                        <li><a href="{{ url(config('l5-swagger.documentations.v1.routes.api')) }}" class="hover:text-indigo-600 transition-colors">API Documentation</a></li>
+                        <li><a href="{{ route('user.api-tokens.index') }}" class="hover:text-indigo-600 transition-colors">API Tokens</a></li>
+                        <li><a href="{{ route('user.webhooks.index') }}" class="hover:text-indigo-600 transition-colors">Webhooks</a></li>
                         <li><a href="#" class="hover:text-indigo-600 transition-colors">Terms of Service</a></li>
                         <li><a href="#" class="hover:text-indigo-600 transition-colors">Privacy Policy</a></li>
                     </ul>

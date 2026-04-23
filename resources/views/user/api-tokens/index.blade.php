@@ -83,6 +83,24 @@
                 </section>
 
                 <section class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+                    <div class="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-700">Developer navigation</p>
+                        <div class="mt-3 grid gap-2">
+                            <a href="{{ url(config('l5-swagger.documentations.v1.routes.api')) }}"
+                               target="_blank"
+                               rel="noopener"
+                               class="inline-flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:text-indigo-700">
+                                <span>Open Swagger docs</span>
+                                <span class="text-xs text-slate-400">/api/v1</span>
+                            </a>
+                            <a href="{{ route('user.webhooks.index') }}"
+                               class="inline-flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:text-indigo-700">
+                                <span>Webhook endpoints</span>
+                                <span class="text-xs text-slate-400">events</span>
+                            </a>
+                        </div>
+                    </div>
+
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Active tokens</p>
                     <h3 class="mt-2 text-xl font-semibold text-slate-950">Issued keys</h3>
                     <p class="mt-2 text-sm text-slate-500">Revoke tokens you no longer use. Expired or leaked tokens should be removed immediately.</p>

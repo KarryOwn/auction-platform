@@ -90,6 +90,40 @@ test('authenticated user can view referrals page', function () {
     $response = $this->actingAs($user)->get(route('user.referrals'));
 
     $response->assertOk()
-        ->assertSee('Your Referral Link')
+        ->assertSee('Referral dashboard')
         ->assertSee('Copy Link');
+});
+
+test('referral dashboard shows enhanced stats and share actions', function () {
+    $referrer = User::factory()->create(['wallet_balance' => 0]);
+    $credited = User::factory()->create(['referred_by_user_id' => $referrer->id]);
+    $pending = User::factory()->create(['referred_by_user_id' => $referrer->id]);
+
+    ReferralReward::create([
+        'referrer_id' => $referrer->id,
+        'referee_id' => $credited->id,
+        'referrer_reward' => 5,
+        'referee_reward' => 2.5,
+        'status' => 'credited',
+        'credited_at' => now(),
+    ]);
+    ReferralReward::create([
+        'referrer_id' => $referrer->id,
+        'referee_id' => $pending->id,
+        'referrer_reward' => 5,
+        'referee_reward' => 2.5,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($referrer)
+        ->get(route('user.referrals'))
+        ->assertOk()
+        ->assertSeeText('Referral dashboard')
+        ->assertSeeText('This Month')
+        ->assertSeeText('Credited')
+        ->assertSeeText('Conversion')
+        ->assertSeeText('50%')
+        ->assertSeeText('Share by Email')
+        ->assertSeeText('Share on X')
+        ->assertSee(route('user.credits.index'), false);
 });

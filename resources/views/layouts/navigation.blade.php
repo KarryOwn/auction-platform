@@ -68,6 +68,7 @@
                                 <x-dropdown-link :href="route('admin.reports.index')">{{ __('Reports') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.disputes.index')">{{ __('Disputes') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.bid-retractions.index')">{{ __('Bid Retractions') }}</x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.webhook-deliveries.index')">{{ __('Webhook Deliveries') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.audit-logs.index')">{{ __('Audit Logs') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.payments.index')">{{ __('Payments') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.seller-applications.index')">
@@ -185,6 +186,9 @@
                         <x-dropdown-link :href="route('user.wallet')">
                             {{ __('Wallet') }}
                         </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.credits.index')">
+                            {{ __('Credits & Power-Ups') }}
+                        </x-dropdown-link>
                         <x-dropdown-link :href="route('user.referrals')">
                             {{ __('Referrals') }}
                         </x-dropdown-link>
@@ -196,6 +200,9 @@
                         </x-dropdown-link>
                         <x-dropdown-link :href="route('user.api-tokens.index')">
                             {{ __('API Tokens') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('user.webhooks.index')">
+                            {{ __('Webhooks') }}
                         </x-dropdown-link>
 
                         <div class="border-t border-gray-100 my-1"></div>
@@ -274,6 +281,7 @@
                     <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">{{ __('Reports') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.disputes.index')" :active="request()->routeIs('admin.disputes.*')">{{ __('Disputes') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.bid-retractions.index')" :active="request()->routeIs('admin.bid-retractions.*')">{{ __('Bid Retractions') }}</x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.webhook-deliveries.index')" :active="request()->routeIs('admin.webhook-deliveries.*')">{{ __('Webhook Deliveries') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.payments.index')" :active="request()->routeIs('admin.payments.*')">{{ __('Payments') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.seller-applications.index')" :active="request()->routeIs('admin.seller-applications.*')">{{ __('Seller Applications') }}</x-responsive-nav-link>
                 </div>
@@ -331,6 +339,9 @@
                 <x-responsive-nav-link :href="route('user.wallet')">
                     {{ __('Wallet') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('user.credits.index')">
+                    {{ __('Credits & Power-Ups') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('user.referrals')">
                     {{ __('Referrals') }}
                 </x-responsive-nav-link>
@@ -339,6 +350,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('user.api-tokens.index')">
                     {{ __('API Tokens') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('user.webhooks.index')">
+                    {{ __('Webhooks') }}
                 </x-responsive-nav-link>
 
                 @if(!$authUser->isVerifiedSeller())

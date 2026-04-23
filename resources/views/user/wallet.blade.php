@@ -77,7 +77,7 @@
                 </div>
             @endif
 
-            <section data-wallet-reveal data-delay="1" class="wallet-reveal grid gap-4 sm:grid-cols-3">
+            <section data-wallet-reveal data-delay="1" class="wallet-reveal grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
@@ -110,6 +110,17 @@
                         <p class="text-sm font-medium text-amber-800">Held in Escrow</p>
                     </div>
                     <p class="mt-4 text-3xl font-bold text-amber-700">${{ number_format((float) $user->held_balance, 2) }}</p>
+                </article>
+                <article class="rounded-3xl border border-sky-200 bg-sky-50 p-6 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200 text-sky-700">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8m-8 5h8m-5 5h5M5 5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" />
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-sky-800">Pending Payouts</p>
+                    </div>
+                    <p class="mt-4 text-3xl font-bold text-sky-700">${{ number_format((float) $user->pending_payout_balance, 2) }}</p>
                 </article>
             </section>
 
@@ -228,6 +239,46 @@
                             </button>
                         </form>
                     @endif
+
+                    <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-900">Payout schedule settings</p>
+                                <p class="text-xs text-slate-500">{{ $user->payoutScheduleLabel() }}</p>
+                            </div>
+                            <span class="inline-flex w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+                                Pending ${{ number_format((float) $user->pending_payout_balance, 2) }}
+                            </span>
+                        </div>
+
+                        <form method="POST" action="{{ route('user.payout-settings.update') }}" class="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                            @csrf
+                            @method('PUT')
+                            <div>
+                                <label for="payout_schedule" class="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Cadence</label>
+                                <select id="payout_schedule" name="payout_schedule" class="mt-2 w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                    <option value="manual" @selected(old('payout_schedule', $user->payout_schedule) === 'manual')>Manual</option>
+                                    <option value="daily" @selected(old('payout_schedule', $user->payout_schedule) === 'daily')>Daily</option>
+                                    <option value="weekly" @selected(old('payout_schedule', $user->payout_schedule) === 'weekly')>Weekly</option>
+                                    <option value="monthly" @selected(old('payout_schedule', $user->payout_schedule) === 'monthly')>Monthly</option>
+                                </select>
+                                @error('payout_schedule')
+                                    <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="payout_schedule_day" class="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Day</label>
+                                <select id="payout_schedule_day" name="payout_schedule_day" class="mt-2 w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                                    @foreach(['monday' => 'Monday', 'tuesday' => 'Tuesday', 'wednesday' => 'Wednesday', 'thursday' => 'Thursday', 'friday' => 'Friday', '1' => '1st of month', '15' => '15th of month'] as $value => $label)
+                                        <option value="{{ $value }}" @selected(old('payout_schedule_day', $user->payout_schedule_day) === $value)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit" class="inline-flex justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700">
+                                Save schedule
+                            </button>
+                        </form>
+                    </div>
                 </article>
             </section>
 

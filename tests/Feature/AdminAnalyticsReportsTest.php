@@ -188,3 +188,103 @@ test('admin analytics endpoints return aggregated data', function () {
         ->assertJsonPath('auctions_won', 1)
         ->assertJsonPath('total_spent', 300);
 });
+
+test('admin analytics heatmap has mobile horizontal scroll wrapper', function () {
+    $admin = adminUser();
+
+    $this->actingAs($admin)
+        ->get(route('admin.analytics.index'))
+        ->assertOk()
+        ->assertSee('data-analytics-heatmap-scroll', false)
+        ->assertSee('overflow-x-auto', false)
+        ->assertSee('min-w-[56rem]', false);
+});
+
+test('admin analytics dashboard shows export buttons', function () {
+    $admin = adminUser();
+
+    $this->actingAs($admin)
+        ->get(route('admin.analytics.index'))
+        ->assertOk()
+        ->assertSeeText('Advanced exports')
+        ->assertSeeText('Export Categories')
+        ->assertSeeText('Export Heatmap')
+        ->assertSeeText('Export Sellers')
+        ->assertSeeText('Export Buyers')
+        ->assertSee(route('admin.analytics.export', ['report' => 'categories', 'days' => 30]), false);
+});
+
+test('admin can export analytics csv reports', function () {
+    $admin = adminUser();
+    $seller = User::factory()->create(['role' => User::ROLE_SELLER, 'name' => 'Export Seller', 'seller_slug' => 'export-seller']);
+    $buyer = User::factory()->create(['role' => User::ROLE_USER, 'name' => 'Export Buyer', 'wallet_balance' => 125]);
+    $category = Category::create([
+        'name' => 'Books',
+        'slug' => 'books',
+        'is_active' => true,
+    ]);
+
+    AnalyticsCategorySnapshot::create([
+        'category_id' => $category->id,
+        'report_date' => now()->subDay()->toDateString(),
+        'total_auctions' => 2,
+        'completed_auctions' => 1,
+        'cancelled_auctions' => 0,
+        'sell_through_rate' => 0.5,
+        'avg_final_price' => 80,
+        'avg_starting_price' => 50,
+        'price_appreciation_pct' => 60,
+        'total_bids' => 4,
+        'unique_bidders' => 2,
+    ]);
+    AnalyticsSellerSnapshot::create([
+        'user_id' => $seller->id,
+        'report_date' => now()->subDay()->toDateString(),
+        'active_listings' => 3,
+        'completed_sales' => 1,
+        'gross_revenue' => 80,
+        'avg_sale_price' => 80,
+        'avg_rating' => 4.5,
+        'total_bids_received' => 4,
+    ]);
+    AnalyticsHourlyBidVolume::create([
+        'report_date' => now()->subDay()->toDateString(),
+        'hour_of_day' => 11,
+        'day_of_week' => 'monday',
+        'bid_count' => 4,
+        'unique_bidders' => 2,
+        'unique_auctions' => 1,
+    ]);
+    $auction = Auction::factory()->completed()->create([
+        'winner_id' => $buyer->id,
+        'winning_bid_amount' => 80,
+        'closed_at' => now()->subDay(),
+    ]);
+    $bid = Bid::create([
+        'auction_id' => $auction->id,
+        'user_id' => $buyer->id,
+        'amount' => 80,
+        'bid_type' => Bid::TYPE_MANUAL,
+    ]);
+    DB::table('bids')->where('id', $bid->id)->update([
+        'created_at' => now()->subDay(),
+        'updated_at' => now()->subDay(),
+    ]);
+
+    $categories = $this->actingAs($admin)->get(route('admin.analytics.export', ['report' => 'categories']));
+    $categories->assertOk();
+    expect($categories->headers->get('content-disposition'))->toContain('admin-analytics-categories');
+    expect($categories->streamedContent())->toContain('Books');
+
+    $leaderboard = $this->actingAs($admin)->get(route('admin.analytics.export', ['report' => 'leaderboard']));
+    $leaderboard->assertOk();
+    expect($leaderboard->streamedContent())->toContain('Export Seller');
+
+    $heatmap = $this->actingAs($admin)->get(route('admin.analytics.export', ['report' => 'bid-timing']));
+    $heatmap->assertOk();
+    expect($heatmap->streamedContent())->toContain('monday');
+
+    $buyers = $this->actingAs($admin)->get(route('admin.analytics.export', ['report' => 'buyers']));
+    $buyers->assertOk();
+    expect($buyers->streamedContent())->toContain('Export Buyer');
+});
