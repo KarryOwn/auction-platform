@@ -12,6 +12,10 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         // Active bids — auctions where user has bid and auction is still active
         $activeBids = $user->bids()
             ->with(['auction.media'])

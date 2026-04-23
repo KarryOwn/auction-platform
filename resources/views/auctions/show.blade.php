@@ -1,6 +1,7 @@
 <x-app-layout>
     @php($displayCurrency = display_currency())
     @php($displayRate = app(\App\Services\ExchangeRateService::class)->getRate('USD', $displayCurrency))
+    @php($canUseBuyerActions = $canUseBuyerActions ?? (auth()->check() && ! auth()->user()->isStaff()))
     <x-slot name="header">
         <div class="flex flex-col gap-2">
             {{-- Category Breadcrumbs --}}
@@ -55,8 +56,7 @@
                     @endif
 
                     {{-- Watch Button --}}
-                    @auth
-                    @unless($isPreview ?? false)
+                    @if($canUseBuyerActions && !($isPreview ?? false))
                     <div
                         x-data="watchSettings({
                             watching: {{ $isWatching ? 'true' : 'false' }},
@@ -166,8 +166,7 @@
                             </div>
                         </div>
                     </div>
-                    @endunless
-                    @endauth
+                    @endif
                 </div>
             </div>
         </div>
@@ -815,8 +814,7 @@
                     </div>
 
                     {{-- Auto-Bid Card --}}
-                    @auth
-                    @if($auction->isActive() && !($isPreview ?? false))
+                    @if($canUseBuyerActions && $auction->isActive() && !($isPreview ?? false))
                     <div class="bg-white shadow-sm sm:rounded-lg p-6">
                         <h3 class="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
                             <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -853,7 +851,6 @@
                         <p class="text-xs text-gray-400 mt-2">The system will automatically bid on your behalf up to your limit (max 3 auto-bids per activation).</p>
                     </div>
                     @endif
-                    @endauth
 
                 </div>
             </div>

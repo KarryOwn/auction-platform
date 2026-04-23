@@ -112,8 +112,9 @@ class AuctionController extends Controller
         $auction->current_price = $this->biddingStrategy->getCurrentPrice($auction);
 
         $user = auth()->user();
+        $canUseBuyerActions = $user && ! $user->isStaff();
 
-        $watcher = $user
+        $watcher = $canUseBuyerActions
             ? AuctionWatcher::where('auction_id', $auction->id)
                 ->where('user_id', $user->id)
                 ->first()
@@ -121,7 +122,7 @@ class AuctionController extends Controller
 
         $isWatching = $watcher !== null;
 
-        $autoBid = $user
+        $autoBid = $canUseBuyerActions
             ? AutoBid::where('auction_id', $auction->id)
                 ->where('user_id', $user->id)
                 ->where('is_active', true)
@@ -178,7 +179,8 @@ class AuctionController extends Controller
             'bidChartData',
             'questions',
             'prediction',
-            'returnPolicy'
+            'returnPolicy',
+            'canUseBuyerActions'
         ));
     }
 
@@ -229,6 +231,10 @@ class AuctionController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isStaff()) {
+            return response()->json(['message' => 'Staff accounts cannot watch auctions.'], 403);
+        }
+
         $watcher = AuctionWatcher::where('auction_id', $auction->id)
             ->where('user_id', $user->id)
             ->first();
@@ -267,6 +273,10 @@ class AuctionController extends Controller
      */
     public function setAutoBid(Request $request, Auction $auction)
     {
+        if ($request->user()->isStaff()) {
+            return response()->json(['message' => 'Staff accounts cannot set auto-bids.'], 403);
+        }
+
         $validated = $request->validate([
             'max_amount' => 'required|numeric|min:' . $auction->minimumNextBid(),
         ]);
@@ -298,6 +308,10 @@ class AuctionController extends Controller
      */
     public function cancelAutoBid(Request $request, Auction $auction)
     {
+        if ($request->user()->isStaff()) {
+            return response()->json(['message' => 'Staff accounts cannot manage auto-bids.'], 403);
+        }
+
         AutoBid::where('auction_id', $auction->id)
             ->where('user_id', $request->user()->id)
             ->update(['is_active' => false]);

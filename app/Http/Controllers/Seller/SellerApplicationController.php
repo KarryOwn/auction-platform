@@ -17,6 +17,10 @@ class SellerApplicationController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         if ($user->isVerifiedSeller()) {
             return redirect()->route('seller.dashboard');
         }
@@ -27,6 +31,10 @@ class SellerApplicationController extends Controller
     public function apply(SellerApplicationRequest $request): RedirectResponse
     {
         $user = $request->user();
+
+        if ($user->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
 
         if ($user->isVerifiedSeller() || $user->hasPendingSellerApplication()) {
             return redirect()->route('seller.application.status');
@@ -59,6 +67,10 @@ class SellerApplicationController extends Controller
 
     public function status(Request $request)
     {
+        if ($request->user()->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $application = SellerApplication::query()
             ->where('user_id', $request->user()->id)
             ->latest('id')

@@ -1,9 +1,8 @@
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-200 sticky top-0 z-40 transition-all duration-300">
     @php
         $authUser = Auth::user();
-        $pendingSellerApplications = $authUser && $authUser->isStaff()
-            ? \App\Models\SellerApplication::where('status', \App\Models\SellerApplication::STATUS_PENDING)->count()
-            : 0;
+        $isStaffNavigation = $authUser?->isStaff() ?? false;
+        $dashboardRoute = $isStaffNavigation ? route('admin.dashboard') : route('dashboard');
         $unreadMessageCount = $authUser
             ? \App\Models\Conversation::query()->where(function ($q) use ($authUser) {
                 $q->where(function ($sellerQuery) use ($authUser) {
@@ -30,19 +29,21 @@
             <div class="flex items-center">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center mr-8">
-                    <a href="{{ route('dashboard') }}" class="group inline-flex border-none outline-none">
+                    <a href="{{ $dashboardRoute }}" class="group inline-flex border-none outline-none">
                         <x-application-logo class="h-10 w-auto" />
                     </a>
                 </div>
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-6 sm:flex items-center">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    <x-nav-link :href="$dashboardRoute" :active="$isStaffNavigation ? request()->routeIs('admin.dashboard') : request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('auctions.index')" :active="request()->routeIs('auctions.index')">
-                        {{ __('Browse Auctions') }}
-                    </x-nav-link>
+                    @unless($isStaffNavigation)
+                        <x-nav-link :href="route('auctions.index')" :active="request()->routeIs('auctions.index')">
+                            {{ __('Browse Auctions') }}
+                        </x-nav-link>
+                    @endunless
 
                     @auth
                     @if($authUser->isStaff())
@@ -51,9 +52,6 @@
                             <x-slot name="trigger">
                                 <button class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 hover:text-indigo-600 focus:outline-none transition duration-150 ease-in-out">
                                     <span>{{ __('Admin') }}</span>
-                                    @if($pendingSellerApplications > 0)
-                                        <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 font-bold border border-red-200">{{ $pendingSellerApplications }}</span>
-                                    @endif
                                     <svg class="ml-1 -mr-0.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                     </svg>
@@ -71,17 +69,11 @@
                                 <x-dropdown-link :href="route('admin.webhook-deliveries.index')">{{ __('Webhook Deliveries') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.audit-logs.index')">{{ __('Audit Logs') }}</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.payments.index')">{{ __('Payments') }}</x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.seller-applications.index')">
-                                    {{ __('Seller Applications') }}
-                                    @if($pendingSellerApplications > 0)
-                                        <span class="ml-1 inline-flex rounded-full text-xs bg-red-100 text-red-700 px-2">{{ $pendingSellerApplications }}</span>
-                                    @endif
-                                </x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
                     @endif
 
-                    @if($authUser->isVerifiedSeller())
+                    @if(! $authUser->isStaff() && $authUser->isVerifiedSeller())
                         <!-- Seller Dropdown -->
                         <x-dropdown align="left" width="48">
                             <x-slot name="trigger">
@@ -111,12 +103,12 @@
                                 <x-dropdown-link :href="route('seller.storefront.edit')">{{ __('Storefront Settings') }}</x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
-                    @elseif($authUser->hasPendingSellerApplication())
+                    @elseif(! $authUser->isStaff() && $authUser->hasPendingSellerApplication())
                         <span class="inline-flex items-center text-sm font-medium text-gray-400 cursor-not-allowed">
                             <svg class="w-4 h-4 mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             {{ __('Application Pending') }}
                         </span>
-                    @else
+                    @elseif(! $authUser->isStaff())
                         <x-nav-link :href="route('seller.apply.form')" :active="request()->routeIs('seller.apply.*') || request()->routeIs('seller.application.status')" class="text-indigo-600 hover:text-indigo-800">
                             {{ __('Become a Seller') }}
                         </x-nav-link>
@@ -142,17 +134,19 @@
 
                 @auth
                 <!-- Messages -->
-                <button @click="$dispatch('open-chat')" type="button" 
-                   class="relative p-1 text-gray-400 hover:text-gray-600 transition">
-                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    @if($unreadMessageCount > 0)
-                        <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
-                            {{ $unreadMessageCount > 99 ? '99+' : $unreadMessageCount }}
-                        </span>
-                    @endif
-                </button>
+                @unless($isStaffNavigation)
+                    <button @click="$dispatch('open-chat')" type="button"
+                       class="relative p-1 text-gray-400 hover:text-gray-600 transition">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        @if($unreadMessageCount > 0)
+                            <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                                {{ $unreadMessageCount > 99 ? '99+' : $unreadMessageCount }}
+                            </span>
+                        @endif
+                    </button>
+                @endunless
 
                 @include('components.notification-bell')
 
@@ -171,9 +165,18 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        @if($isStaffNavigation)
+                        <x-dropdown-link :href="route('admin.dashboard')">
+                            {{ __('Admin Dashboard') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('admin.audit-logs.index')">
+                            {{ __('Admin Activity') }}
+                        </x-dropdown-link>
+                        @endif
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
                         </x-dropdown-link>
+                        @unless($isStaffNavigation)
                         <x-dropdown-link :href="route('user.bids')">
                             {{ __('My Bids') }}
                         </x-dropdown-link>
@@ -204,6 +207,7 @@
                         <x-dropdown-link :href="route('user.webhooks.index')">
                             {{ __('Webhooks') }}
                         </x-dropdown-link>
+                        @endunless
 
                         <div class="border-t border-gray-100 my-1"></div>
                         <!-- Authentication -->
@@ -262,12 +266,14 @@
                 </select>
             </form>
 
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+            <x-responsive-nav-link :href="$dashboardRoute" :active="$isStaffNavigation ? request()->routeIs('admin.dashboard') : request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('auctions.index')" :active="request()->routeIs('auctions.index')">
-                {{ __('Browse Auctions') }}
-            </x-responsive-nav-link>
+            @unless($isStaffNavigation)
+                <x-responsive-nav-link :href="route('auctions.index')" :active="request()->routeIs('auctions.index')">
+                    {{ __('Browse Auctions') }}
+                </x-responsive-nav-link>
+            @endunless
 
             @auth
             @if($authUser->isStaff())
@@ -283,11 +289,10 @@
                     <x-responsive-nav-link :href="route('admin.bid-retractions.index')" :active="request()->routeIs('admin.bid-retractions.*')">{{ __('Bid Retractions') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.webhook-deliveries.index')" :active="request()->routeIs('admin.webhook-deliveries.*')">{{ __('Webhook Deliveries') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.payments.index')" :active="request()->routeIs('admin.payments.*')">{{ __('Payments') }}</x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('admin.seller-applications.index')" :active="request()->routeIs('admin.seller-applications.*')">{{ __('Seller Applications') }}</x-responsive-nav-link>
                 </div>
             @endif
 
-            @if($authUser->isVerifiedSeller())
+            @if(! $authUser->isStaff() && $authUser->isVerifiedSeller())
                 <div class="pt-4 pb-2">
                     <div class="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Seller Portal</div>
                     <x-responsive-nav-link :href="route('seller.dashboard')" :active="request()->routeIs('seller.dashboard')">{{ __('Seller Dashboard') }}</x-responsive-nav-link>
@@ -298,9 +303,9 @@
                     <x-responsive-nav-link :href="route('seller.revenue.index')" :active="request()->routeIs('seller.revenue.*')">{{ __('Revenue') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('seller.storefront.edit')" :active="request()->routeIs('seller.storefront.*')">{{ __('Storefront Settings') }}</x-responsive-nav-link>
                 </div>
-            @elseif($authUser->hasPendingSellerApplication())
+            @elseif(! $authUser->isStaff() && $authUser->hasPendingSellerApplication())
                 <div class="px-4 py-3 text-sm text-amber-600 bg-amber-50 font-medium">{{ __('Application Pending') }}</div>
-            @else
+            @elseif(! $authUser->isStaff())
                 <x-responsive-nav-link :href="route('seller.apply.form')" :active="request()->routeIs('seller.apply.*') || request()->routeIs('seller.application.status')">{{ __('Become a Seller') }}</x-responsive-nav-link>
             @endif
             @endauth
@@ -324,9 +329,18 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                @if($isStaffNavigation)
+                <x-responsive-nav-link :href="route('admin.dashboard')">
+                    {{ __('Admin Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.audit-logs.index')">
+                    {{ __('Admin Activity') }}
+                </x-responsive-nav-link>
+                @endif
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
+                @unless($isStaffNavigation)
                 <x-responsive-nav-link :href="route('user.bids')">
                     {{ __('My Bids') }}
                 </x-responsive-nav-link>
@@ -365,6 +379,7 @@
                     @endif
                 </x-responsive-nav-link>
                 @endif
+                @endunless
                 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
@@ -388,6 +403,8 @@
         @endauth
     </div>
     @auth
+    @unless($isStaffNavigation)
         <x-chat-drawer />
+    @endunless
     @endauth
 </nav>

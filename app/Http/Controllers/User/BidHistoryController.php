@@ -11,6 +11,10 @@ class BidHistoryController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $query = $user->bids()
             ->with(['auction.media', 'retractionRequest'])
             ->latest();

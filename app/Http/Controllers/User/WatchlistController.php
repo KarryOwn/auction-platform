@@ -11,6 +11,10 @@ class WatchlistController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $sort = $request->input('sort', 'ending_soon');
 
         $watchedItems = $user->watchedAuctions()

@@ -16,7 +16,7 @@ class PlaceBidRequest extends FormRequest
         $user = $this->user();
 
         // Must be authenticated and not banned
-        return $user && ! $user->isBanned();
+        return $user && ! $user->isBanned() && ! $user->isStaff();
     }
 
     /**

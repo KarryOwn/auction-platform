@@ -18,6 +18,10 @@ class WalletController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $query = $user->walletTransactions()->latest();
 
         if ($request->filled('type')) {

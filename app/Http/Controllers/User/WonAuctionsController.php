@@ -11,6 +11,10 @@ class WonAuctionsController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isStaff()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $tab = $request->input('tab', 'pending');
 
         $query = $user->wonAuctions()->with('media')->withCount('disputes')->latest('closed_at');
