@@ -80,15 +80,6 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                @php
-                                    $eventLabels = [
-                                        'outbid'         => ['Outbid Alert', 'When someone places a higher bid on an auction you bid on'],
-                                        'auction_won'    => ['Auction Won', 'When you win an auction'],
-                                        'auction_ending' => ['Auction Ending Soon', 'When a watched auction is about to end'],
-                                        'wallet'         => ['Wallet Updates', 'Deposits, payments, and balance changes'],
-                                        'marketing'      => ['Promotions & News', 'Featured auctions, platform news, and special offers'],
-                                    ];
-                                @endphp
                                 @foreach($eventLabels as $event => [$label, $description])
                                     <tr>
                                         <td class="py-4 pr-4">

@@ -8,12 +8,25 @@ use Illuminate\Http\Request;
 
 class NotificationPreferenceController extends Controller
 {
+    /**
+     * @var array<string, array{0: string, 1: string}>
+     */
+    private const EVENT_LABELS = [
+        'outbid' => ['Outbid Alert', 'When someone places a higher bid on an auction you bid on'],
+        'auction_won' => ['Auction Won', 'When you win an auction'],
+        'auction_lost' => ['Auction Lost', 'When an auction you bid on closes with another winner'],
+        'auction_ending' => ['Auction Ending Soon', 'When a watched auction is about to end'],
+        'wallet' => ['Wallet Updates', 'Deposits, payments, and balance changes'],
+        'marketing' => ['Promotions & News', 'Featured auctions, platform news, and special offers'],
+    ];
+
     public function edit(Request $request)
     {
         $preferences = $request->user()->getNotificationPreferences();
         $supportedCurrencies = config('auction.supported_currencies', ['USD']);
+        $eventLabels = self::EVENT_LABELS;
 
-        return view('user.notification-preferences', compact('preferences', 'supportedCurrencies'));
+        return view('user.notification-preferences', compact('preferences', 'supportedCurrencies', 'eventLabels'));
     }
 
     public function update(Request $request)

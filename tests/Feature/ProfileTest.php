@@ -51,7 +51,10 @@ test('email verification status is unchanged when the email address is unchanged
 });
 
 test('user can delete their account', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create([
+        'name' => 'Original Name',
+        'email' => 'original@example.com',
+    ]);
 
     $response = $this
         ->actingAs($user)
@@ -64,7 +67,12 @@ test('user can delete their account', function () {
         ->assertRedirect('/');
 
     $this->assertGuest();
-    $this->assertNull($user->fresh());
+
+    $deletedUser = User::withTrashed()->find($user->id);
+    $this->assertNotNull($deletedUser);
+    $this->assertTrue($deletedUser->trashed());
+    $this->assertSame('Deleted User #' . $user->id, $deletedUser->name);
+    $this->assertSame('deleted-' . $user->id . '@deleted.invalid', $deletedUser->email);
 });
 
 test('correct password must be provided to delete account', function () {
