@@ -1,6 +1,6 @@
 @props([
     'amount',
-    'currency' => 'USD',
+    'currency' => null,
     'size' => 'md',
     'label' => null,
     'animate' => false,
@@ -8,7 +8,7 @@
 ])
 
 @php
-    $formattedAmount = format_price((float) $amount, strtoupper($currency));
+    $formattedAmount = format_price((float) $amount, $currency ? strtoupper($currency) : null);
 
     $sizeClasses = match ($size) {
         'sm' => 'text-base font-semibold',

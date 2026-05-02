@@ -664,8 +664,8 @@ class SupportChatController extends Controller
 
         $conversation->update(['status' => 'escalated']);
 
-        // Notify admins/moderators
-        $admins = \App\Models\User::whereIn('role', ['admin', 'moderator'])->get();
+        // Notify admins
+        $admins = \App\Models\User::where('role', 'admin')->get();
         $admins->each(fn ($a) => $a->notify(new \App\Notifications\SupportEscalationNotification($conversation)));
 
         return response()->json(['message' => 'Connected to support team. A member will reply shortly.']);

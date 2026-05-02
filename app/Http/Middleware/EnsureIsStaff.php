@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureIsStaff
 {
     /**
-     * Only allow admin and moderator users to proceed.
+     * Only allow admin users to proceed.
      */
     public function handle(Request $request, Closure $next): Response
     {

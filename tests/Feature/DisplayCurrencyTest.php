@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 
 test('guest can switch display currency with a cookie', function () {
@@ -47,4 +49,18 @@ test('notification preferences update persists display currency', function () {
     $response->assertCookie('display_currency', 'VND');
 
     expect($user->fresh()->userPreference?->display_currency)->toBe('VND');
+});
+
+test('price component uses selected display currency and converts amount', function () {
+    Cache::flush();
+
+    config(['services.exchange_rate.fallback_rates' => [
+        'EUR' => 0.5,
+    ]]);
+
+    app()->instance('display_currency', 'EUR');
+
+    $html = Blade::render('<x-ui.price :amount="100" />');
+
+    expect($html)->toContain('€50.00');
 });

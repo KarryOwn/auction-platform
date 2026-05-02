@@ -54,7 +54,7 @@ class SellerApplicationController extends Controller
             'seller_rejected_reason' => null,
         ]);
 
-        User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_MODERATOR])->get()->each(function (User $staff) use ($application) {
+        User::query()->where('role', User::ROLE_ADMIN)->get()->each(function (User $staff) use ($application) {
             $staff->notify(new SellerApplicationSubmittedNotification($application->load('user')));
         });
 

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class SupportChatController extends Controller
 {
@@ -106,7 +107,7 @@ class SupportChatController extends Controller
             'last_message_at' => now(),
         ]);
 
-        $admins = User::query()->whereIn('role', [User::ROLE_ADMIN, User::ROLE_MODERATOR])->get();
+        $admins = User::query()->where('role', User::ROLE_ADMIN)->get();
         Notification::send($admins, new SupportEscalationNotification($conversation));
 
         return response()->json([
@@ -152,6 +153,14 @@ class SupportChatController extends Controller
 
     private function askGemini(array $history, ?User $user): string
     {
+        $apiKey = config('services.gemini.api_key');
+
+        if (blank($apiKey)) {
+            Log::warning('SupportChatController: Gemini API key is not configured.');
+
+            return $this->fallbackSupportReply($history);
+        }
+
         $systemPrompt = $this->buildSystemPrompt($user);
         $contents = [[
             'role' => 'user',
@@ -167,7 +176,7 @@ class SupportChatController extends Controller
 
         try {
             $response = Http::timeout(15)->post(
-                'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=' . config('services.gemini.api_key'),
+                'https://generativelanguage.googleapis.com/v1/models/' . config('services.gemini.model', 'gemini-2.0-flash') . ':generateContent?key=' . $apiKey,
                 [
                     'contents' => $contents,
                     'generationConfig' => [
@@ -177,17 +186,62 @@ class SupportChatController extends Controller
                 ]
             );
 
-            $data = $response->json();
+            if ($response->failed()) {
+                Log::warning('SupportChatController: Gemini API request failed', [
+                    'status' => $response->status(),
+                    'body' => Str::limit($response->body(), 1000),
+                ]);
 
-            return $data['candidates'][0]['content']['parts'][0]['text']
-                ?? "I'm sorry, I couldn't process your request. Please try again.";
+                return $this->fallbackSupportReply($history);
+            }
+
+            $data = $response->json();
+            $text = data_get($data, 'candidates.0.content.parts.0.text');
+
+            if (is_string($text) && trim($text) !== '') {
+                return trim($text);
+            }
+
+            Log::warning('SupportChatController: Gemini API returned no answer text', [
+                'finish_reason' => data_get($data, 'candidates.0.finishReason'),
+                'prompt_feedback' => data_get($data, 'promptFeedback'),
+                'error' => data_get($data, 'error.message'),
+            ]);
+
+            return $this->fallbackSupportReply($history);
         } catch (\Throwable $e) {
             Log::error('SupportChatController: Gemini API error', [
                 'error' => $e->getMessage(),
             ]);
 
-            return 'I\'m temporarily unavailable. Please click "Talk to a human" to connect with our support team.';
+            return $this->fallbackSupportReply($history);
         }
+    }
+
+    private function fallbackSupportReply(array $history): string
+    {
+        $latest = $history === []
+            ? ''
+            : (string) ($history[array_key_last($history)]['content'] ?? '');
+        $latestMessage = Str::lower($latest);
+
+        if (Str::contains($latestMessage, ['wallet', 'fund', 'balance', 'deposit', 'money'])) {
+            return 'Wallet actions are available from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.';
+        }
+
+        if (Str::contains($latestMessage, ['bid', 'bidding', 'outbid', 'auction'])) {
+            return 'For bidding issues, check that the auction is active and your bid meets the minimum increment. If the auction or bid state looks incorrect, click "Talk to a human" and include the auction name.';
+        }
+
+        if (Str::contains($latestMessage, ['seller', 'application', 'verify', 'verification'])) {
+            return 'Seller applications are reviewed from the seller area after submission. If your status has not changed or you need verification help, click "Talk to a human" so staff can check it.';
+        }
+
+        if (Str::contains($latestMessage, ['dispute', 'refund', 'return', 'payment', 'invoice'])) {
+            return 'For disputes, refunds, returns, or invoices, gather the auction details and payment reference. Click "Talk to a human" so support can review the account-specific records.';
+        }
+
+        return 'Support AI is temporarily unavailable, but I can still route your request. Please click "Talk to a human" and include the auction, payment, or account detail you need help with.';
     }
 
     private function buildSystemPrompt(?User $user): string

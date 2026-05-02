@@ -147,7 +147,7 @@ class Auction extends Model implements HasMedia
                     ->delay(now()->addSeconds(5));
             }
 
-            if ($auction->wasChanged('is_featured')) {
+            if ($auction->wasChanged(['is_featured', 'featured_until', 'status', 'end_time'])) {
                 Cache::forget('featured_auctions');
             }
         });
@@ -171,7 +171,8 @@ class Auction extends Model implements HasMedia
 
     public function scopeFeatured(Builder $query): Builder
     {
-        return $query->where('is_featured', true)
+        return $query->active()
+            ->where('is_featured', true)
             ->where(function (Builder $q) {
                 $q->whereNull('featured_until')
                   ->orWhere('featured_until', '>', now());

@@ -12,12 +12,18 @@ class WalletTransaction extends Model
 {
     use HasFactory;
 
-    public const TYPE_DEPOSIT       = 'deposit';
-    public const TYPE_WITHDRAWAL    = 'withdrawal';
-    public const TYPE_BID_HOLD      = 'bid_hold';
-    public const TYPE_BID_RELEASE   = 'bid_release';
-    public const TYPE_PAYMENT       = 'payment';
-    public const TYPE_REFUND        = 'refund';
+    public const TYPE_DEPOSIT = 'deposit';
+
+    public const TYPE_WITHDRAWAL = 'withdrawal';
+
+    public const TYPE_BID_HOLD = 'bid_hold';
+
+    public const TYPE_BID_RELEASE = 'bid_release';
+
+    public const TYPE_PAYMENT = 'payment';
+
+    public const TYPE_REFUND = 'refund';
+
     public const TYPE_SELLER_CREDIT = 'seller_credit';
 
     protected $fillable = [
@@ -29,10 +35,11 @@ class WalletTransaction extends Model
         'reference_id',
         'description',
         'stripe_session_id',
+        'stripe_payment_intent_id',
     ];
 
     protected $casts = [
-        'amount'        => 'decimal:2',
+        'amount' => 'decimal:2',
         'balance_after' => 'decimal:2',
     ];
 

@@ -34,7 +34,6 @@ class User extends Authenticatable implements HasMedia
 
     public const ROLE_USER      = 'user';
     public const ROLE_ADMIN     = 'admin';
-    public const ROLE_MODERATOR = 'moderator';
     public const ROLE_SELLER    = 'seller';
 
     /**
@@ -191,14 +190,9 @@ class User extends Authenticatable implements HasMedia
         return $this->role === self::ROLE_ADMIN;
     }
 
-    public function isModerator(): bool
-    {
-        return $this->role === self::ROLE_MODERATOR;
-    }
-
     public function isStaff(): bool
     {
-        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_MODERATOR]);
+        return $this->isAdmin();
     }
 
     public function isSeller(): bool

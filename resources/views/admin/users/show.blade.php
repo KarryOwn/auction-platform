@@ -26,7 +26,7 @@
                         <dt class="text-sm font-medium text-gray-500">Role</dt>
                         <dd>
                             @php
-                                $roleColors = ['admin' => 'bg-purple-100 text-purple-800', 'moderator' => 'bg-blue-100 text-blue-800', 'user' => 'bg-gray-100 text-gray-800'];
+                                $roleColors = ['admin' => 'bg-purple-100 text-purple-800', 'seller' => 'bg-amber-100 text-amber-800', 'user' => 'bg-gray-100 text-gray-800'];
                             @endphp
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $roleColors[$user->role] ?? 'bg-gray-100 text-gray-800' }}">
                                 {{ ucfirst($user->role) }}
@@ -112,7 +112,7 @@
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Change Role</label>
                                 <select id="role-select" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                    @foreach(['user', 'moderator', 'admin'] as $r)
+                                    @foreach(['user', 'seller', 'admin'] as $r)
                                         <option value="{{ $r }}" {{ $user->role === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
                                     @endforeach
                                 </select>

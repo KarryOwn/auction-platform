@@ -114,6 +114,13 @@ test('welcome page shows maintenance banner only within two hours', function () 
     $laterResponse->assertDontSeeText('Scheduled maintenance on');
 });
 
+test('welcome page includes csrf token for support widget requests', function () {
+    $response = $this->get('/');
+
+    $response->assertOk();
+    $response->assertSee('name="csrf-token"', false);
+});
+
 test('maintenance index is restricted to admins', function () {
     $user = User::factory()->create([
         'role' => User::ROLE_USER,

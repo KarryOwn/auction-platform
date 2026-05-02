@@ -113,6 +113,11 @@ class ExchangeRateService
             'USD_USD' => 1.0,
         ];
 
+        foreach ($this->fallbackRates() as $target => $rate) {
+            $rates["USD_{$target}"] = $rate;
+            $rates["{$target}_USD"] = 1 / $rate;
+        }
+
         ExchangeRate::query()
             ->where('base_currency', 'USD')
             ->where('fetched_at', '>=', now()->subHours(self::STALE_HOURS))
@@ -128,6 +133,32 @@ class ExchangeRateService
                 $rates["USD_{$target}"] = $forward;
                 $rates["{$target}_USD"] = 1 / $forward;
             });
+
+        return $rates;
+    }
+
+    /**
+     * Local display-rate fallback used when the external provider is not configured
+     * or recent DB rates are unavailable. Fresh DB rates still override these values.
+     *
+     * @return array<string, float>
+     */
+    private function fallbackRates(): array
+    {
+        $configured = config('services.exchange_rate.fallback_rates', []);
+        $supported = array_map('strtoupper', config('auction.supported_currencies', ['USD']));
+        $rates = [];
+
+        foreach ($configured as $currency => $rate) {
+            $currency = strtoupper((string) $currency);
+            $rate = (float) $rate;
+
+            if ($currency === 'USD' || $rate <= 0 || ! in_array($currency, $supported, true)) {
+                continue;
+            }
+
+            $rates[$currency] = $rate;
+        }
 
         return $rates;
     }

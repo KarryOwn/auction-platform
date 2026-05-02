@@ -4,8 +4,8 @@ use App\Models\Auction;
 use App\Models\Dispute;
 use App\Models\User;
 
-test('staff can update dispute resolution status', function () {
-    $staff = User::factory()->create(['role' => User::ROLE_MODERATOR]);
+test('admin can update dispute resolution status', function () {
+    $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
     $seller = createSeller();
     $buyer = User::factory()->create();
 

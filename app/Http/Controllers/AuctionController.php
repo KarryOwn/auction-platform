@@ -95,6 +95,13 @@ class AuctionController extends Controller
 
     public function show(Auction $auction, \App\Services\AttributePricePredictionService $predictionService)
     {
+        $user = auth()->user();
+        $canViewPrivateAuction = $user && ($user->isStaff() || $user->id === $auction->user_id);
+
+        if (! in_array($auction->status, [Auction::STATUS_ACTIVE, Auction::STATUS_COMPLETED], true) && ! $canViewPrivateAuction) {
+            abort(404);
+        }
+
         $auction->loadCount('bids');
         $auction->load([
             'seller',
@@ -111,7 +118,6 @@ class AuctionController extends Controller
         // Get the real-time price from the bidding engine (Redis may be ahead of DB)
         $auction->current_price = $this->biddingStrategy->getCurrentPrice($auction);
 
-        $user = auth()->user();
         $canUseBuyerActions = $user && ! $user->isStaff();
 
         $watcher = $canUseBuyerActions

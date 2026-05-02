@@ -14,6 +14,8 @@ beforeEach(function () {
 
 function fakeGeminiResponse(string $message = 'Here is a support answer.'): void
 {
+    config(['services.gemini.api_key' => 'test-gemini-key']);
+
     Http::fake([
         'https://generativelanguage.googleapis.com/*' => Http::response([
             'candidates' => [[
@@ -25,6 +27,11 @@ function fakeGeminiResponse(string $message = 'Here is a support answer.'): void
             ]],
         ]),
     ]);
+}
+
+function clearGeminiConfiguration(): void
+{
+    config(['services.gemini.api_key' => null]);
 }
 
 test('guest can start and continue their own support conversation', function () {
@@ -95,7 +102,7 @@ test('other visitors cannot access anonymous conversations they do not own', fun
         ->assertForbidden();
 });
 
-test('escalating a support conversation notifies staff', function () {
+test('escalating a support conversation notifies admins', function () {
     Notification::fake();
     fakeGeminiResponse();
 
@@ -105,8 +112,8 @@ test('escalating a support conversation notifies staff', function () {
     $admin = User::factory()->create([
         'role' => User::ROLE_ADMIN,
     ]);
-    $moderator = User::factory()->create([
-        'role' => User::ROLE_MODERATOR,
+    $seller = User::factory()->create([
+        'role' => User::ROLE_SELLER,
     ]);
 
     RateLimiter::clear('support-chat:' . $user->id);
@@ -126,7 +133,8 @@ test('escalating a support conversation notifies staff', function () {
 
     expect($conversation->fresh()->status)->toBe(SupportConversation::STATUS_ESCALATED);
 
-    Notification::assertSentTo([$admin, $moderator], SupportEscalationNotification::class);
+    Notification::assertSentTo($admin, SupportEscalationNotification::class);
+    Notification::assertNotSentTo($seller, SupportEscalationNotification::class);
 });
 
 test('staff can reply to and close escalated support conversations', function () {
@@ -212,4 +220,54 @@ test('support chat send endpoint is rate limited after ten messages per hour', f
     ]);
 
     $blocked->assertStatus(429);
+});
+
+test('support chat returns local fallback when gemini is not configured', function () {
+    clearGeminiConfiguration();
+    Http::fake();
+
+    $response = $this->postJson(route('support.chat.send'), [
+        'message' => 'How do I add money to my wallet?',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('message', 'Wallet actions are available from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.');
+
+    Http::assertNothingSent();
+});
+
+test('support chat handles withdrawal help requests when gemini is not configured', function () {
+    clearGeminiConfiguration();
+    Http::fake();
+
+    $response = $this->postJson(route('support.chat.send'), [
+        'message' => 'Cannot withdraw money',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('message', 'Wallet actions are available from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.');
+
+    Http::assertNothingSent();
+});
+
+test('support chat does not expose generic processing error when gemini returns an error payload', function () {
+    config(['services.gemini.api_key' => 'test-gemini-key']);
+
+    Http::fake([
+        'https://generativelanguage.googleapis.com/*' => Http::response([
+            'error' => [
+                'message' => 'API key not valid.',
+            ],
+        ], 403),
+    ]);
+
+    $response = $this->postJson(route('support.chat.send'), [
+        'message' => 'My bid did not go through.',
+    ]);
+
+    $response->assertOk();
+
+    expect($response->json('message'))
+        ->toContain('For bidding issues')
+        ->not->toContain("couldn't process your request");
 });

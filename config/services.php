@@ -56,10 +56,17 @@ return [
     'exchange_rate' => [
         'api_key' => env('EXCHANGE_RATE_API_KEY'),
         'url' => env('EXCHANGE_RATE_API_URL', 'https://api.exchangeratesapi.io/v1/latest'),
+        'fallback_rates' => [
+            'EUR' => 0.92,
+            'GBP' => 0.79,
+            'JPY' => 155.00,
+            'VND' => 25400.00,
+        ],
     ],
 
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
     ],
 
 ];

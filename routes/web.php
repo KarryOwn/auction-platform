@@ -146,10 +146,14 @@ Route::post('/account/reactivate', function (\Illuminate\Http\Request $request) 
 Route::get('/categories', [CategoryBrowseController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category:slug}', [CategoryBrowseController::class, 'show'])->name('categories.show');
 
-Route::middleware('auth')->group(function () {
-    // Auction browsing (formerly /dashboard, now /auctions)
-    Route::get('/auctions', [AuctionController::class, 'index'])->name('auctions.index');
+// Public auction browsing and read-only auction detail views.
+Route::get('/auctions', [AuctionController::class, 'index'])->name('auctions.index');
+Route::get('/auctions/{auction}/live-state', [AuctionController::class, 'liveState'])->name('auctions.live-state');
+Route::get('/auctions/{auction}', [AuctionController::class, 'show'])
+    ->middleware('track.auction.view')
+    ->name('auctions.show');
 
+Route::middleware('auth')->group(function () {
     // User Dashboard
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
 
@@ -231,10 +235,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/deactivate',  [ProfileController::class, 'deactivate'])->name('profile.deactivate');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Auction detail & actions
-    Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->middleware('track.auction.view')->name('auctions.show');
+    // Auction actions
     Route::get('/auctions/{auction}/auth-cert', [AuctionCertificateController::class, 'download'])->name('auctions.auth-cert.download');
-    Route::get('/auctions/{auction}/live-state', [AuctionController::class, 'liveState'])->name('auctions.live-state');
     Route::get('/auctions/{auction}/rate', [AuctionRatingController::class, 'create'])->name('auctions.rate');
     Route::post('/auctions/{auction}/rate', [AuctionRatingController::class, 'store'])->name('auctions.rate.store');
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])->name('auctions.bid');

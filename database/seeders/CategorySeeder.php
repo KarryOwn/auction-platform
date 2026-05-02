@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CategorySeeder extends Seeder
@@ -115,6 +116,7 @@ class CategorySeeder extends Seeder
 
             $parent->update([
                 'icon'       => $root['icon'],
+                'image_path' => $this->ensureCategoryImage($parent),
                 'sort_order' => $sortOrder++,
                 'is_active'  => true,
             ]);
@@ -135,6 +137,7 @@ class CategorySeeder extends Seeder
 
                 $childCategory->update([
                     'icon'       => $child['icon'],
+                    'image_path' => $this->ensureCategoryImage($childCategory),
                     'sort_order' => $childOrder++,
                     'is_active'  => true,
                     'depth'      => $parent->depth + 1,
@@ -144,5 +147,93 @@ class CategorySeeder extends Seeder
         }
 
         $this->command->info('Seeded ' . Category::count() . ' categories.');
+    }
+
+    private function ensureCategoryImage(Category $category): string
+    {
+        $disk = Storage::disk('public');
+
+        if ($category->image_path && $disk->exists($category->image_path)) {
+            return $category->image_path;
+        }
+
+        $path = 'categories/seeded/' . Str::slug($category->name) . '.png';
+        $disk->put($path, $this->generateCategoryImage($category->name));
+
+        return $path;
+    }
+
+    private function generateCategoryImage(string $name): string
+    {
+        $width = 640;
+        $height = 480;
+        $image = imagecreatetruecolor($width, $height);
+
+        if ($image === false) {
+            throw new \RuntimeException('Unable to initialize category image canvas.');
+        }
+
+        imagealphablending($image, true);
+        imagesavealpha($image, true);
+
+        [$baseRed, $baseGreen, $baseBlue] = $this->categoryColor($name);
+        $base = imagecolorallocate($image, $baseRed, $baseGreen, $baseBlue);
+        $soft = imagecolorallocate(
+            $image,
+            min(255, $baseRed + 56),
+            min(255, $baseGreen + 56),
+            min(255, $baseBlue + 56)
+        );
+        $dark = imagecolorallocate(
+            $image,
+            max(0, $baseRed - 72),
+            max(0, $baseGreen - 72),
+            max(0, $baseBlue - 72)
+        );
+        $white = imagecolorallocate($image, 255, 255, 255);
+        $mutedWhite = imagecolorallocatealpha($image, 255, 255, 255, 35);
+
+        imagefilledrectangle($image, 0, 0, $width, $height, $base);
+        imagefilledellipse($image, 118, 104, 260, 260, $soft);
+        imagefilledellipse($image, 548, 390, 340, 260, $dark);
+        imagefilledrectangle($image, 0, 350, $width, $height, $mutedWhite);
+
+        $label = Str::upper(Str::limit($name, 28, ''));
+        $subtitle = 'Auction Category';
+
+        imagestring($image, 5, 40, 374, $label, $white);
+        imagestring($image, 3, 40, 412, $subtitle, $white);
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+        imagedestroy($image);
+
+        if ($png === false) {
+            throw new \RuntimeException('Failed to generate category image PNG data.');
+        }
+
+        return $png;
+    }
+
+    /**
+     * Stable, category-specific palette so repeated seeds keep recognizable images.
+     *
+     * @return array{0:int,1:int,2:int}
+     */
+    private function categoryColor(string $name): array
+    {
+        $palettes = [
+            [39, 96, 166],
+            [157, 86, 45],
+            [148, 63, 102],
+            [54, 125, 94],
+            [123, 79, 164],
+            [184, 119, 35],
+            [55, 116, 130],
+            [112, 102, 71],
+        ];
+
+        return $palettes[crc32($name) % count($palettes)];
     }
 }

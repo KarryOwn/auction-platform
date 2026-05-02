@@ -1,7 +1,7 @@
 <div
     x-data="supportWidget()"
     x-init="init()"
-    class="fixed bottom-4 right-4 z-[110] flex flex-col items-end gap-3"
+    class="fixed bottom-4 right-4 z-[110] flex flex-col items-end gap-3 selection:bg-emerald-200 selection:text-emerald-950"
 >
     <div
         x-show="open"
@@ -9,9 +9,9 @@
         class="w-[min(92vw,24rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
         style="display: none;"
     >
-        <div class="flex items-center justify-between bg-slate-900 px-4 py-3 text-white">
+        <div class="flex select-none items-center justify-between bg-slate-900 px-4 py-3 text-white">
             <div>
-                <h3 class="text-sm font-semibold">Support</h3>
+                <h3 class="text-sm font-semibold !text-white">Support</h3>
                 <p class="text-xs text-slate-300">Ask a question or talk to our team.</p>
             </div>
             <button type="button" class="rounded-md p-1 text-slate-300 hover:bg-slate-800 hover:text-white" @click="open = false">
@@ -32,8 +32,8 @@
                         </div>
                     </div>
                     <div class="flex justify-end">
-                        <div class="max-w-[70%] rounded-2xl rounded-br-md bg-indigo-200 px-4 py-3">
-                            <div class="h-3 w-32 animate-pulse rounded bg-indigo-300"></div>
+                        <div class="max-w-[70%] rounded-2xl rounded-br-md bg-emerald-200 px-4 py-3">
+                            <div class="h-3 w-32 animate-pulse rounded bg-emerald-300"></div>
                         </div>
                     </div>
                 </div>
@@ -49,7 +49,7 @@
                 <div :class="message.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div
                         :class="message.role === 'user'
-                            ? 'max-w-[85%] rounded-2xl rounded-br-md bg-indigo-600 px-4 py-3 text-sm text-white'
+                            ? 'max-w-[85%] rounded-2xl rounded-br-md bg-emerald-600 px-4 py-3 text-sm text-white'
                             : 'max-w-[85%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm text-slate-800 shadow-sm border border-slate-200'"
                     >
                         <p class="whitespace-pre-line" x-text="message.body"></p>
@@ -73,7 +73,7 @@
                     x-model="draft"
                     rows="3"
                     maxlength="2000"
-                    class="w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    class="w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
                     x-bind:disabled="isRateLimited"
                     placeholder="How can we help?"
                 ></textarea>
@@ -81,7 +81,7 @@
                     <p class="text-xs" :class="isRateLimited ? 'text-rose-500' : 'text-slate-400'" x-text="statusText"></p>
                     <button
                         type="submit"
-                        class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                        class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
                         :disabled="sending || isRateLimited || !draft.trim()"
                     >
                         <span x-text="sending ? 'Sending...' : 'Send'"></span>
@@ -93,7 +93,7 @@
 
     <button
         type="button"
-        class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl transition hover:bg-indigo-700"
+        class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl transition hover:bg-emerald-700"
         @click="toggle()"
     >
         <span class="sr-only">Open support chat</span>
@@ -208,9 +208,13 @@
                                     }),
                                 });
 
-                                const data = await response.json();
+                                const data = await this.readJson(response);
                                 if (!response.ok) {
-                                    throw new Error(data.message || 'Support request failed.');
+                                    if (this.conversationId && [403, 404, 422].includes(response.status)) {
+                                        this.clearStoredConversation();
+                                    }
+
+                                    throw new Error(this.supportErrorMessage(response, data));
                                 }
 
                                 this.removeTypingPlaceholder();
@@ -261,9 +265,9 @@
                                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                                     },
                                 });
-                                const data = await response.json();
+                                const data = await this.readJson(response);
                                 if (!response.ok) {
-                                    throw new Error(data.message || 'Unable to escalate support conversation.');
+                                    throw new Error(this.supportErrorMessage(response, data, 'Unable to escalate support conversation.'));
                                 }
                                 this.escalated = true;
                                 this.canEscalate = false;
@@ -370,6 +374,32 @@
 
                             this.messages = this.messages.filter((message) => message.id !== this.typingPlaceholderId);
                             this.typingPlaceholderId = null;
+                        },
+                        async readJson(response) {
+                            try {
+                                return await response.json();
+                            } catch (_) {
+                                return {};
+                            }
+                        },
+                        supportErrorMessage(response, data, fallback = 'Support is temporarily unavailable.') {
+                            if (data?.message) {
+                                return data.message;
+                            }
+
+                            if (response.status === 419) {
+                                return 'Your session expired. Refresh the page and try again.';
+                            }
+
+                            if (response.status === 429) {
+                                return 'Support chat rate limit reached. Please try again later.';
+                            }
+
+                            return fallback;
+                        },
+                        clearStoredConversation() {
+                            this.conversationId = null;
+                            window.localStorage.removeItem('support_conversation_id');
                         },
                     };
                 };

@@ -9,7 +9,7 @@ class StoreAttributeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'admin' || $this->user()?->role === 'moderator';
+        return $this->user()?->isAdmin() ?? false;
     }
 
     public function rules(): array

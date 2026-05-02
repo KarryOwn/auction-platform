@@ -45,17 +45,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        User::updateOrCreate(
-            ['email' => 'mod@example.com'],
-            [
-                'name'           => 'Moderator',
-                'password'       => bcrypt('moderator'),
-                'role'           => 'moderator',
-                'wallet_balance' => 5000.00,
-            ]
-        );
-
-        $targetUsers = 1003; // 3 fixed accounts + 1000 generated users
+        $targetUsers = 1002; // 2 fixed accounts + 1000 generated users
         $missingUsers = max(0, $targetUsers - User::count());
 
         if ($missingUsers > 0) {

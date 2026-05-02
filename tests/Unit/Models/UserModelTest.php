@@ -2,14 +2,14 @@
 
 use App\Models\User;
 
-test('is staff returns true for admin and moderator roles', function () {
+test('is staff returns true only for admin role', function () {
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
-    $moderator = User::factory()->create(['role' => User::ROLE_MODERATOR]);
     $normal = User::factory()->create(['role' => User::ROLE_USER]);
+    $seller = User::factory()->create(['role' => User::ROLE_SELLER]);
 
     expect($admin->isStaff())->toBeTrue()
-        ->and($moderator->isStaff())->toBeTrue()
-        ->and($normal->isStaff())->toBeFalse();
+        ->and($normal->isStaff())->toBeFalse()
+        ->and($seller->isStaff())->toBeFalse();
 });
 
 test('verified seller requires approved status and verification timestamp', function () {

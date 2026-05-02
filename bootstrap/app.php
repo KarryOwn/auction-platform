@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         App\Console\Commands\StressTest::class,
+        App\Console\Commands\SeedStressBots::class,
         App\Console\Commands\MigrateSqliteToPgsql::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {

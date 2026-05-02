@@ -9,9 +9,9 @@
     $cardClasses = 'flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 group';
     
     $titleClasses = match($size) {
-        'sm' => 'font-bold text-gray-900 leading-tight mb-2 line-clamp-1',
-        'lg' => 'text-xl font-bold text-gray-900 leading-tight mb-2 line-clamp-3 min-h-[4.5rem]',
-        default => 'font-bold text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[2.5rem]',
+        'sm' => 'min-w-0 flex-1 font-bold text-gray-900 leading-tight mb-2 line-clamp-1 break-words',
+        'lg' => 'min-w-0 flex-1 text-xl font-bold text-gray-900 leading-tight mb-2 line-clamp-3 min-h-[4.5rem] break-words',
+        default => 'min-w-0 flex-1 font-bold text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[2.5rem] break-words',
     };
 
     $bodyPadding = match($size) {
@@ -60,7 +60,7 @@
         
         {{-- Category & Subtitle --}}
         @if($showCategory || $showSeller)
-            <div class="flex items-center text-xs text-gray-500 mb-2 gap-2">
+            <div class="flex min-w-0 items-center text-xs text-gray-500 mb-2 gap-2">
                 @if($showCategory && $auction->categories && $auction->categories->isNotEmpty())
                     <span class="truncate">{{ $auction->categories->first()->name }}</span>
                 @endif
@@ -74,7 +74,7 @@
         @endif
 
         {{-- Title --}}
-        <div class="flex items-start justify-between gap-3">
+        <div class="flex min-w-0 items-start justify-between gap-3">
             <h3 class="{{ $titleClasses }}">
                 <a href="{{ $auctionUrl }}" class="hover:text-indigo-600 transition-colors" title="{{ $auction->title }}">
                     {{ $auction->title }}

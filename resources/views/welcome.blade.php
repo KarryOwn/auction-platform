@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'BidFlow') }} - Premier Auction Platform</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -44,7 +45,7 @@
                         <select id="welcome-display-currency"
                                 name="currency"
                                 onchange="this.form.submit()"
-                                class="rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm focus:border-brand focus:ring-brand">
+                                class="min-w-[5.5rem] rounded-full border border-gray-200 bg-white px-4 py-2 pr-9 text-sm font-semibold text-gray-700 shadow-sm focus:border-brand focus:ring-brand">
                             @foreach(config('auction.supported_currencies', ['USD']) as $currency)
                                 <option value="{{ $currency }}" @selected(display_currency() === $currency)>{{ $currency }}</option>
                             @endforeach
@@ -165,9 +166,9 @@
                                     @endif
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <h3 class="text-white font-semibold truncate">{{ $auction->title }}</h3>
-                                    <div class="text-indigo-200 text-sm font-bold flex items-center gap-2">
-                                        <span>{{ format_price((float) $auction->current_price) }}</span>
+                                    <h3 class="text-white font-semibold leading-snug line-clamp-2 break-words" title="{{ $auction->title }}">{{ $auction->title }}</h3>
+                                    <div class="text-indigo-200 text-sm font-bold flex flex-wrap items-center gap-2">
+                                        <span class="shrink-0">{{ format_price((float) $auction->current_price) }}</span>
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                             <span class="flex h-1.5 w-1.5 relative mr-1.5">
                                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -268,7 +269,7 @@
 
         <div class="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-6 pb-8 lg:pb-0 snap-x snap-mandatory hide-scrollbars">
             @forelse($featuredAuctions ?? [] as $auction)
-                <div class="snap-start shrink-0 w-72 lg:w-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+                <div class="snap-start shrink-0 w-72 lg:w-auto min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                     <div class="aspect-video w-full relative bg-gray-100">
                         @if($auction->getCoverImageUrl())
                             <img src="{{ $auction->getCoverImageUrl() }}" alt="{{ $auction->title }}" class="w-full h-full object-cover">
@@ -284,19 +285,19 @@
                                 <x-ui.badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui.badge>
                             </div>
                         @endif
-                        <h3 class="font-semibold text-gray-900 mb-2 truncate" title="{{ $auction->title }}">{{ $auction->title }}</h3>
+                        <h3 class="font-semibold text-gray-900 mb-2 leading-snug line-clamp-2 min-h-[2.75rem] break-words" title="{{ $auction->title }}">{{ $auction->title }}</h3>
                         <div class="mt-auto pt-4 flex flex-col gap-3">
-                            <div class="flex items-end justify-between">
-                                <div>
+                            <div class="flex items-end justify-between gap-3">
+                                <div class="min-w-0">
                                     <x-ui.price :amount="$auction->current_price" size="md" />
                                 </div>
-                                <div class="text-sm text-gray-500">
+                                <div class="shrink-0 text-sm text-gray-500">
                                     {{ $auction->bids_count ?? 0 }} bids
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                            <div class="flex items-center justify-between gap-3 mt-2 pt-3 border-t border-gray-100">
                                 <x-ui.countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
-                                <x-ui.button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
+                                <x-ui.button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm" class="shrink-0">
                                     Bid Now
                                 </x-ui.button>
                             </div>
@@ -330,7 +331,7 @@
 
         <div class="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-6 pb-8 lg:pb-0 snap-x snap-mandatory hide-scrollbars">
             @forelse($endingSoonAuctions ?? [] as $auction)
-                <div class="snap-start shrink-0 w-72 lg:w-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+                <div class="snap-start shrink-0 w-72 lg:w-auto min-w-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                     <div class="aspect-video w-full relative bg-gray-100">
                         @if($auction->getCoverImageUrl())
                             <img src="{{ $auction->getCoverImageUrl() }}" alt="{{ $auction->title }}" class="w-full h-full object-cover">
@@ -346,19 +347,19 @@
                                 <x-ui.badge color="indigo" size="xs">{{ $auction->primaryCategory->first()->name }}</x-ui.badge>
                             </div>
                         @endif
-                        <h3 class="font-semibold text-gray-900 mb-2 truncate" title="{{ $auction->title }}">{{ $auction->title }}</h3>
+                        <h3 class="font-semibold text-gray-900 mb-2 leading-snug line-clamp-2 min-h-[2.75rem] break-words" title="{{ $auction->title }}">{{ $auction->title }}</h3>
                         <div class="mt-auto pt-4 flex flex-col gap-3">
-                            <div class="flex items-end justify-between">
-                                <div>
+                            <div class="flex items-end justify-between gap-3">
+                                <div class="min-w-0">
                                     <x-ui.price :amount="$auction->current_price" size="md" />
                                 </div>
-                                <div class="text-sm text-gray-500">
+                                <div class="shrink-0 text-sm text-gray-500">
                                     {{ $auction->bids_count ?? 0 }} bids
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                            <div class="flex items-center justify-between gap-3 mt-2 pt-3 border-t border-gray-100">
                                 <x-ui.countdown :ends-at="$auction->end_time->toIso8601String()" size="sm" :show-label="false" />
-                                <x-ui.button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm">
+                                <x-ui.button href="{{ route('auctions.show', $auction) }}" variant="primary" size="sm" class="shrink-0">
                                     Bid Now
                                 </x-ui.button>
                             </div>

@@ -25,3 +25,16 @@ test('exchange rate service converts amounts using stored rates', function () {
 
     expect($converted)->toBe(50.0);
 });
+
+test('exchange rate service uses configured fallback rates when db rates are unavailable', function () {
+    Cache::flush();
+
+    config(['services.exchange_rate.fallback_rates' => [
+        'EUR' => 0.75,
+    ]]);
+
+    $service = app(ExchangeRateService::class);
+
+    expect($service->getRate('USD', 'EUR'))->toBe(0.75);
+    expect($service->convert(100, 'USD', 'EUR'))->toBe(75.0);
+});

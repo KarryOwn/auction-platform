@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Notifications\PayoutPaidNotification;
+use App\Services\StripeWalletTopUpService;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,18 +15,22 @@ use Stripe\Webhook;
 
 class StripeWebhookController extends Controller
 {
-    public function __construct(protected WalletService $walletService) {}
+    public function __construct(
+        protected WalletService $walletService,
+        protected StripeWalletTopUpService $stripeWalletTopUpService,
+    ) {}
 
     public function handle(Request $request)
     {
-        $payload   = $request->getContent();
+        $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
-        $secret    = config('services.stripe.webhook_secret');
+        $secret = config('services.stripe.webhook_secret');
 
         try {
             $event = Webhook::constructEvent($payload, $sigHeader, $secret);
         } catch (SignatureVerificationException $e) {
             Log::warning('Stripe webhook signature invalid', ['error' => $e->getMessage()]);
+
             return response()->json(['error' => 'Invalid signature'], 400);
         }
 
@@ -33,13 +38,13 @@ class StripeWebhookController extends Controller
         $connectedAccountId = $request->header('Stripe-Account');
 
         match ($event->type) {
-            'checkout.session.completed'  => $this->handleCheckoutCompleted($event->data->object),
+            'checkout.session.completed' => $this->handleCheckoutCompleted($event->data->object),
             'payment_intent.payment_failed' => $this->handlePaymentFailed($event->data->object),
-            'account.updated'             => $this->handleAccountUpdated($event->data->object),
-            'transfer.created'            => null, // acknowledged, no action needed
-            'payout.paid'                 => $this->handlePayoutPaid($event->data->object, $connectedAccountId),
-            'payout.failed'               => $this->handlePayoutFailed($event->data->object, $connectedAccountId),
-            default                       => null,
+            'account.updated' => $this->handleAccountUpdated($event->data->object),
+            'transfer.created' => null, // acknowledged, no action needed
+            'payout.paid' => $this->handlePayoutPaid($event->data->object, $connectedAccountId),
+            'payout.failed' => $this->handlePayoutFailed($event->data->object, $connectedAccountId),
+            default => null,
         };
 
         return response()->json(['received' => true]);
@@ -47,38 +52,26 @@ class StripeWebhookController extends Controller
 
     protected function handleCheckoutCompleted(\Stripe\Checkout\Session $session): void
     {
-        // Idempotency guard — skip if already processed
-        $alreadyProcessed = WalletTransaction::where('stripe_session_id', $session->id)->exists();
-        if ($alreadyProcessed) {
-            Log::info('Stripe webhook: duplicate session, skipping', ['session_id' => $session->id]);
+        if (($session->payment_status ?? null) !== 'paid') {
+            Log::info('Stripe webhook: checkout session not paid, skipping', ['session_id' => $session->id]);
+
             return;
         }
 
         $userId = (int) ($session->client_reference_id ?? $session->metadata->user_id ?? 0);
-        $user   = User::find($userId);
+        $user = User::find($userId);
 
         if (! $user) {
             Log::error('Stripe webhook: user not found', ['user_id' => $userId]);
+
             return;
         }
 
-        $amountUsd = (float) ($session->amount_total / 100); // cents → dollars
-
-        $tx = $this->walletService->deposit(
-            $user,
-            $amountUsd,
-            'Wallet top-up via Stripe',
-        );
-
-        // Store the Stripe session ID for idempotency & audit
-        $tx->update([
-            'stripe_session_id'        => $session->id,
-            'stripe_payment_intent_id' => $session->payment_intent,
-        ]);
+        $tx = $this->stripeWalletTopUpService->process($session, $user);
 
         Log::info('Stripe webhook: wallet credited', [
-            'user_id'    => $user->id,
-            'amount'     => $amountUsd,
+            'user_id' => $user->id,
+            'amount' => $tx->amount,
             'session_id' => $session->id,
         ]);
     }
@@ -87,7 +80,7 @@ class StripeWebhookController extends Controller
     {
         Log::warning('Stripe payment failed', [
             'payment_intent' => $intent->id,
-            'user_metadata'  => $intent->metadata->toArray(),
+            'user_metadata' => $intent->metadata->toArray(),
         ]);
         // Optionally notify user via notification
     }
@@ -95,7 +88,9 @@ class StripeWebhookController extends Controller
     protected function handleAccountUpdated(\Stripe\Account $account): void
     {
         $user = User::where('stripe_connect_account_id', $account->id)->first();
-        if (! $user) return;
+        if (! $user) {
+            return;
+        }
 
         if ($account->charges_enabled && ! $user->stripe_connect_onboarded) {
             $user->update(['stripe_connect_onboarded' => true]);
@@ -105,10 +100,14 @@ class StripeWebhookController extends Controller
 
     protected function handlePayoutPaid(\Stripe\Payout $payout, ?string $accountId): void
     {
-        if (! $accountId) return;
+        if (! $accountId) {
+            return;
+        }
 
         $user = User::where('stripe_connect_account_id', $accountId)->first();
-        if (! $user) return;
+        if (! $user) {
+            return;
+        }
 
         $amount = (float) ($payout->amount / 100);
 
@@ -121,11 +120,11 @@ class StripeWebhookController extends Controller
             $locked->refresh();
 
             WalletTransaction::create([
-                'user_id'       => $user->id,
-                'type'          => WalletTransaction::TYPE_WITHDRAWAL,
-                'amount'        => $amount,
+                'user_id' => $user->id,
+                'type' => WalletTransaction::TYPE_WITHDRAWAL,
+                'amount' => $amount,
                 'balance_after' => $locked->wallet_balance,
-                'description'   => 'Withdrawal paid — bank transfer complete',
+                'description' => 'Withdrawal paid — bank transfer complete',
                 'stripe_session_id' => $payout->id,
             ]);
         });
@@ -134,16 +133,20 @@ class StripeWebhookController extends Controller
 
         Log::info('StripeWebhook: payout paid, wallet deducted', [
             'user_id' => $user->id,
-            'amount'  => $amount,
+            'amount' => $amount,
         ]);
     }
 
     protected function handlePayoutFailed(\Stripe\Payout $payout, ?string $accountId): void
     {
-        if (! $accountId) return;
+        if (! $accountId) {
+            return;
+        }
 
         $user = User::where('stripe_connect_account_id', $accountId)->first();
-        if (! $user) return;
+        if (! $user) {
+            return;
+        }
 
         $amount = (float) ($payout->amount / 100);
 
@@ -157,7 +160,7 @@ class StripeWebhookController extends Controller
 
         Log::warning('StripeWebhook: payout failed, hold released', [
             'user_id' => $user->id,
-            'amount'  => $amount,
+            'amount' => $amount,
         ]);
     }
 }

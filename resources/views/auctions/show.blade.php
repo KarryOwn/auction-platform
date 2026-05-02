@@ -34,16 +34,16 @@
                 </nav>
             @endif
 
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight flex items-center gap-3">
-                    {{ $auction->title }}
+            <div class="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <h2 class="flex w-full min-w-0 max-w-full flex-wrap items-center gap-3 overflow-hidden font-semibold text-xl text-gray-800 leading-tight sm:flex-1">
+                    <span class="block min-w-0 max-w-full break-all">{{ $auction->title }}</span>
                     @if($auction->condition)
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span class="inline-flex shrink-0 items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {{ $auction->condition_label }}
                         </span>
                     @endif
                 </h2>
-                <div class="flex items-center gap-3">
+                <div class="flex shrink-0 flex-wrap items-center gap-3">
                     {{-- Status Badge --}}
                     @if($auction->isActive())
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
@@ -228,13 +228,13 @@
             @endif
 
             {{-- Main Grid: Info + Bidding --}}
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-3">
 
                 {{-- Left Column: Auction Details --}}
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white shadow-sm sm:rounded-lg p-6 relative"
+                <div class="min-w-0 space-y-6 lg:col-span-2">
+                    <div class="relative min-w-0 bg-white shadow-sm sm:rounded-lg p-6"
                          x-data="reportAuctionModal('{{ route('auctions.report', $auction) }}')">
-                        <p class="text-gray-700 leading-relaxed mb-6">{{ $auction->description }}</p>
+                        <p class="mb-6 min-w-0 whitespace-pre-line break-all leading-relaxed text-gray-700">{{ $auction->description }}</p>
 
                         @auth
                             @if(auth()->id() !== $auction->user_id)
@@ -635,7 +635,7 @@
                 </div>
 
                 {{-- Right Column: Bidding Panel --}}
-                <div class="space-y-6">
+                <div class="min-w-0 space-y-6">
 
                     {{-- Price & Timer Card --}}
                     <div class="bg-white shadow-sm sm:rounded-lg p-6">
@@ -740,54 +740,54 @@
                             <div id="error-message" class="hidden bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg mb-4 text-sm"></div>
                             <div id="success-message" class="hidden bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg mb-4 text-sm"></div>
 
-                            <form id="bid-form" class="space-y-4 {{ $auction->paused_by_vacation ? 'pointer-events-none opacity-50' : '' }}" aria-describedby="countdown display-minimum-note">
-                                <div>
-                                    <label for="bid-amount" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Your Bid (USD)
-                                    </label>
-                                    <p id="display-minimum-note" class="mb-3 text-xs text-gray-500">
-                                        Minimum bid:
-                                        <span class="font-semibold text-gray-700">{{ format_price((float) $auction->minimumNextBid()) }}</span>
-                                        <span class="text-gray-400">(equivalent of $<span id="min-bid-usd">{{ number_format($auction->minimumNextBid(), 2) }}</span> USD)</span>
-                                    </p>
-                                    <div class="grid grid-cols-3 gap-2 mb-3"
-                                     x-data="quickBid({ minBid: {{ (float) $auction->minimumNextBid() }}, currentPrice: {{ (float) $auction->current_price }}, increment: {{ (float) $auction->min_bid_increment }} })"
-                                     x-init="init()">
-                                    <button type="button"
-                                        @click="setMin()"
-                                        x-text="minLabel"
-                                        class="bg-indigo-50 border border-indigo-200 text-sm font-medium rounded-lg hover:bg-indigo-100 py-2 px-2 text-gray-700 transition"></button>
-                                    <button type="button"
-                                        @click="setPlus5()"
-                                        x-text="plus5Label"
-                                        class="bg-gray-50 border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-100 py-2 px-2 text-gray-700 transition"></button>
-                                    <button type="button"
-                                        @click="setPlus10()"
-                                        x-text="plus10Label"
-                                        class="bg-gray-50 border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-100 py-2 px-2 text-gray-700 transition"></button>
+                            @if($canUseBuyerActions)
+                                <form id="bid-form" class="space-y-4 {{ $auction->paused_by_vacation ? 'pointer-events-none opacity-50' : '' }}" aria-describedby="countdown display-minimum-note">
+                                    <div>
+                                        <label for="bid-amount" class="block text-sm font-medium text-gray-700 mb-1">
+                                            Your Bid (USD)
+                                        </label>
+                                        <p id="display-minimum-note" class="mb-3 text-xs text-gray-500">
+                                            Minimum bid:
+                                            <span class="font-semibold text-gray-700">{{ format_price((float) $auction->minimumNextBid()) }}</span>
+                                            <span class="text-gray-400">(equivalent of $<span id="min-bid-usd">{{ number_format($auction->minimumNextBid(), 2) }}</span> USD)</span>
+                                        </p>
+                                        <div class="grid grid-cols-3 gap-2 mb-3"
+                                         x-data="quickBid({ minBid: {{ (float) $auction->minimumNextBid() }}, currentPrice: {{ (float) $auction->current_price }}, increment: {{ (float) $auction->min_bid_increment }} })"
+                                         x-init="init()">
+                                        <button type="button"
+                                            @click="setMin()"
+                                            x-text="minLabel"
+                                            class="bg-indigo-50 border border-indigo-200 text-sm font-medium rounded-lg hover:bg-indigo-100 py-2 px-2 text-gray-700 transition"></button>
+                                        <button type="button"
+                                            @click="setPlus5()"
+                                            x-text="plus5Label"
+                                            class="bg-gray-50 border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-100 py-2 px-2 text-gray-700 transition"></button>
+                                        <button type="button"
+                                            @click="setPlus10()"
+                                            x-text="plus10Label"
+                                            class="bg-gray-50 border border-gray-200 text-sm font-medium rounded-lg hover:bg-gray-100 py-2 px-2 text-gray-700 transition"></button>
+                                        </div>
+                                        <div class="relative">
+                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-lg">$</span>
+                                            <input type="number" id="bid-amount" step="0.01"
+                                                     data-increment="{{ (float) $auction->min_bid_increment }}"
+                                                   min="{{ $auction->minimumNextBid() }}"
+                                                   value="{{ $auction->minimumNextBid() }}"
+                                                     @disabled($auction->paused_by_vacation)
+                                                     aria-describedby="display-minimum-note"
+                                                     class="pl-8 block w-full h-14 md:h-auto rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg md:text-xl font-semibold">
+                                        </div>
                                     </div>
-                                    <div class="relative">
-                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-lg">$</span>
-                                        <input type="number" id="bid-amount" step="0.01"
-                                                 data-increment="{{ (float) $auction->min_bid_increment }}"
-                                               min="{{ $auction->minimumNextBid() }}"
-                                               value="{{ $auction->minimumNextBid() }}"
-                                                 @disabled($auction->paused_by_vacation)
-                                                 aria-describedby="display-minimum-note"
-                                                 class="pl-8 block w-full h-14 md:h-auto rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg md:text-xl font-semibold">
-                                    </div>
-                                </div>
 
-                                <button type="submit" id="bid-btn"
-                                        @disabled($auction->paused_by_vacation)
-                                        aria-label="Place bid on {{ $auction->title }}"
-                                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {{ $auction->paused_by_vacation ? 'Bidding Paused While Seller Is Away' : 'Place Bid' }}
-                                </button>
-                                <p class="text-xs text-gray-400 text-center mt-1">Press B to focus bid input</p>
-                            </form>
+                                    <button type="submit" id="bid-btn"
+                                            @disabled($auction->paused_by_vacation)
+                                            aria-label="Place bid on {{ $auction->title }}"
+                                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                                        {{ $auction->paused_by_vacation ? 'Bidding Paused While Seller Is Away' : 'Place Bid' }}
+                                    </button>
+                                    <p class="text-xs text-gray-400 text-center mt-1">Press B to focus bid input</p>
+                                </form>
 
-                            @auth
                                 @if(auth()->id() !== $auction->user_id)
                                     <x-auction.bin-button
                                         :auction="$auction"
@@ -795,7 +795,24 @@
                                         :available="$auction->isBuyItNowAvailable()"
                                     />
                                 @endif
-                            @endauth
+                            @elseif(auth()->guest())
+                                <div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 text-center">
+                                    <p class="text-sm font-semibold text-indigo-950">Sign in to bid on this auction.</p>
+                                    <p class="mt-1 text-sm text-indigo-800">Guests can browse auction details, but bidding, watching, questions, and seller messages require an account.</p>
+                                    <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                                        <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                                            Log in to bid
+                                        </a>
+                                        <a href="{{ route('register') }}" class="inline-flex items-center justify-center rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                                            Create account
+                                        </a>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center text-sm text-gray-600">
+                                    This account can view auctions, but buyer actions are not available.
+                                </div>
+                            @endif
                         @elseif($isPreview ?? false)
                             <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                                 Buyer actions are hidden in preview mode. Publish the auction to enable bidding, watching, and reporting.

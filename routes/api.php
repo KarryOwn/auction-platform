@@ -63,9 +63,26 @@ Route::post('/stress-test/bid', function (Request $request) {
         return response()->json(['error' => 'Unauthorized'], 403);
     }
 
-    // Pick a Random User 
-    $user = User::inRandomOrder()->first();
+    // Pick only isolated stress-test bot users so real/demo accounts are not mutated.
+    $user = User::where('email', 'like', 'stress-bot-%@example.test')
+        ->where('role', User::ROLE_USER)
+        ->where('is_banned', false)
+        ->when(
+            $request->filled('user_id'),
+            fn ($query) => $query->whereKey($request->integer('user_id')),
+            fn ($query) => $query->inRandomOrder(),
+        )
+        ->first();
+
+    if (! $user) {
+        return response()->json(['status' => 'failed', 'error' => 'No stress bot user found. Run stress:seed-bots first.'], 422);
+    }
+
     $auction = Auction::find($request->input('auction_id'));
+
+    if (! $auction) {
+        return response()->json(['status' => 'failed', 'error' => 'Auction not found.'], 404);
+    }
 
     // Run 
     try {

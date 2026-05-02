@@ -161,6 +161,30 @@
                     <h3 class="text-lg font-semibold text-gray-800">Certificate Approvals</h3>
                     <p class="text-sm text-gray-500 mt-1">Review uploaded authenticity certificates and verify or reject listing badges.</p>
                 </a>
+                <a href="{{ route('admin.webhook-deliveries.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Webhook Deliveries</h3>
+                    <p class="text-sm text-gray-500 mt-1">Inspect delivery attempts, failures, response codes, and retry activity.</p>
+                </a>
+                <a href="{{ route('admin.payments.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Payments</h3>
+                    <p class="text-sm text-gray-500 mt-1">Review payment health, platform fees, refunds, and transaction status.</p>
+                </a>
+                <a href="{{ route('admin.categories.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Category Management</h3>
+                    <p class="text-sm text-gray-500 mt-1">Curate auction categories, homepage features, banners, and display order.</p>
+                </a>
+                <a href="{{ route('admin.brands.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Brand Management</h3>
+                    <p class="text-sm text-gray-500 mt-1">Maintain brand taxonomy for listings, filters, and seller catalog quality.</p>
+                </a>
+                <a href="{{ route('admin.tags.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Tag Management</h3>
+                    <p class="text-sm text-gray-500 mt-1">Clean up tags, merge duplicates, and improve listing discovery metadata.</p>
+                </a>
+                <a href="{{ route('admin.attributes.index') }}" class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 hover:bg-gray-50 transition block">
+                    <h3 class="text-lg font-semibold text-gray-800">Attribute Management</h3>
+                    <p class="text-sm text-gray-500 mt-1">Configure structured listing fields for categories and seller forms.</p>
+                </a>
             </div>
 
         </div>

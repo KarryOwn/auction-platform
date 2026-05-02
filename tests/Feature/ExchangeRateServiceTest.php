@@ -46,8 +46,12 @@ test('exchange rate service reads cached recent db rates', function () {
     expect($service->convert(100, 'USD', 'EUR'))->toBe(92.0);
 });
 
-test('exchange rate service ignores stale rates older than 24 hours', function () {
+test('exchange rate service falls back to configured rates when stored rates are stale', function () {
     Cache::flush();
+
+    config(['services.exchange_rate.fallback_rates' => [
+        'GBP' => 0.79,
+    ]]);
 
     ExchangeRate::create([
         'base_currency' => 'USD',
@@ -58,5 +62,5 @@ test('exchange rate service ignores stale rates older than 24 hours', function (
 
     $service = app(ExchangeRateService::class);
 
-    expect($service->getRate('USD', 'GBP'))->toBe(1.0);
+    expect($service->getRate('USD', 'GBP'))->toBe(0.79);
 });

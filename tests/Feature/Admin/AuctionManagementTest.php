@@ -3,8 +3,8 @@
 use App\Models\Auction;
 use App\Models\User;
 
-test('staff can feature and unfeature auction', function () {
-    $staff = User::factory()->create(['role' => User::ROLE_MODERATOR]);
+test('admin can feature and unfeature auction', function () {
+    $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
     $seller = createSeller();
 
     $auction = Auction::factory()->create([

@@ -68,5 +68,15 @@
             GitHub
         </a>
     </div>
-</x-guest-layout>
 
+    @if (Route::has('register'))
+        <div class="mt-6 rounded-xl border border-indigo-100 bg-indigo-50/70 p-5 text-center">
+            <h2 class="text-base font-bold text-gray-900">New to BidFlow?</h2>
+            <p class="mt-1 text-sm text-gray-600">Create an account to bid, save auctions, message sellers, and track your wins.</p>
+            <a href="{{ route('register') }}"
+               class="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Create account
+            </a>
+        </div>
+    @endif
+</x-guest-layout>

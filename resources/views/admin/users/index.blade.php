@@ -16,7 +16,7 @@
                            class="flex-1 min-w-[200px] rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     <select name="role" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         <option value="">All Roles</option>
-                        @foreach(['user', 'moderator', 'admin'] as $r)
+                        @foreach(['user', 'seller', 'admin'] as $r)
                             <option value="{{ $r }}" {{ request('role') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
                         @endforeach
                     </select>
@@ -60,7 +60,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $user->email }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @php
-                                        $roleColors = ['admin' => 'bg-purple-100 text-purple-800', 'moderator' => 'bg-blue-100 text-blue-800', 'user' => 'bg-gray-100 text-gray-800'];
+                                        $roleColors = ['admin' => 'bg-purple-100 text-purple-800', 'seller' => 'bg-amber-100 text-amber-800', 'user' => 'bg-gray-100 text-gray-800'];
                                     @endphp
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $roleColors[$user->role] ?? 'bg-gray-100 text-gray-800' }}">
                                         {{ ucfirst($user->role) }}
