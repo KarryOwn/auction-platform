@@ -252,12 +252,12 @@
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Starting Price</span>
-                                <span class="text-lg font-bold text-gray-800">{{ format_price((float) $auction->starting_price) }}</span>
+                                <span class="text-lg font-bold text-gray-800">{{ format_price((float) $auction->starting_price, $displayCurrency) }}</span>
                             </div>
                             @if($prediction && ($prediction['predicted_price'] ?? 0) > 0)
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide text-indigo-600">Expected Price</span>
-                                <span class="text-lg font-bold text-indigo-600">{{ format_price((float) $prediction['predicted_price']) }}</span>
+                                <span class="text-lg font-bold text-indigo-600">{{ format_price((float) $prediction['predicted_price'], $displayCurrency) }}</span>
                             </div>
                             @endif
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
@@ -266,7 +266,7 @@
                             </div>
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Min Increment</span>
-                                <span class="text-lg font-bold text-gray-800">{{ format_price((float) $auction->min_bid_increment) }}</span>
+                                <span class="text-lg font-bold text-gray-800">{{ format_price((float) $auction->min_bid_increment, $displayCurrency) }}</span>
                             </div>
                             <div class="bg-gray-50 rounded-lg p-3 text-center">
                                 <span class="block text-xs text-gray-500 uppercase tracking-wide">Seller</span>
@@ -531,7 +531,7 @@
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <span class="text-sm font-bold text-gray-900">{{ format_price((float) $bid->amount) }}</span>
+                                        <span class="text-sm font-bold text-gray-900">{{ format_price((float) $bid->amount, $displayCurrency) }}</span>
                                         <span class="block text-xs text-gray-400">{{ $bid->created_at->diffForHumans() }}</span>
                                     </div>
                                 </div>
@@ -642,7 +642,7 @@
                         <div class="text-center mb-6">
                             <span class="block text-sm text-gray-500 uppercase tracking-wide">Current Price</span>
                             <span id="price-display" class="text-5xl font-black text-green-600 transition-colors duration-300" aria-live="polite" aria-atomic="true">
-                                {{ format_price((float) $auction->current_price) }}
+                                {{ format_price((float) $auction->current_price, $displayCurrency) }}
                             </span>
                             <p class="mt-2 text-xs text-gray-400">Display only. Bids and payments are submitted in USD.</p>
                             @if($auction->highestBid && $auction->highestBid->user)
@@ -748,7 +748,7 @@
                                         </label>
                                         <p id="display-minimum-note" class="mb-3 text-xs text-gray-500">
                                             Minimum bid:
-                                            <span class="font-semibold text-gray-700">{{ format_price((float) $auction->minimumNextBid()) }}</span>
+                                            <span class="font-semibold text-gray-700">{{ format_price((float) $auction->minimumNextBid(), $displayCurrency) }}</span>
                                             <span class="text-gray-400">(equivalent of $<span id="min-bid-usd">{{ number_format($auction->minimumNextBid(), 2) }}</span> USD)</span>
                                         </p>
                                         <div class="grid grid-cols-3 gap-2 mb-3"
@@ -822,7 +822,7 @@
                                 <p class="text-lg font-semibold">Auction has ended</p>
                                 @if($auction->winner)
                                     <p class="mt-1">Won by <span class="font-bold text-gray-800">{{ $auction->winner->name }}</span></p>
-                                    <p class="text-green-600 font-bold text-xl mt-1">{{ format_price((float) $auction->winning_bid_amount) }}</p>
+                                    <p class="text-green-600 font-bold text-xl mt-1">{{ format_price((float) $auction->winning_bid_amount, $displayCurrency) }}</p>
                                 @else
                                     <p class="mt-1 text-sm">No winner determined.</p>
                                 @endif
@@ -844,7 +844,7 @@
                             @if($autoBid)
                                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                                     <p class="text-sm text-blue-800">
-                                        Active up to <span class="font-bold">{{ format_price((float) $autoBid->max_amount) }}</span>
+                                        Active up to <span class="font-bold">{{ format_price((float) $autoBid->max_amount, $displayCurrency) }}</span>
                                     </p>
                                     <p class="text-xs text-blue-700 mt-1">Stored and submitted in USD ({{ '$' . number_format((float) $autoBid->max_amount, 2) }}). Up to 3 automatic bids per activation.</p>
                                     <button onclick="cancelAutoBid()" class="mt-2 text-xs text-red-600 hover:text-red-800 font-medium underline">

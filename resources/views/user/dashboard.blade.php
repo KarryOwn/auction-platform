@@ -56,7 +56,7 @@
                         <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
                     <div class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">Wallet Balance</div>
-                    <div class="mt-1 text-4xl font-extrabold text-green-600">${{ number_format($user->wallet_balance, 2) }}</div>
+                    <div class="mt-1 text-4xl font-extrabold text-green-600">{{ format_display_price((float) $user->wallet_balance) }}</div>
                     <a href="{{ route('user.wallet') }}" class="text-sm text-green-500 font-medium hover:text-green-700 mt-4 inline-flex items-center gap-1 group">
                         Manage wallet 
                         <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
@@ -155,11 +155,11 @@
                                             <div class="mt-3 sm:mt-0 flex items-center gap-4">
                                                 <div>
                                                     <div class="text-xs text-gray-500 font-medium uppercase tracking-wider">Your max bid</div>
-                                                    <div class="text-indigo-600 font-bold">${{ number_format($bid->amount, 2) }}</div>
+                                                    <div class="text-indigo-600 font-bold">{{ format_display_price((float) $bid->amount) }}</div>
                                                 </div>
                                                 <div>
                                                     <div class="text-xs text-gray-500 font-medium uppercase tracking-wider">Current price</div>
-                                                    <div class="text-gray-900 font-bold">${{ number_format($bid->auction->current_price, 2) }}</div>
+                                                    <div class="text-gray-900 font-bold">{{ format_display_price((float) $bid->auction->current_price) }}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -210,7 +210,7 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="font-bold text-gray-900 truncate">{{ $auction->title }}</div>
-                                            <div class="text-orange-600 font-extrabold text-lg mt-1">${{ number_format($auction->winning_bid_amount, 2) }}</div>
+                                            <div class="text-orange-600 font-extrabold text-lg mt-1">{{ format_display_price((float) $auction->winning_bid_amount) }}</div>
                                             <div class="text-xs text-gray-500 mt-1">Won on {{ $auction->closed_at->format('M d') }}</div>
                                         </div>
                                     </div>
@@ -251,7 +251,7 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="font-medium text-gray-900 truncate text-sm">{{ $watcher->auction->title }}</div>
-                                            <div class="text-sm text-gray-900 font-bold mt-0.5">${{ number_format($watcher->auction->current_price, 2) }}</div>
+                                            <div class="text-sm text-gray-900 font-bold mt-0.5">{{ format_display_price((float) $watcher->auction->current_price) }}</div>
                                         </div>
                                         <div class="flex-shrink-0 text-right">
                                             <div class="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800 whitespace-nowrap">

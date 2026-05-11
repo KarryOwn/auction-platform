@@ -57,7 +57,7 @@ class WalletController extends Controller
         $this->walletService->deposit($user, $amount, 'Wallet top-up');
 
         return redirect()->route('user.wallet')
-            ->with('success', 'Wallet topped up by $'.number_format($amount, 2));
+            ->with('success', 'Wallet topped up by '.format_display_price($amount).' (equivalent of $'.number_format($amount, 2).' USD).');
     }
 
     public function stripeCheckout(Request $request)
@@ -112,7 +112,7 @@ class WalletController extends Controller
             $tx = $this->stripeWalletTopUpService->process($session, $request->user());
 
             return redirect()->route('user.wallet')
-                ->with('success', 'Wallet topped up by $'.number_format((float) $tx->amount, 2).'.');
+                ->with('success', 'Wallet topped up by '.format_display_price((float) $tx->amount).' (equivalent of $'.number_format((float) $tx->amount, 2).' USD).');
         } catch (\Throwable $e) {
             Log::warning('Stripe checkout success could not apply wallet top-up', [
                 'user_id' => $request->user()->id,
@@ -136,16 +136,16 @@ class WalletController extends Controller
 
         if (! $user->canAfford($amount)) {
             return back()->withErrors([
-                'amount' => 'Insufficient available balance. You have $'
-                    .number_format($user->availableBalance(), 2)
-                    .' available (excluding held funds).',
+                'amount' => 'Insufficient available balance. You have '
+                    .format_display_price((float) $user->availableBalance())
+                    .' available (equivalent of $'.number_format($user->availableBalance(), 2).' USD, excluding held funds).',
             ]);
         }
 
         $this->walletService->withdraw($user, $amount, 'Wallet withdrawal');
 
         return redirect()->route('user.wallet')
-            ->with('success', 'Withdrew $'.number_format($amount, 2).' from wallet.');
+            ->with('success', 'Withdrew '.format_display_price($amount).' from wallet (equivalent of $'.number_format($amount, 2).' USD).');
     }
 
     public function exportTransactions(Request $request): StreamedResponse

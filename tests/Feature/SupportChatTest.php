@@ -12,30 +12,32 @@ beforeEach(function () {
     RateLimiter::clear('support-chat:127.0.0.1');
 });
 
-function fakeGeminiResponse(string $message = 'Here is a support answer.'): void
+function fakeOpenRouterResponse(string $message = 'Here is a support answer.'): void
 {
-    config(['services.gemini.api_key' => 'test-gemini-key']);
+    config([
+        'services.openrouter.api_key' => 'test-openrouter-key',
+        'services.openrouter.model' => 'tencent/hy3-preview:free',
+    ]);
 
     Http::fake([
-        'https://generativelanguage.googleapis.com/*' => Http::response([
-            'candidates' => [[
-                'content' => [
-                    'parts' => [
-                        ['text' => $message],
-                    ],
+        'https://openrouter.ai/api/v1/chat/completions' => Http::response([
+            'choices' => [[
+                'message' => [
+                    'role' => 'assistant',
+                    'content' => $message,
                 ],
             ]],
         ]),
     ]);
 }
 
-function clearGeminiConfiguration(): void
+function clearOpenRouterConfiguration(): void
 {
-    config(['services.gemini.api_key' => null]);
+    config(['services.openrouter.api_key' => null]);
 }
 
 test('guest can start and continue their own support conversation', function () {
-    fakeGeminiResponse('You can fund your wallet from the dashboard.');
+    fakeOpenRouterResponse('You can fund your wallet from the dashboard.');
 
     $start = $this->postJson(route('support.chat.send'), [
         'message' => 'How do I add money to my wallet?',
@@ -53,7 +55,7 @@ test('guest can start and continue their own support conversation', function () 
     expect($conversation->status)->toBe(SupportConversation::STATUS_AI_HANDLED);
     expect($conversation->messages()->count())->toBe(2);
 
-    fakeGeminiResponse('You can also review your invoice history there.');
+    fakeOpenRouterResponse('You can also review your invoice history there.');
 
     $continue = $this->postJson(route('support.chat.send'), [
         'conversation_id' => $conversation->id,
@@ -104,7 +106,7 @@ test('other visitors cannot access anonymous conversations they do not own', fun
 
 test('escalating a support conversation notifies admins', function () {
     Notification::fake();
-    fakeGeminiResponse();
+    fakeOpenRouterResponse();
 
     $user = User::factory()->create([
         'role' => User::ROLE_USER,
@@ -207,7 +209,7 @@ test('support escalation notification links to admin support inbox conversation'
 });
 
 test('support chat send endpoint is rate limited after ten messages per hour', function () {
-    fakeGeminiResponse();
+    fakeOpenRouterResponse();
 
     for ($attempt = 0; $attempt < 10; $attempt++) {
         $this->postJson(route('support.chat.send'), [
@@ -222,8 +224,8 @@ test('support chat send endpoint is rate limited after ten messages per hour', f
     $blocked->assertStatus(429);
 });
 
-test('support chat returns local fallback when gemini is not configured', function () {
-    clearGeminiConfiguration();
+test('support chat returns local fallback when openrouter is not configured', function () {
+    clearOpenRouterConfiguration();
     Http::fake();
 
     $response = $this->postJson(route('support.chat.send'), [
@@ -236,8 +238,8 @@ test('support chat returns local fallback when gemini is not configured', functi
     Http::assertNothingSent();
 });
 
-test('support chat handles withdrawal help requests when gemini is not configured', function () {
-    clearGeminiConfiguration();
+test('support chat handles withdrawal help requests when openrouter is not configured', function () {
+    clearOpenRouterConfiguration();
     Http::fake();
 
     $response = $this->postJson(route('support.chat.send'), [
@@ -250,11 +252,11 @@ test('support chat handles withdrawal help requests when gemini is not configure
     Http::assertNothingSent();
 });
 
-test('support chat does not expose generic processing error when gemini returns an error payload', function () {
-    config(['services.gemini.api_key' => 'test-gemini-key']);
+test('support chat does not expose generic processing error when openrouter returns an error payload', function () {
+    config(['services.openrouter.api_key' => 'test-openrouter-key']);
 
     Http::fake([
-        'https://generativelanguage.googleapis.com/*' => Http::response([
+        'https://openrouter.ai/api/v1/chat/completions' => Http::response([
             'error' => [
                 'message' => 'API key not valid.',
             ],

@@ -54,7 +54,7 @@ class GenerateUserDataExport implements ShouldQueue
 
         $zip->close();
 
-        $relativePath = "private/exports/{$user->id}/" . basename($zipPath);
+        $relativePath = "exports/{$user->id}/" . basename($zipPath);
         $request->update([
             'status'    => 'ready',
             'file_path' => $relativePath,

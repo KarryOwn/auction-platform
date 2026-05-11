@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\GenerateUserDataExport;
 use App\Models\DataExportRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +19,10 @@ class DataExportController extends Controller
 
         if ($existing && $existing->status === 'ready') {
             return redirect()->route('user.data-export.download', $existing);
+        }
+
+        if ($existing && $existing->status === 'pending') {
+            return back()->with('status', 'Your export request is waiting for admin approval.');
         }
 
         if ($existing) {
@@ -40,23 +43,44 @@ class DataExportController extends Controller
             'status'  => 'pending',
         ]);
 
-        GenerateUserDataExport::dispatch($exportRequest->id)->onQueue('default');
-
-        return back()->with('status', "Data export requested. You'll be notified when it's ready.");
+        return back()->with('status', "Data export requested. You'll be notified after an admin approves it.");
     }
 
     public function download(Request $request, DataExportRequest $exportRequest): BinaryFileResponse
     {
         abort_unless($exportRequest->user_id === $request->user()->id, 403);
         abort_unless($exportRequest->status === 'ready', 404);
-        abort_unless(Storage::exists($exportRequest->file_path), 404);
+
+        $filePath = $this->resolveExportPath($exportRequest);
+        abort_unless($filePath, 404);
 
         if ($exportRequest->expires_at && now()->isAfter($exportRequest->expires_at)) {
             $exportRequest->update(['status' => 'expired']);
-            Storage::delete($exportRequest->file_path);
+            Storage::delete($filePath);
             abort(404, 'Export link expired.');
         }
 
-        return response()->download(Storage::path($exportRequest->file_path));
+        return response()->download(Storage::path($filePath));
+    }
+
+    private function resolveExportPath(DataExportRequest $exportRequest): ?string
+    {
+        if (! $exportRequest->file_path) {
+            return null;
+        }
+
+        if (Storage::exists($exportRequest->file_path)) {
+            return $exportRequest->file_path;
+        }
+
+        $legacyPath = preg_replace('#^private/#', '', $exportRequest->file_path);
+
+        if ($legacyPath && $legacyPath !== $exportRequest->file_path && Storage::exists($legacyPath)) {
+            $exportRequest->update(['file_path' => $legacyPath]);
+
+            return $legacyPath;
+        }
+
+        return null;
     }
 }

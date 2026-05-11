@@ -15,7 +15,7 @@ if (! function_exists('display_currency')) {
 if (! function_exists('format_price')) {
     function format_price(float $amountUsd, ?string $currency = null): string
     {
-        $currency = strtoupper($currency ?? display_currency());
+        $currency = strtoupper($currency ?? config('auction.currency', 'USD'));
 
         if ($currency === 'USD') {
             return '$' . number_format($amountUsd, 2);
@@ -34,5 +34,12 @@ if (! function_exists('format_price')) {
         $decimals = in_array($currency, ['JPY', 'VND'], true) ? 0 : 2;
 
         return $symbol . number_format($converted, $decimals);
+    }
+}
+
+if (! function_exists('format_display_price')) {
+    function format_display_price(float $amountUsd): string
+    {
+        return format_price($amountUsd, display_currency());
     }
 }

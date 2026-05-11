@@ -64,9 +64,11 @@ return [
         ],
     ],
 
-    'gemini' => [
-        'api_key' => env('GEMINI_API_KEY'),
-        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+    'openrouter' => [
+        'api_key' => env('OPENROUTER_API_KEY'),
+        'model' => env('OPENROUTER_MODEL', 'tencent/hy3-preview:free'),
+        'referer' => env('OPENROUTER_HTTP_REFERER', env('APP_URL')),
+        'title' => env('OPENROUTER_APP_TITLE', env('APP_NAME', 'Auction Platform')),
     ],
 
 ];

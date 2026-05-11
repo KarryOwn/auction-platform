@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\BuyerAnalyticsController as AdminBuyerAnalyticsCo
 use App\Http\Controllers\Admin\BrandController as AdminBrandController;
 use App\Http\Controllers\Admin\CategoryAnalyticsController as AdminCategoryAnalyticsController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\DataExportRequestController as AdminDataExportRequestController;
 use App\Http\Controllers\Admin\MaintenanceController as AdminMaintenanceController;
 use App\Http\Controllers\Admin\SellerLeaderboardController as AdminSellerLeaderboardController;
 use App\Http\Controllers\Admin\TagController as AdminTagController;
@@ -368,6 +369,11 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/users/{user}/ban', [UserManagementController::class, 'ban'])->name('users.ban');
     Route::post('/users/{user}/unban', [UserManagementController::class, 'unban'])->name('users.unban');
     Route::patch('/users/{user}/role', [UserManagementController::class, 'changeRole'])->middleware('admin')->name('users.role');
+
+    // Data Export Requests
+    Route::redirect('/data-export', '/admin/data-exports');
+    Route::get('/data-exports', [AdminDataExportRequestController::class, 'index'])->name('data-exports.index');
+    Route::post('/data-exports/{exportRequest}/approve', [AdminDataExportRequestController::class, 'approve'])->name('data-exports.approve');
 
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

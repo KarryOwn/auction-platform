@@ -52,6 +52,9 @@
                 'webhooks' => \App\Models\WebhookDelivery::query()
                     ->where('status', 'failed')
                     ->count(),
+                'data_exports' => \App\Models\DataExportRequest::query()
+                    ->where('status', 'pending')
+                    ->count(),
             ]);
         }
 
@@ -76,10 +79,11 @@
             [
                 'label' => 'Operations',
                 'icon' => 'gavel',
-                'active' => request()->routeIs('admin.auctions.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.disputes.*') || request()->routeIs('admin.bid-retractions.*') || request()->routeIs('admin.payments.*'),
+                'active' => request()->routeIs('admin.auctions.*') || request()->routeIs('admin.users.*') || request()->routeIs('admin.data-exports.*') || request()->routeIs('admin.reports.*') || request()->routeIs('admin.disputes.*') || request()->routeIs('admin.bid-retractions.*') || request()->routeIs('admin.payments.*'),
                 'items' => [
                     ['label' => 'Manage Auctions', 'description' => 'Review, feature, extend, or cancel auctions', 'href' => route('admin.auctions.index'), 'active' => request()->routeIs('admin.auctions.*') && request('auth_cert') !== 'uploaded'],
                     ['label' => 'Manage Users', 'description' => 'User profiles, bans, and role changes', 'href' => route('admin.users.index'), 'active' => request()->routeIs('admin.users.*')],
+                    ['label' => 'Data Exports', 'description' => 'Approve personal data export requests', 'href' => route('admin.data-exports.index'), 'active' => request()->routeIs('admin.data-exports.*'), 'badge' => $adminBadge('data_exports')],
                     ['label' => 'Reports', 'description' => 'Reported auction review queue', 'href' => route('admin.reports.index'), 'active' => request()->routeIs('admin.reports.*'), 'badge' => $adminBadge('reports')],
                     ['label' => 'Disputes', 'description' => 'Buyer and seller dispute cases', 'href' => route('admin.disputes.index'), 'active' => request()->routeIs('admin.disputes.*'), 'badge' => $adminBadge('disputes')],
                     ['label' => 'Bid Retractions', 'description' => 'Pending retraction decisions', 'href' => route('admin.bid-retractions.index'), 'active' => request()->routeIs('admin.bid-retractions.*'), 'badge' => $adminBadge('bid_retractions')],

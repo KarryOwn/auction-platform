@@ -72,7 +72,7 @@ class SupportChatController extends Controller
             ])
             ->all();
 
-        $aiResponse = $this->askGemini($history, $user);
+        $aiResponse = $this->askOpenRouter($history, $user);
 
         SupportMessage::create([
             'conversation_id' => $conversation->id,
@@ -151,43 +151,44 @@ class SupportChatController extends Controller
         RateLimiter::hit($key, 3600);
     }
 
-    private function askGemini(array $history, ?User $user): string
+    private function askOpenRouter(array $history, ?User $user): string
     {
-        $apiKey = config('services.gemini.api_key');
+        $apiKey = config('services.openrouter.api_key');
 
         if (blank($apiKey)) {
-            Log::warning('SupportChatController: Gemini API key is not configured.');
+            Log::warning('SupportChatController: OpenRouter API key is not configured.');
 
             return $this->fallbackSupportReply($history);
         }
 
-        $systemPrompt = $this->buildSystemPrompt($user);
-        $contents = [[
-            'role' => 'user',
-            'parts' => [['text' => $systemPrompt]],
+        $messages = [[
+            'role' => 'system',
+            'content' => $this->buildSystemPrompt($user),
         ]];
 
         foreach ($history as $message) {
-            $contents[] = [
-                'role' => $message['role'] === 'assistant' ? 'model' : 'user',
-                'parts' => [['text' => $message['content']]],
+            $messages[] = [
+                'role' => $message['role'] === 'assistant' ? 'assistant' : 'user',
+                'content' => $message['content'],
             ];
         }
 
         try {
-            $response = Http::timeout(15)->post(
-                'https://generativelanguage.googleapis.com/v1/models/' . config('services.gemini.model', 'gemini-2.0-flash') . ':generateContent?key=' . $apiKey,
-                [
-                    'contents' => $contents,
-                    'generationConfig' => [
-                        'maxOutputTokens' => 500,
-                        'temperature' => 0.7,
-                    ],
-                ]
-            );
+            $response = Http::timeout(15)
+                ->withToken($apiKey)
+                ->withHeaders(array_filter([
+                    'HTTP-Referer' => config('services.openrouter.referer'),
+                    'X-OpenRouter-Title' => config('services.openrouter.title'),
+                ]))
+                ->post('https://openrouter.ai/api/v1/chat/completions', [
+                    'model' => config('services.openrouter.model', 'tencent/hy3-preview:free'),
+                    'messages' => $messages,
+                    'max_tokens' => 500,
+                    'temperature' => 0.7,
+                ]);
 
             if ($response->failed()) {
-                Log::warning('SupportChatController: Gemini API request failed', [
+                Log::warning('SupportChatController: OpenRouter API request failed', [
                     'status' => $response->status(),
                     'body' => Str::limit($response->body(), 1000),
                 ]);
@@ -196,21 +197,20 @@ class SupportChatController extends Controller
             }
 
             $data = $response->json();
-            $text = data_get($data, 'candidates.0.content.parts.0.text');
+            $text = data_get($data, 'choices.0.message.content');
 
             if (is_string($text) && trim($text) !== '') {
                 return trim($text);
             }
 
-            Log::warning('SupportChatController: Gemini API returned no answer text', [
-                'finish_reason' => data_get($data, 'candidates.0.finishReason'),
-                'prompt_feedback' => data_get($data, 'promptFeedback'),
+            Log::warning('SupportChatController: OpenRouter API returned no answer text', [
+                'finish_reason' => data_get($data, 'choices.0.finish_reason'),
                 'error' => data_get($data, 'error.message'),
             ]);
 
             return $this->fallbackSupportReply($history);
         } catch (\Throwable $e) {
-            Log::error('SupportChatController: Gemini API error', [
+            Log::error('SupportChatController: OpenRouter API error', [
                 'error' => $e->getMessage(),
             ]);
 

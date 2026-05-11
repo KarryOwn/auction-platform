@@ -87,7 +87,7 @@
                         </div>
                         <p class="text-sm font-medium text-slate-500">Total Balance</p>
                     </div>
-                    <p class="mt-4 text-3xl font-bold text-slate-900">${{ number_format($user->wallet_balance, 2) }}</p>
+                    <p class="mt-4 text-3xl font-bold text-slate-900">{{ format_display_price((float) $user->wallet_balance) }}</p>
                 </article>
                 <article class="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
                     <div class="flex items-center gap-3">
@@ -98,7 +98,7 @@
                         </div>
                         <p class="text-sm font-medium text-emerald-800">Available to Bid</p>
                     </div>
-                    <p class="mt-4 text-3xl font-bold text-emerald-700">${{ number_format($user->availableBalance(), 2) }}</p>
+                    <p class="mt-4 text-3xl font-bold text-emerald-700">{{ format_display_price((float) $user->availableBalance()) }}</p>
                 </article>
                 <article class="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
                     <div class="flex items-center gap-3">
@@ -109,7 +109,7 @@
                         </div>
                         <p class="text-sm font-medium text-amber-800">Held in Escrow</p>
                     </div>
-                    <p class="mt-4 text-3xl font-bold text-amber-700">${{ number_format((float) $user->held_balance, 2) }}</p>
+                    <p class="mt-4 text-3xl font-bold text-amber-700">{{ format_display_price((float) $user->held_balance) }}</p>
                 </article>
                 <article class="rounded-3xl border border-sky-200 bg-sky-50 p-6 shadow-sm">
                     <div class="flex items-center gap-3">
@@ -120,7 +120,7 @@
                         </div>
                         <p class="text-sm font-medium text-sky-800">Pending Payouts</p>
                     </div>
-                    <p class="mt-4 text-3xl font-bold text-sky-700">${{ number_format((float) $user->pending_payout_balance, 2) }}</p>
+                    <p class="mt-4 text-3xl font-bold text-sky-700">{{ format_display_price((float) $user->pending_payout_balance) }}</p>
                 </article>
             </section>
 
@@ -213,7 +213,7 @@
                             <div>
                                 <label for="withdraw_amount" class="block text-sm font-medium text-slate-700">
                                     Withdraw Amount
-                                    <span class="text-slate-500">(available: ${{ number_format($user->availableBalance(), 2) }})</span>
+                                    <span class="text-slate-500">(available: {{ format_display_price((float) $user->availableBalance()) }}, equivalent of ${{ number_format($user->availableBalance(), 2) }} USD)</span>
                                 </label>
                                 <input
                                     type="number"
@@ -247,7 +247,7 @@
                                 <p class="text-xs text-slate-500">{{ $user->payoutScheduleLabel() }}</p>
                             </div>
                             <span class="inline-flex w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-                                Pending ${{ number_format((float) $user->pending_payout_balance, 2) }}
+                                Pending {{ format_display_price((float) $user->pending_payout_balance) }}
                             </span>
                         </div>
 
@@ -289,7 +289,7 @@
                             <h3 class="font-serif text-2xl text-slate-900">Active Escrow Holds</h3>
                             <p class="text-sm text-slate-500">Funds currently reserved for live bids.</p>
                         </div>
-                        <span class="text-sm font-semibold text-amber-700">${{ number_format($user->held_balance, 2) }} total</span>
+                        <span class="text-sm font-semibold text-amber-700">{{ format_display_price((float) $user->held_balance) }} total</span>
                     </div>
 
                     <div class="mt-5 grid gap-3">
@@ -297,7 +297,7 @@
                             <article class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 sm:px-5">
                                 <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                                     <p class="text-sm font-semibold text-slate-900">{{ $hold->auction->title ?? "Auction #{$hold->auction_id}" }}</p>
-                                    <p class="text-sm font-semibold text-amber-700">${{ number_format($hold->amount, 2) }} held</p>
+                                    <p class="text-sm font-semibold text-amber-700">{{ format_display_price((float) $hold->amount) }} held</p>
                                 </div>
                             </article>
                         @endforeach
@@ -397,9 +397,9 @@
                                 </div>
                                 <p class="mt-2 text-sm text-slate-700">{{ $tx->description ?? '-' }}</p>
                                 <div class="mt-3 flex items-end justify-between">
-                                    <p class="text-xs text-slate-500">Balance: ${{ number_format((float) $tx->balance_after, 2) }}</p>
+                                    <p class="text-xs text-slate-500">Balance: {{ format_display_price((float) $tx->balance_after) }}</p>
                                     <p class="text-base font-semibold {{ $tx->isCredit() ? 'text-emerald-600' : 'text-rose-600' }}">
-                                        {{ $tx->isCredit() ? '+' : '-' }}${{ number_format(abs((float) $tx->amount), 2) }}
+                                        {{ $tx->isCredit() ? '+' : '-' }}{{ format_display_price(abs((float) $tx->amount)) }}
                                     </p>
                                 </div>
                             </article>
@@ -437,10 +437,10 @@
                                         </td>
                                         <td class="px-6 py-4 text-sm text-slate-700">{{ $tx->description ?? '-' }}</td>
                                         <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold {{ $tx->isCredit() ? 'text-emerald-600' : 'text-rose-600' }}">
-                                            {{ $tx->isCredit() ? '+' : '-' }}${{ number_format(abs((float) $tx->amount), 2) }}
+                                            {{ $tx->isCredit() ? '+' : '-' }}{{ format_display_price(abs((float) $tx->amount)) }}
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-4 text-right text-sm text-slate-600">
-                                            ${{ number_format((float) $tx->balance_after, 2) }}
+                                            {{ format_display_price((float) $tx->balance_after) }}
                                         </td>
                                     </tr>
                                 @endforeach

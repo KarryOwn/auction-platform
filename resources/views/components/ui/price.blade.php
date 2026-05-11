@@ -5,10 +5,13 @@
     'label' => null,
     'animate' => false,
     'id' => null,
+    'useDisplayCurrency' => false,
 ])
 
 @php
-    $formattedAmount = format_price((float) $amount, $currency ? strtoupper($currency) : null);
+    $formattedAmount = $useDisplayCurrency && ! $currency
+        ? format_display_price((float) $amount)
+        : format_price((float) $amount, $currency ? strtoupper($currency) : null);
 
     $sizeClasses = match ($size) {
         'sm' => 'text-base font-semibold',

@@ -97,7 +97,7 @@
                 <x-ui.badge color="violet" size="xs">Lot of {{ $lotItemCount }} items</x-ui.badge>
             @endif
             @if($auction->isBuyItNowAvailable())
-                <x-ui.badge color="amber" size="xs">BIN: {{ format_price((float) $auction->buy_it_now_price) }}</x-ui.badge>
+                <x-ui.badge color="amber" size="xs">BIN: {{ format_display_price((float) $auction->buy_it_now_price) }}</x-ui.badge>
             @endif
             @if($auction->hasVerifiedCertificate())
                 <x-ui.badge color="green" size="xs">Authenticity verified</x-ui.badge>
@@ -140,7 +140,7 @@
         {{-- Price & Bids Block --}}
         <div class="mt-auto flex items-end justify-between {{ $size === 'sm' ? 'pt-2 mt-2 border-t border-gray-50' : '' }}">
             <div>
-                <x-ui.price :amount="$auction->current_price" size="sm" :label="$size !== 'sm' ? 'Current Bid' : null" />
+                <x-ui.price :amount="$auction->current_price" size="sm" :label="$size !== 'sm' ? 'Current Bid' : null" use-display-currency />
                 @if($size !== 'sm')
                     <p class="text-xs text-gray-500 mt-0.5 font-medium">{{ $auction->bids_count ?? $auction->bid_count ?? 0 }} bids</p>
                 @endif
