@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Dispute;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class DisputeStatusUpdatedNotification extends Notification implements ShouldQueue
@@ -18,7 +19,19 @@ class DisputeStatusUpdatedNotification extends Notification implements ShouldQue
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Dispute status updated')
+            ->greeting("Hello {$notifiable->name},")
+            ->line('Dispute #'.$this->dispute->id.' is now '.$this->dispute->status_label.'.')
+            ->when($this->dispute->resolution_notes, function (MailMessage $mail): MailMessage {
+                return $mail->line('Resolution notes: '.$this->dispute->resolution_notes);
+            })
+            ->action('View Auction', route('auctions.show', $this->dispute->auction));
     }
 
     public function toArray(object $notifiable): array

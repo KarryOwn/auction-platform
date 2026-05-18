@@ -14,11 +14,24 @@ class NewMessageNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public Conversation $conversation, public Message $message) {}
+    public function __construct(public Conversation $conversation, public Message $message)
+    {
+        $this->onQueue('notifications');
+    }
 
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        $channels = ['database'];
+
+        if ($notifiable->wantsNotification('messages', 'email')) {
+            $channels[] = 'mail';
+        }
+
+        if ($notifiable->wantsNotification('messages', 'push')) {
+            $channels[] = 'broadcast';
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage

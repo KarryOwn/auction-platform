@@ -6,17 +6,33 @@ use App\Models\SellerApplication;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\BroadcastMessage;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class SellerApplicationSubmittedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public SellerApplication $application) {}
+    public function __construct(public SellerApplication $application)
+    {
+        $this->onQueue('notifications');
+    }
 
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        return ['database', 'mail', 'broadcast'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $applicant = $this->application->user;
+
+        return (new MailMessage)
+            ->subject('Seller application submitted')
+            ->greeting("Hello {$notifiable->name},")
+            ->line(($applicant?->name ?? 'A user').' submitted a seller application for review.')
+            ->line('Review the application details before approving or rejecting seller access.')
+            ->action('Review Application', route('admin.seller-applications.show', $this->application));
     }
 
     public function toBroadcast(object $notifiable): BroadcastMessage

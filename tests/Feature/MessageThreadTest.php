@@ -4,6 +4,8 @@ use App\Models\Auction;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\NewMessageNotification;
+use Illuminate\Support\Facades\Notification;
 
 test('buyer can load minimal message thread', function () {
     [$buyer, $seller, $conversation] = createMessageThread();
@@ -18,7 +20,7 @@ test('buyer can load minimal message thread', function () {
         ->assertSee($conversation->auction->title)
         ->assertSee('Hello from buyer')
         ->assertSee('Write a message...')
-        ->assertSee(route('messages.index') . '?layout=minimal', false);
+        ->assertSee(route('messages.index').'?layout=minimal', false);
 });
 
 test('buyer can load minimal message inbox in chat drawer', function () {
@@ -31,9 +33,9 @@ test('buyer can load minimal message inbox in chat drawer', function () {
     $response->assertOk()
         ->assertSee('My Messages')
         ->assertSee($conversation->auction->title)
-        ->assertSee('Seller: ' . $seller->name)
+        ->assertSee('Seller: '.$seller->name)
         ->assertSee('1 message')
-        ->assertSee(route('messages.show', $conversation) . '?layout=minimal', false);
+        ->assertSee(route('messages.show', $conversation).'?layout=minimal', false);
 });
 
 test('buyer minimal message inbox shows an empty state', function () {
@@ -59,7 +61,7 @@ test('seller can load minimal message thread', function () {
         ->assertSee($conversation->auction->title)
         ->assertSee('Hello from buyer')
         ->assertSee('Write a message...')
-        ->assertSee(route('seller.messages.index') . '?layout=minimal', false);
+        ->assertSee(route('seller.messages.index').'?layout=minimal', false);
 });
 
 test('seller can load minimal message inbox in chat drawer', function () {
@@ -72,9 +74,9 @@ test('seller can load minimal message inbox in chat drawer', function () {
     $response->assertOk()
         ->assertSee('Buyer Messages')
         ->assertSee($conversation->auction->title)
-        ->assertSee('Buyer: ' . $buyer->name)
+        ->assertSee('Buyer: '.$buyer->name)
         ->assertSee('1 message')
-        ->assertSee(route('seller.messages.show', $conversation) . '?layout=minimal', false);
+        ->assertSee(route('seller.messages.show', $conversation).'?layout=minimal', false);
 });
 
 test('seller minimal message inbox shows an empty state', function () {
@@ -89,6 +91,43 @@ test('seller minimal message inbox shows an empty state', function () {
         ->assertOk()
         ->assertSee('No messages yet.')
         ->assertSee('Buyer conversations will appear here when shoppers contact you.');
+});
+
+test('message recipient receives email channel when message email preference is enabled', function () {
+    Notification::fake();
+
+    [$buyer, $seller, $conversation] = createMessageThread();
+
+    $this->actingAs($buyer)
+        ->post(route('messages.store', $conversation), [
+            'body' => 'Can you confirm the lens condition?',
+        ])
+        ->assertRedirect();
+
+    Notification::assertSentTo($seller, NewMessageNotification::class, function (NewMessageNotification $notification) use ($seller) {
+        return in_array('mail', $notification->via($seller), true);
+    });
+});
+
+test('message recipient does not receive email channel when message email preference is disabled', function () {
+    Notification::fake();
+
+    [$buyer, $seller, $conversation] = createMessageThread();
+
+    $preferences = User::DEFAULT_NOTIFICATION_PREFERENCES;
+    $preferences['messages']['email'] = false;
+    $seller->update(['notification_preferences' => $preferences]);
+
+    $this->actingAs($buyer)
+        ->post(route('messages.store', $conversation), [
+            'body' => 'Can you confirm the serial number?',
+        ])
+        ->assertRedirect();
+
+    Notification::assertSentTo($seller, NewMessageNotification::class, function (NewMessageNotification $notification) use ($seller) {
+        return ! in_array('mail', $notification->via($seller), true)
+            && in_array('database', $notification->via($seller), true);
+    });
 });
 
 function createMessageThread(): array

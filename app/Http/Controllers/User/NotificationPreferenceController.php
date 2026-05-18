@@ -16,6 +16,7 @@ class NotificationPreferenceController extends Controller
         'auction_won' => ['Auction Won', 'When you win an auction'],
         'auction_lost' => ['Auction Lost', 'When an auction you bid on closes with another winner'],
         'auction_ending' => ['Auction Ending Soon', 'When a watched auction is about to end'],
+        'messages' => ['Messages', 'When another user sends you a buyer or seller message'],
         'wallet' => ['Wallet Updates', 'Deposits, payments, and balance changes'],
         'marketing' => ['Promotions & News', 'Featured auctions, platform news, and special offers'],
     ];
@@ -32,13 +33,13 @@ class NotificationPreferenceController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'preferences'                    => 'required|array',
-            'preferences.*.email'            => 'boolean',
-            'preferences.*.push'             => 'boolean',
-            'preferences.*.database'         => 'boolean',
-            'locale'                         => 'nullable|string|max:10',
-            'display_currency'               => 'nullable|string|size:3|in:' . implode(',', config('auction.supported_currencies', ['USD'])),
-            'default_outbid_threshold'       => 'nullable|numeric|min:0.01',
+            'preferences' => 'required|array',
+            'preferences.*.email' => 'boolean',
+            'preferences.*.push' => 'boolean',
+            'preferences.*.database' => 'boolean',
+            'locale' => 'nullable|string|max:10',
+            'display_currency' => 'nullable|string|size:3|in:'.implode(',', config('auction.supported_currencies', ['USD'])),
+            'default_outbid_threshold' => 'nullable|numeric|min:0.01',
         ]);
 
         // Merge submitted toggles with defaults (unchecked checkboxes won't be sent)

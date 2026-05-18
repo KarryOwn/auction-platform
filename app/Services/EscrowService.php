@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Models\Auction;
 use App\Models\EscrowHold;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 class EscrowService
 {
@@ -28,31 +30,46 @@ class EscrowService
                 ->lockForUpdate()
                 ->first();
 
-            $existingAmount  = $existingHold ? (float) $existingHold->amount : 0.0;
+            $existingAmount = $existingHold ? (float) $existingHold->amount : 0.0;
             $incrementalCost = round($bidAmount - $existingAmount, 2);
 
             if ($incrementalCost > 0) {
-                // Hold the additional funds
-                $this->walletService->hold(
-                    $user,
-                    $incrementalCost,
-                    "Bid hold for auction #{$auction->id}",
-                    $auction,
-                );
+                $lockedUser = User::lockForUpdate()->findOrFail($user->id);
+                $available = $lockedUser->availableBalance();
+
+                if ($available < $incrementalCost) {
+                    throw new InvalidArgumentException(
+                        "Insufficient available balance for hold. Available: \${$available}, requested: \${$incrementalCost}"
+                    );
+                }
+
+                $newHeldBalance = round((float) $lockedUser->held_balance + $incrementalCost, 2);
+                $lockedUser->forceFill(['held_balance' => $newHeldBalance])->save();
+
+                WalletTransaction::create([
+                    'user_id' => $lockedUser->id,
+                    'type' => WalletTransaction::TYPE_BID_HOLD,
+                    'amount' => $incrementalCost,
+                    'balance_after' => $lockedUser->wallet_balance,
+                    'description' => "Bid hold for auction #{$auction->id}",
+                    'reference_type' => $auction->getMorphClass(),
+                    'reference_id' => $auction->getKey(),
+                ]);
             }
 
             if ($existingHold) {
                 // Update existing hold to new total amount
                 $existingHold->update(['amount' => $bidAmount]);
+
                 return $existingHold;
             }
 
             // Create new hold record
             return EscrowHold::create([
-                'user_id'    => $user->id,
+                'user_id' => $user->id,
                 'auction_id' => $auction->id,
-                'amount'     => $bidAmount,
-                'status'     => EscrowHold::STATUS_ACTIVE,
+                'amount' => $bidAmount,
+                'status' => EscrowHold::STATUS_ACTIVE,
             ]);
         });
     }
@@ -83,9 +100,9 @@ class EscrowService
             $hold->markReleased();
 
             Log::info('EscrowService: released hold', [
-                'user_id'    => $user->id,
+                'user_id' => $user->id,
                 'auction_id' => $auction->id,
-                'amount'     => $hold->amount,
+                'amount' => $hold->amount,
             ]);
         });
     }
@@ -112,9 +129,9 @@ class EscrowService
             $hold->markCaptured();
 
             Log::info('EscrowService: captured hold for winner', [
-                'user_id'    => $user->id,
+                'user_id' => $user->id,
                 'auction_id' => $auction->id,
-                'amount'     => $hold->amount,
+                'amount' => $hold->amount,
             ]);
 
             return $hold;
@@ -160,9 +177,9 @@ class EscrowService
         }
 
         Log::info('EscrowService: released all holds for auction', [
-            'auction_id'     => $auction->id,
-            'count'          => $holds->count(),
-            'excluded_user'  => $excludeUserId,
+            'auction_id' => $auction->id,
+            'count' => $holds->count(),
+            'excluded_user' => $excludeUserId,
         ]);
     }
 
@@ -197,10 +214,10 @@ class EscrowService
             $hold->markRefunded();
 
             Log::info('EscrowService: refunded hold', [
-                'hold_id'    => $hold->id,
-                'user_id'    => $user->id,
+                'hold_id' => $hold->id,
+                'user_id' => $user->id,
                 'auction_id' => $hold->auction_id,
-                'amount'     => $hold->amount,
+                'amount' => $hold->amount,
             ]);
         });
     }

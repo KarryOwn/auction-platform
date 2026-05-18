@@ -3,6 +3,7 @@
 use App\Models\SellerApplication;
 use App\Models\User;
 use App\Notifications\SellerApplicationSubmittedNotification;
+use Illuminate\Support\Facades\Notification;
 
 test('user can submit seller application', function () {
     $user = User::factory()->create(['role' => User::ROLE_USER]);
@@ -45,4 +46,21 @@ test('seller application submitted notification links to admin review page', fun
         ->and($payload['application_id'])->toBe($application->id)
         ->and($payload['message'])->toBe('Seller application has been submitted and needs review.')
         ->and($payload['url'])->toBe(route('admin.seller-applications.show', $application));
+});
+
+test('seller application submission emails admins', function () {
+    Notification::fake();
+
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $user = User::factory()->create(['role' => User::ROLE_USER]);
+
+    $this->actingAs($user)->post(route('seller.apply.submit'), [
+        'reason' => str_repeat('I have experience selling collectible items safely. ', 2),
+        'experience' => 'Three years of marketplace selling.',
+        'accept_terms' => true,
+    ])->assertRedirect(route('seller.application.status'));
+
+    Notification::assertSentTo($admin, SellerApplicationSubmittedNotification::class, function (SellerApplicationSubmittedNotification $notification) use ($admin) {
+        return in_array('mail', $notification->via($admin), true);
+    });
 });

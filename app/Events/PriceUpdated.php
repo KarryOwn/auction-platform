@@ -5,16 +5,22 @@ namespace App\Events;
 use App\Models\Auction;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class PriceUpdated implements ShouldBroadcastNow
+class PriceUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public string $connection = 'redis';
+
+    public string $queue = 'broadcasts';
+
     public int $auctionId;
+
     public float $newPrice;
+
     public float $nextMinimum;
 
     /**

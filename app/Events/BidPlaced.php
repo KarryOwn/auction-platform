@@ -6,38 +6,51 @@ use App\Models\Auction;
 use App\Models\Bid;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class BidPlaced implements ShouldBroadcastNow
+class BidPlaced implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public int    $auctionId;
-    public int    $bidderId;
+    public string $connection = 'redis';
+
+    public string $queue = 'broadcasts';
+
+    public int $auctionId;
+
+    public int $bidderId;
+
     public string $bidderName;
-    public float  $amount;
-    public float  $previousAmount;
-    public float  $nextMinimum;
+
+    public float $amount;
+
+    public float $previousAmount;
+
+    public float $nextMinimum;
+
     public string $bidType;
-    public bool   $isSnipeBid;
-    public int    $bidCount;
+
+    public bool $isSnipeBid;
+
+    public int $bidCount;
+
     public string $createdAtHuman;
 
     public function __construct(
-        public Bid     $bid,
+        public Bid $bid,
         public Auction $auction,
     ) {
-        $this->auctionId      = $auction->id;
-        $this->bidderId       = $bid->user_id;
-        $this->bidderName     = $bid->user?->name ?? 'Unknown';
-        $this->amount         = (float) $bid->amount;
+        $this->auctionId = $auction->id;
+        $this->bidderId = $bid->user_id;
+        $this->bidderName = $bid->user?->name ?? 'Unknown';
+        $this->amount = (float) $bid->amount;
         $this->previousAmount = (float) ($bid->previous_amount ?? 0);
-        $this->nextMinimum    = (float) $auction->minimumNextBid();
-        $this->bidType        = $bid->bid_type ?? 'manual';
-        $this->isSnipeBid     = (bool) $bid->is_snipe_bid;
-        $this->bidCount       = (int) $auction->bid_count;
+        $this->nextMinimum = (float) $auction->minimumNextBid();
+        $this->bidType = $bid->bid_type ?? 'manual';
+        $this->isSnipeBid = (bool) $bid->is_snipe_bid;
+        $this->bidCount = (int) $auction->bid_count;
         $this->createdAtHuman = $bid->created_at?->diffForHumans() ?? 'just now';
     }
 
@@ -65,19 +78,19 @@ class BidPlaced implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'auction_id'      => $this->auctionId,
-            'bidder_id'       => $this->bidderId,
-            'bidder_name'     => $this->bidderName,
-            'user_name'       => $this->bidderName,
-            'amount'          => $this->amount,
+            'auction_id' => $this->auctionId,
+            'bidder_id' => $this->bidderId,
+            'bidder_name' => $this->bidderName,
+            'user_name' => $this->bidderName,
+            'amount' => $this->amount,
             'previous_amount' => $this->previousAmount,
-            'next_minimum'    => $this->nextMinimum,
-            'bid_type'        => $this->bidType,
-            'is_snipe_bid'    => $this->isSnipeBid,
-            'bid_count'       => $this->bidCount,
-            'bids_count'      => $this->bidCount,
+            'next_minimum' => $this->nextMinimum,
+            'bid_type' => $this->bidType,
+            'is_snipe_bid' => $this->isSnipeBid,
+            'bid_count' => $this->bidCount,
+            'bids_count' => $this->bidCount,
             'created_at_human' => $this->createdAtHuman,
-            'end_time'        => $this->auction->end_time->toIso8601String(),
+            'end_time' => $this->auction->end_time->toIso8601String(),
         ];
     }
 }

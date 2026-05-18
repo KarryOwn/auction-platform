@@ -21,20 +21,23 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class User extends Authenticatable implements HasMedia
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, InteractsWithMedia, SoftDeletes;
+    use HasApiTokens, HasFactory, InteractsWithMedia, Notifiable, SoftDeletes;
 
     public const DEFAULT_NOTIFICATION_PREFERENCES = [
-        'outbid'          => ['email' => true, 'push' => true, 'database' => true],
-        'auction_won'     => ['email' => true, 'push' => true, 'database' => true],
-        'auction_lost'    => ['email' => true, 'push' => true, 'database' => true],
-        'auction_ending'  => ['email' => false, 'push' => true, 'database' => true],
-        'wallet'          => ['email' => true, 'push' => false, 'database' => true],
-        'marketing'       => ['email' => false, 'push' => false, 'database' => false],
+        'outbid' => ['email' => true, 'push' => true, 'database' => true],
+        'auction_won' => ['email' => true, 'push' => true, 'database' => true],
+        'auction_lost' => ['email' => true, 'push' => true, 'database' => true],
+        'auction_ending' => ['email' => false, 'push' => true, 'database' => true],
+        'messages' => ['email' => true, 'push' => true, 'database' => true],
+        'wallet' => ['email' => true, 'push' => false, 'database' => true],
+        'marketing' => ['email' => false, 'push' => false, 'database' => false],
     ];
 
-    public const ROLE_USER      = 'user';
-    public const ROLE_ADMIN     = 'admin';
-    public const ROLE_SELLER    = 'seller';
+    public const ROLE_USER = 'user';
+
+    public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_SELLER = 'seller';
 
     /**
      * The attributes that are mass assignable.
@@ -112,23 +115,23 @@ class User extends Authenticatable implements HasMedia
     protected function casts(): array
     {
         return [
-            'email_verified_at'          => 'datetime',
-            'password'                   => 'hashed',
-            'is_banned'                  => 'boolean',
-            'banned_at'                  => 'datetime',
-            'wallet_balance'             => 'decimal:2',
-            'held_balance'               => 'decimal:2',
-            'pending_payout_balance'      => 'decimal:2',
-            'default_outbid_threshold'   => 'decimal:2',
-            'stripe_connect_onboarded'   => 'boolean',
-            'notification_preferences'   => 'array',
-            'seller_verified_at'         => 'datetime',
-            'seller_applied_at'          => 'datetime',
-            'return_window_days'         => 'integer',
-            'vacation_mode'              => 'boolean',
-            'vacation_mode_started_at'   => 'datetime',
-            'vacation_mode_ends_at'      => 'datetime',
-            'referred_by_user_id'        => 'integer',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'is_banned' => 'boolean',
+            'banned_at' => 'datetime',
+            'wallet_balance' => 'decimal:2',
+            'held_balance' => 'decimal:2',
+            'pending_payout_balance' => 'decimal:2',
+            'default_outbid_threshold' => 'decimal:2',
+            'stripe_connect_onboarded' => 'boolean',
+            'notification_preferences' => 'array',
+            'seller_verified_at' => 'datetime',
+            'seller_applied_at' => 'datetime',
+            'return_window_days' => 'integer',
+            'vacation_mode' => 'boolean',
+            'vacation_mode_started_at' => 'datetime',
+            'vacation_mode_ends_at' => 'datetime',
+            'referred_by_user_id' => 'integer',
         ];
     }
 
@@ -177,6 +180,7 @@ class User extends Authenticatable implements HasMedia
             if (is_string($conversionPath) && file_exists($conversionPath)) {
                 return $media->getUrl($conversion);
             }
+
             return $media->getUrl();
         }
 
@@ -222,19 +226,19 @@ class User extends Authenticatable implements HasMedia
         return (bool) $this->is_banned;
     }
 
-
     public function getReturnPolicyLabelAttribute(): string
     {
         return match ($this->return_policy_type) {
             'returns_accepted' => "Returns accepted within {$this->return_window_days} days",
-            'custom'           => $this->return_policy_custom ?? 'See custom policy',
-            default            => 'No returns accepted',
+            'custom' => $this->return_policy_custom ?? 'See custom policy',
+            default => 'No returns accepted',
         };
     }
 
     public function getPreferencesAttribute()
     {
         $this->loadMissing('userPreference');
+
         return $this->userPreference ?? UserPreference::forUser($this->id);
     }
 
@@ -248,11 +252,11 @@ class User extends Authenticatable implements HasMedia
         return $this->hasMany(Auction::class);
     }
 
-    
     public function keywordAlerts()
     {
         return $this->hasMany(KeywordAlert::class);
     }
+
     public function bids(): HasMany
     {
         return $this->hasMany(Bid::class);

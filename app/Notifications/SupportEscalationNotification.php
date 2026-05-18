@@ -15,11 +15,13 @@ class SupportEscalationNotification extends Notification implements ShouldQueue
 
     public function __construct(
         public SupportConversation $conversation,
-    ) {}
+    ) {
+        $this->onQueue('notifications');
+    }
 
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        return ['database', 'mail', 'broadcast'];
     }
 
     public function toMail(object $notifiable): MailMessage

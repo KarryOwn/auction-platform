@@ -8,6 +8,7 @@ use App\Jobs\CloseExpiredAuctions;
 use App\Jobs\CaptureAuctionSnapshots;
 use App\Jobs\CleanupStaleEscrowHolds;
 use App\Jobs\GenerateAnalyticsSnapshot;
+use App\Jobs\ReconcilePendingRedisBids;
 use App\Models\Category;
 use App\Services\CategoryService;
 use App\Services\ExchangeRateService;
@@ -29,6 +30,12 @@ Schedule::call(function (): void {
 })
     ->everyMinute()
     ->name('close-expired-auctions')
+    ->withoutOverlapping();
+
+// Replay Redis-accepted bids if the normal persistence queue was delayed/lost.
+Schedule::job(new ReconcilePendingRedisBids)
+    ->everyMinute()
+    ->name('reconcile-pending-redis-bids')
     ->withoutOverlapping();
 
 // Capture periodic auction snapshots for analytics.

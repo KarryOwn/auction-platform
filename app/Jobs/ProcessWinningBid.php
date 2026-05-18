@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Events\BidPlaced;
 use App\Models\Auction;
 use App\Models\Bid;
+use App\Services\Bidding\PendingRedisBidStore;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,13 +30,67 @@ class ProcessWinningBid implements ShouldQueue
         public int   $userId,
         public float $amount,
         public array $meta = [],
+        public ?string $acceptedBidId = null,
     ) {}
 
     public function handle(): void
     {
+        $result = $this->persistAcceptedBid();
+
+        if (! $result['created']) {
+            return;
+        }
+
+        // Dispatch domain event AFTER the transaction has committed so
+        // a broadcast failure (Reverb/Pusher down) can never roll back the DB write.
+        try {
+            BidPlaced::dispatch($result['bid'], $result['auction']);
+        } catch (\Throwable $e) {
+            Log::error('ProcessWinningBid: BidPlaced broadcast failed (bid persisted OK)', [
+                'auction_id' => $this->auctionId,
+                'amount'     => $this->amount,
+                'accepted_bid_id' => $this->acceptedBidId,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * @return array{bid: Bid, auction: Auction, created: bool}
+     */
+    public function persistAcceptedBid(): array
+    {
+        if ($this->acceptedBidId) {
+            $existing = Bid::where('accepted_bid_id', $this->acceptedBidId)->first();
+
+            if ($existing) {
+                app(PendingRedisBidStore::class)->markProcessed($this->auctionId, $this->acceptedBidId);
+
+                return [
+                    'bid' => $existing,
+                    'auction' => $existing->auction,
+                    'created' => false,
+                ];
+            }
+        }
+
         // Persist bid inside transaction; dispatch broadcast event AFTER commit
         // so a broadcast failure (e.g. Reverb down) never rolls back the DB write.
         $result = DB::transaction(function () {
+            if ($this->acceptedBidId) {
+                $existing = Bid::where('accepted_bid_id', $this->acceptedBidId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing) {
+                    return [
+                        'bid' => $existing,
+                        'auction' => $existing->auction,
+                        'created' => false,
+                    ];
+                }
+            }
+
             $auction = Auction::lockForUpdate()->findOrFail($this->auctionId);
 
             $previousPrice = (float) $auction->current_price;
@@ -54,6 +109,7 @@ class ProcessWinningBid implements ShouldQueue
 
             // Create the persistent bid record
             $bid = Bid::create([
+                'accepted_bid_id'  => $this->acceptedBidId,
                 'auction_id'      => $this->auctionId,
                 'user_id'         => $this->userId,
                 'amount'          => $this->amount,
@@ -77,22 +133,17 @@ class ProcessWinningBid implements ShouldQueue
                 'bid_id'     => $bid->id,
                 'auction_id' => $this->auctionId,
                 'amount'     => $this->amount,
+                'accepted_bid_id' => $this->acceptedBidId,
             ]);
 
-            return ['bid' => $bid, 'auction' => $auction];
+            return ['bid' => $bid, 'auction' => $auction, 'created' => true];
         });
 
-        // Dispatch domain event AFTER the transaction has committed so
-        // a broadcast failure (Reverb/Pusher down) can never roll back the DB write.
-        try {
-            BidPlaced::dispatch($result['bid'], $result['auction']);
-        } catch (\Throwable $e) {
-            Log::error('ProcessWinningBid: BidPlaced broadcast failed (bid persisted OK)', [
-                'auction_id' => $this->auctionId,
-                'amount'     => $this->amount,
-                'error'      => $e->getMessage(),
-            ]);
+        if ($this->acceptedBidId) {
+            app(PendingRedisBidStore::class)->markProcessed($this->auctionId, $this->acceptedBidId);
         }
+
+        return $result;
     }
 
     /**
@@ -104,6 +155,8 @@ class ProcessWinningBid implements ShouldQueue
             'auction_id' => $this->auctionId,
             'user_id'    => $this->userId,
             'amount'     => $this->amount,
+            'accepted_bid_id' => $this->acceptedBidId,
+            'recoverable' => (bool) $this->acceptedBidId,
             'error'      => $exception->getMessage(),
         ]);
     }

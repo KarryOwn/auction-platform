@@ -1,23 +1,22 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AuthController as ApiV1AuthController;
+use App\Contracts\BiddingStrategy;
 use App\Http\Controllers\Api\V1\AuctionController as ApiV1AuctionController;
+use App\Http\Controllers\Api\V1\AuthController as ApiV1AuthController;
 use App\Http\Controllers\Api\V1\BidController as ApiV1BidController;
 use App\Http\Controllers\Api\V1\CategoryController as ApiV1CategoryController;
 use App\Http\Controllers\Api\V1\ProfileController as ApiV1ProfileController;
 use App\Http\Controllers\Api\V1\WatchController as ApiV1WatchController;
+use App\Http\Controllers\Api\V1\WebhookController as ApiV1WebhookController;
+use App\Models\Auction;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\ExchangeRate;
 use App\Models\User;
-use App\Models\Auction;
-use App\Contracts\BiddingStrategy;
 use App\Services\CategoryService;
 use App\Services\TagService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Api\V1\WebhookController as ApiV1WebhookController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -31,6 +30,7 @@ Route::get('/categories/tree', function () {
 // Category attributes (when selecting a category in forms)
 Route::get('/categories/{id}/attributes', function (int $id) {
     $category = Category::findOrFail($id);
+
     return response()->json($category->getAllAttributes());
 });
 
@@ -40,6 +40,7 @@ Route::get('/tags/search', function (Request $request) {
     if (strlen($query) < 2) {
         return response()->json([]);
     }
+
     return response()->json(app(TagService::class)->search($query));
 });
 
@@ -49,6 +50,7 @@ Route::get('/brands/search', function (Request $request) {
     if (strlen($query) < 1) {
         return response()->json(Brand::orderBy('name')->limit(20)->get(['id', 'name', 'slug', 'logo_path']));
     }
+
     return response()->json(
         Brand::where('name', 'ilike', "%{$query}%")
             ->orderBy('name')
@@ -64,15 +66,13 @@ Route::post('/stress-test/bid', function (Request $request) {
     }
 
     // Pick only isolated stress-test bot users so real/demo accounts are not mutated.
-    $user = User::where('email', 'like', 'stress-bot-%@example.test')
+    $botQuery = User::where('email', 'like', 'stress-bot-%@example.test')
         ->where('role', User::ROLE_USER)
-        ->where('is_banned', false)
-        ->when(
-            $request->filled('user_id'),
-            fn ($query) => $query->whereKey($request->integer('user_id')),
-            fn ($query) => $query->inRandomOrder(),
-        )
-        ->first();
+        ->where('is_banned', false);
+
+    $user = $request->filled('user_id')
+        ? (clone $botQuery)->whereKey($request->integer('user_id'))->first()
+        : $botQuery->inRandomOrder()->first();
 
     if (! $user) {
         return response()->json(['status' => 'failed', 'error' => 'No stress bot user found. Run stress:seed-bots first.'], 422);
@@ -84,14 +84,14 @@ Route::post('/stress-test/bid', function (Request $request) {
         return response()->json(['status' => 'failed', 'error' => 'Auction not found.'], 404);
     }
 
-    // Run 
+    // Run
     try {
         $engine = app(BiddingStrategy::class);
         $engine->placeBid($auction, $user, $request->input('amount'));
-        
+
         return response()->json(['status' => 'success']);
     } catch (\Exception $e) {
-        // Return 409 Conflict 
+        // Return 409 Conflict
         return response()->json(['status' => 'failed', 'error' => $e->getMessage()], 409);
     }
 });
@@ -130,8 +130,8 @@ Route::prefix('v1')->name('api.v1.')->middleware(['throttle:api'])->group(functi
         Route::get('/me/notifications', [ApiV1ProfileController::class, 'notifications'])->name('profile.notifications');
 
         Route::prefix('/webhooks')->name('webhooks.')->group(function () {
-            Route::get('/',           [ApiV1WebhookController::class, 'index'])->name('index');
-            Route::post('/',          [ApiV1WebhookController::class, 'store'])->name('store');
+            Route::get('/', [ApiV1WebhookController::class, 'index'])->name('index');
+            Route::post('/', [ApiV1WebhookController::class, 'store'])->name('store');
             Route::delete('/{endpoint}', [ApiV1WebhookController::class, 'destroy'])->name('destroy');
             Route::get('/deliveries', [ApiV1WebhookController::class, 'deliveries'])->name('deliveries');
             Route::post('/deliveries/{delivery}/redeliver', [ApiV1WebhookController::class, 'redeliver'])->name('redeliver');

@@ -3,7 +3,6 @@
 namespace App\Services\Bidding;
 
 use App\Contracts\BiddingStrategy;
-use App\Events\BidPlaced;
 use App\Events\PriceUpdated;
 use App\Exceptions\BidValidationException;
 use App\Jobs\ProcessWinningBid;
@@ -13,12 +12,14 @@ use App\Models\User;
 use App\Services\EscrowService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Str;
 
 class RedisAtomicEngine implements BiddingStrategy
 {
     /**
-     * Lua script: atomically check price + min increment, then update.
-     * Returns: new_price (success) or 0 (fail).
+     * Lua script: atomically check price + min increment, update price,
+     * and record the accepted bid for durable queue recovery.
+     * Returns: {new_price, previous_price} (success) or {"0", current_price} (fail).
      */
     private const LUA_BID = <<<'LUA'
         local current_price  = tonumber(redis.call('get', KEYS[1]) or "0")
@@ -31,9 +32,27 @@ class RedisAtomicEngine implements BiddingStrategy
         if bid_cents >= (current_cents + increment_cents) then
             local normalized_bid = bid_cents / 100
             redis.call('set', KEYS[1], string.format("%.2f", normalized_bid))
-            return string.format("%.2f", normalized_bid)
+
+            local payload = {
+                auction_id = tonumber(ARGV[4]),
+                user_id = tonumber(ARGV[5]),
+                amount = normalized_bid,
+                bid_type = ARGV[6],
+                previous_amount = current_price,
+                ip_address = ARGV[7],
+                user_agent = ARGV[8],
+                auto_bid_id = ARGV[9],
+                is_snipe_bid = ARGV[10] == "1",
+                accepted_at = tonumber(ARGV[11])
+            }
+
+            redis.call('hset', KEYS[2], ARGV[3], cjson.encode(payload))
+            redis.call('zadd', KEYS[3], ARGV[11], ARGV[3])
+            redis.call('zadd', KEYS[4], ARGV[11], ARGV[4])
+
+            return { string.format("%.2f", normalized_bid), tostring(current_price) }
         else
-            return "0"
+            return { "0", tostring(current_price) }
         end
     LUA;
 
@@ -64,12 +83,39 @@ class RedisAtomicEngine implements BiddingStrategy
             Redis::set($priceKey, (string) $auction->current_price);
         }
 
-        $previousPrice = (float) Redis::get($priceKey);
-
         // Atomic Lua check-and-set
-        $result = Redis::eval(self::LUA_BID, 1, $priceKey, (string) $amount, (string) $minIncrement);
+        $acceptedBidId = (string) Str::ulid();
+        $acceptedAt = microtime(true);
+        $bidType = $meta['bid_type'] ?? Bid::TYPE_MANUAL;
+        $ipAddress = $meta['ip_address'] ?? request()->ip();
+        $userAgent = $meta['user_agent'] ?? request()->userAgent();
+        $autoBidId = $meta['auto_bid_id'] ?? null;
+        $isSnipeBid = $auction->isInSnipeWindow();
 
-        if ($result === '0' || $result === 0) {
+        $result = Redis::eval(
+            self::LUA_BID,
+            4,
+            $priceKey,
+            PendingRedisBidStore::hashKey($auction->id),
+            PendingRedisBidStore::indexKey($auction->id),
+            PendingRedisBidStore::GLOBAL_INDEX_KEY,
+            (string) $amount,
+            (string) $minIncrement,
+            $acceptedBidId,
+            (string) $auction->id,
+            (string) $user->id,
+            $bidType,
+            (string) $ipAddress,
+            (string) $userAgent,
+            $autoBidId ? (string) $autoBidId : '',
+            $isSnipeBid ? '1' : '0',
+            (string) $acceptedAt,
+        );
+
+        $acceptedAmount = $this->luaValue($result, 0);
+        $previousPrice = (float) $this->luaValue($result, 1);
+
+        if ($acceptedAmount === '0' || $acceptedAmount === 0 || $acceptedAmount === null) {
             // Bid rejected — roll back the escrow to previous level
             $this->rollbackEscrow($user, $auction, $holdBefore);
 
@@ -78,18 +124,17 @@ class RedisAtomicEngine implements BiddingStrategy
             throw BidValidationException::bidTooLow($current, $minimumBid);
         }
 
-        $isSnipeBid = $auction->isInSnipeWindow();
-
         // Build a Bid model instance for the immediate response
         $bid = new Bid([
+            'accepted_bid_id' => $acceptedBidId,
             'auction_id'      => $auction->id,
             'user_id'         => $user->id,
             'amount'          => $amount,
-            'bid_type'        => $meta['bid_type'] ?? Bid::TYPE_MANUAL,
+            'bid_type'        => $bidType,
             'previous_amount' => $previousPrice,
-            'ip_address'      => $meta['ip_address'] ?? request()->ip(),
-            'user_agent'      => $meta['user_agent'] ?? request()->userAgent(),
-            'auto_bid_id'     => $meta['auto_bid_id'] ?? null,
+            'ip_address'      => $ipAddress,
+            'user_agent'      => $userAgent,
+            'auto_bid_id'     => $autoBidId,
             'is_snipe_bid'    => $isSnipeBid,
         ]);
 
@@ -117,9 +162,19 @@ class RedisAtomicEngine implements BiddingStrategy
                 'user_agent'      => $bid->user_agent,
                 'is_snipe_bid'    => $isSnipeBid,
             ]),
+            acceptedBidId: $acceptedBidId,
         )->onQueue('bids');
 
         return $bid;
+    }
+
+    protected function luaValue(mixed $result, int $index): mixed
+    {
+        if (! is_array($result)) {
+            return $index === 0 ? $result : null;
+        }
+
+        return $result[$index] ?? $result[$index + 1] ?? null;
     }
 
     /**
@@ -166,6 +221,9 @@ class RedisAtomicEngine implements BiddingStrategy
             "auction:{$auction->id}:price",
             "auction:{$auction->id}:meta",
             "auction:{$auction->id}:leaderboard",
+            PendingRedisBidStore::hashKey($auction->id),
+            PendingRedisBidStore::indexKey($auction->id),
         ]);
+        Redis::zrem(PendingRedisBidStore::GLOBAL_INDEX_KEY, (string) $auction->id);
     }
 }

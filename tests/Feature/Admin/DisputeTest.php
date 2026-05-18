@@ -3,8 +3,12 @@
 use App\Models\Auction;
 use App\Models\Dispute;
 use App\Models\User;
+use App\Notifications\DisputeStatusUpdatedNotification;
+use Illuminate\Support\Facades\Notification;
 
 test('admin can update dispute resolution status', function () {
+    Notification::fake();
+
     $staff = User::factory()->create(['role' => User::ROLE_ADMIN]);
     $seller = createSeller();
     $buyer = User::factory()->create();
@@ -33,4 +37,12 @@ test('admin can update dispute resolution status', function () {
 
     expect($dispute->fresh()->status)->toBe(Dispute::STATUS_RESOLVED_BUYER)
         ->and($dispute->fresh()->resolved_by)->toBe($staff->id);
+
+    Notification::assertSentTo($buyer, DisputeStatusUpdatedNotification::class, function (DisputeStatusUpdatedNotification $notification) use ($buyer) {
+        return in_array('mail', $notification->via($buyer), true);
+    });
+
+    Notification::assertSentTo($seller, DisputeStatusUpdatedNotification::class, function (DisputeStatusUpdatedNotification $notification) use ($seller) {
+        return in_array('mail', $notification->via($seller), true);
+    });
 });

@@ -19,6 +19,7 @@ class Bid extends Model
 
 
     protected $fillable = [
+        'accepted_bid_id',
         'auction_id',
         'user_id',
         'amount',

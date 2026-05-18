@@ -97,7 +97,7 @@ test('other visitors cannot access anonymous conversations they do not own', fun
         'role' => User::ROLE_USER,
     ]);
 
-    RateLimiter::clear('support-chat:' . $user->id);
+    RateLimiter::clear('support-chat:'.$user->id);
 
     $this->actingAs($user)
         ->getJson(route('support.chat.show', $conversation))
@@ -118,7 +118,7 @@ test('escalating a support conversation notifies admins', function () {
         'role' => User::ROLE_SELLER,
     ]);
 
-    RateLimiter::clear('support-chat:' . $user->id);
+    RateLimiter::clear('support-chat:'.$user->id);
 
     $start = $this->actingAs($user)->postJson(route('support.chat.send'), [
         'message' => 'I need help with a dispute.',
@@ -135,7 +135,9 @@ test('escalating a support conversation notifies admins', function () {
 
     expect($conversation->fresh()->status)->toBe(SupportConversation::STATUS_ESCALATED);
 
-    Notification::assertSentTo($admin, SupportEscalationNotification::class);
+    Notification::assertSentTo($admin, SupportEscalationNotification::class, function (SupportEscalationNotification $notification) use ($admin) {
+        return in_array('mail', $notification->via($admin), true);
+    });
     Notification::assertNotSentTo($seller, SupportEscalationNotification::class);
 });
 
