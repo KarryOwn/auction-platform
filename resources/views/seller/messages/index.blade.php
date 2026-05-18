@@ -17,6 +17,9 @@
                             <div class="min-w-0 truncate">
                                 <p class="font-medium truncate">{{ $conversation->auction->title }}</p>
                                 <p class="text-xs text-gray-500">Buyer: {{ $conversation->buyer->name }}</p>
+                                @if($conversation->delivery_status)
+                                    <p class="mt-1 text-xs font-medium text-indigo-600">Delivery: {{ $conversation->delivery_status_label }}</p>
+                                @endif
                                 @if($conversation->messages_count > 0)
                                     <p class="mt-1 text-xs text-gray-400">{{ $conversation->messages_count }} {{ Illuminate\Support\Str::plural('message', $conversation->messages_count) }}</p>
                                 @endif
@@ -48,6 +51,9 @@
                                 <div>
                                     <p class="font-medium text-gray-900">{{ $conversation->auction->title }}</p>
                                     <p class="text-sm text-gray-500">Buyer: {{ $conversation->buyer->name }}</p>
+                                    @if($conversation->delivery_status)
+                                        <p class="mt-1 text-sm font-medium text-indigo-600">Delivery: {{ $conversation->delivery_status_label }}</p>
+                                    @endif
                                 </div>
                                 <a href="{{ route('seller.messages.show', $conversation) }}" class="theme-button theme-button-primary text-sm">View Discussion</a>
                             </li>

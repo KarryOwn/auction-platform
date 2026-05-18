@@ -49,7 +49,7 @@ class InvoiceController extends Controller
 
         $fullPath = storage_path("app/{$invoice->pdf_path}");
 
-        if (! file_exists($fullPath)) {
+        if (! $this->isReadablePdf($fullPath)) {
             $this->invoiceService->generatePdf($invoice);
             $invoice->refresh();
             $fullPath = storage_path("app/{$invoice->pdf_path}");
@@ -63,5 +63,22 @@ class InvoiceController extends Controller
         if ($invoice->buyer_id !== $user->id && $invoice->seller_id !== $user->id && ! $user->isStaff()) {
             abort(403, 'You do not have access to this invoice.');
         }
+    }
+
+    protected function isReadablePdf(string $fullPath): bool
+    {
+        if (! file_exists($fullPath) || str_ends_with($fullPath, '.html')) {
+            return false;
+        }
+
+        $handle = fopen($fullPath, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+
+        $header = fread($handle, 5);
+        fclose($handle);
+
+        return $header === '%PDF-';
     }
 }

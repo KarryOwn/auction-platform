@@ -3,6 +3,7 @@
 use App\Contracts\BiddingStrategy;
 use App\Models\Auction;
 use App\Models\Bid;
+use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 use App\Events\AuctionClosed;
@@ -80,7 +81,61 @@ test('can purchase auction via buy it now', function () {
     expect($auction->win_method)->toBe('buy_it_now');
     expect((float) $auction->winning_bid_amount)->toEqual(100.0);
 
+    $conversation = Conversation::query()
+        ->where('auction_id', $auction->id)
+        ->where('buyer_id', $buyer->id)
+        ->where('seller_id', $seller->id)
+        ->first();
+
+    expect($conversation)->not->toBeNull()
+        ->and($conversation->delivery_status)->toBe(Conversation::DELIVERY_PENDING);
+
     Event::assertDispatched(AuctionClosed::class);
+});
+
+test('buy it now reuses an existing auction conversation for delivery', function () {
+    Event::fake([AuctionClosed::class]);
+
+    $seller = User::factory()->create();
+    $buyer = User::factory()->create(['wallet_balance' => 1000]);
+
+    $auction = Auction::factory()->create([
+        'user_id' => $seller->id,
+        'status' => Auction::STATUS_ACTIVE,
+        'starting_price' => 10,
+        'current_price' => 10,
+        'buy_it_now_price' => 100,
+        'buy_it_now_enabled' => true,
+    ]);
+
+    $existing = Conversation::create([
+        'auction_id' => $auction->id,
+        'buyer_id' => $buyer->id,
+        'seller_id' => $seller->id,
+        'last_message_at' => now()->subHour(),
+    ]);
+
+    $escrowService = Mockery::mock(EscrowService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('holdForBid')->once();
+    });
+
+    $paymentService = Mockery::mock(PaymentService::class, function (MockInterface $mock) {
+        $invoice = new Invoice();
+        $invoice->id = 2;
+        $mock->shouldReceive('captureWinnerPayment')->once()->andReturn($invoice);
+    });
+
+    app()->instance(EscrowService::class, $escrowService);
+    app()->instance(PaymentService::class, $paymentService);
+
+    $this->actingAs($buyer)
+        ->postJson(route('auctions.buy-it-now', $auction))
+        ->assertOk();
+
+    $existing->refresh();
+
+    expect(Conversation::query()->where('auction_id', $auction->id)->where('buyer_id', $buyer->id)->count())->toBe(1)
+        ->and($existing->delivery_status)->toBe(Conversation::DELIVERY_PENDING);
 });
 
 test('buy it now is unavailable if current price exceeds threshold', function () {

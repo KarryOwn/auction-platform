@@ -46,8 +46,9 @@
             </div>
 
             {{-- Auctions Table --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
+            <div class="bg-white shadow-sm sm:rounded-lg">
+                <div class="overflow-x-auto">
+                    <table class="min-w-[92rem] w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
@@ -58,7 +59,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ends At</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -114,7 +115,7 @@
                                         <div class="text-xs text-orange-500">{{ $auction->end_time->diffForHumans() }}</div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm" x-data="adminFeatureManager({
+                                <td class="px-6 py-4 whitespace-nowrap text-sm min-w-[16rem]" x-data="adminFeatureManager({
                                     featureUrl: '{{ route('admin.auctions.feature', $auction) }}',
                                     unfeatureUrl: '{{ route('admin.auctions.unfeature', $auction) }}',
                                     csrf: '{{ csrf_token() }}',
@@ -143,7 +144,7 @@
                                         Until <span x-text="featuredUntil"></span>
                                     </div>
 
-                                    <div x-show="showFeatureForm && !featured" x-cloak class="mt-2 p-3 rounded-md border border-gray-200 bg-gray-50 space-y-2 min-w-56">
+                                    <div x-show="showFeatureForm && !featured" x-cloak class="mt-2 p-3 rounded-md border border-gray-200 bg-gray-50 space-y-2 w-56">
                                         <label class="block text-xs text-gray-600">
                                             Duration
                                             <select x-model.number="duration" class="mt-1 w-full rounded-md border-gray-300 text-sm">
@@ -173,7 +174,8 @@
                             </tr>
                         @endforelse
                     </tbody>
-                </table>
+                    </table>
+                </div>
             </div>
 
             {{-- Pagination --}}

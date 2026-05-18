@@ -1,8 +1,13 @@
 <?php
 
+use App\Models\Auction;
+use App\Models\Bid;
+use App\Models\Category;
+use App\Models\Invoice;
 use App\Models\SupportConversation;
 use App\Models\SupportMessage;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Notifications\SupportEscalationNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -235,7 +240,57 @@ test('support chat returns local fallback when openrouter is not configured', fu
     ]);
 
     $response->assertOk()
-        ->assertJsonPath('message', 'Wallet actions are available from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.');
+        ->assertJsonPath('message', 'Wallet actions are available after signing in from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.');
+
+    Http::assertNothingSent();
+});
+
+test('support chat gives logged in users account fallback instead of generic unavailable message', function () {
+    clearOpenRouterConfiguration();
+    Http::fake();
+
+    $user = User::factory()->create([
+        'role' => User::ROLE_USER,
+        'wallet_balance' => 125.50,
+        'seller_application_status' => 'pending',
+    ]);
+
+    RateLimiter::clear('support-chat:'.$user->id);
+
+    $response = $this->actingAs($user)->postJson(route('support.chat.send'), [
+        'message' => 'Account',
+    ]);
+
+    $response->assertOk();
+
+    expect($response->json('message'))
+        ->toContain('Your account is active as a user')
+        ->toContain('seller application status is pending')
+        ->not->toContain('Support AI is temporarily unavailable');
+
+    Http::assertNothingSent();
+});
+
+test('support chat gives guests public account fallback without private data', function () {
+    clearOpenRouterConfiguration();
+    Http::fake();
+
+    User::factory()->create([
+        'name' => 'Private Customer',
+        'wallet_balance' => 900,
+    ]);
+
+    $response = $this->postJson(route('support.chat.send'), [
+        'message' => 'Account',
+    ]);
+
+    $response->assertOk();
+
+    expect($response->json('message'))
+        ->toContain('sign in')
+        ->not->toContain('Private Customer')
+        ->not->toContain('900')
+        ->not->toContain('Support AI is temporarily unavailable');
 
     Http::assertNothingSent();
 });
@@ -249,9 +304,134 @@ test('support chat handles withdrawal help requests when openrouter is not confi
     ]);
 
     $response->assertOk()
-        ->assertJsonPath('message', 'Wallet actions are available from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.');
+        ->assertJsonPath('message', 'Wallet actions are available after signing in from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.');
 
     Http::assertNothingSent();
+});
+
+test('support chat sends scoped platform context to openrouter', function () {
+    config([
+        'services.openrouter.api_key' => 'test-openrouter-key',
+        'services.openrouter.model' => 'tencent/hy3-preview:free',
+    ]);
+
+    $user = User::factory()->create([
+        'name' => 'Taylor Bidder',
+        'role' => User::ROLE_USER,
+        'wallet_balance' => 250.75,
+        'held_balance' => 50,
+    ]);
+
+    $seller = User::factory()->create(['role' => User::ROLE_SELLER]);
+    $auction = Auction::factory()->featured()->create([
+        'user_id' => $seller->id,
+        'title' => 'Vintage Camera',
+        'current_price' => 120,
+        'currency' => 'USD',
+        'end_time' => now()->addHour(),
+    ]);
+
+    Category::query()->create([
+        'name' => 'Collectibles',
+        'slug' => 'collectibles',
+        'is_active' => true,
+        'sort_order' => 1,
+    ]);
+
+    WalletTransaction::factory()->create([
+        'user_id' => $user->id,
+        'type' => WalletTransaction::TYPE_DEPOSIT,
+        'amount' => 200,
+        'balance_after' => 250.75,
+        'description' => 'Stripe top-up',
+    ]);
+
+    Bid::factory()->create([
+        'user_id' => $user->id,
+        'auction_id' => $auction->id,
+        'amount' => 120,
+    ]);
+
+    Invoice::factory()->create([
+        'buyer_id' => $user->id,
+        'seller_id' => $seller->id,
+        'auction_id' => $auction->id,
+        'invoice_number' => 'INV-TEST-00001',
+        'total' => 120,
+        'currency' => 'USD',
+    ]);
+
+    Http::fake([
+        'https://openrouter.ai/api/v1/chat/completions' => Http::response([
+            'choices' => [[
+                'message' => [
+                    'role' => 'assistant',
+                    'content' => 'Your account has wallet and bidding activity available in the dashboard.',
+                ],
+            ]],
+        ]),
+    ]);
+
+    RateLimiter::clear('support-chat:'.$user->id);
+
+    $this->actingAs($user)->postJson(route('support.chat.send'), [
+        'message' => 'Account',
+    ])->assertOk();
+
+    Http::assertSent(function ($request) {
+        $messages = $request->data()['messages'] ?? [];
+        $system = $messages[0]['content'] ?? '';
+
+        return $request->url() === 'https://openrouter.ai/api/v1/chat/completions'
+            && str_contains($system, 'Access scope: logged-in user private records plus public platform records.')
+            && str_contains($system, 'Logged-in user context:')
+            && str_contains($system, 'Taylor Bidder')
+            && str_contains($system, 'USD 250.75')
+            && str_contains($system, 'Vintage Camera')
+            && str_contains($system, 'INV-TEST-00001')
+            && str_contains($system, 'Collectibles');
+    });
+});
+
+test('guest openrouter context stays public only', function () {
+    config(['services.openrouter.api_key' => 'test-openrouter-key']);
+
+    User::factory()->create([
+        'name' => 'Hidden Wallet Owner',
+        'wallet_balance' => 777,
+    ]);
+
+    Category::query()->create([
+        'name' => 'Public Category',
+        'slug' => 'public-category',
+        'is_active' => true,
+        'sort_order' => 1,
+    ]);
+
+    Http::fake([
+        'https://openrouter.ai/api/v1/chat/completions' => Http::response([
+            'choices' => [[
+                'message' => [
+                    'role' => 'assistant',
+                    'content' => 'Please sign in to see account details.',
+                ],
+            ]],
+        ]),
+    ]);
+
+    $this->postJson(route('support.chat.send'), [
+        'message' => 'Account',
+    ])->assertOk();
+
+    Http::assertSent(function ($request) {
+        $system = ($request->data()['messages'] ?? [])[0]['content'] ?? '';
+
+        return str_contains($system, 'Access scope: guest public platform records only.')
+            && str_contains($system, 'Public Category')
+            && ! str_contains($system, 'Logged-in user context:')
+            && ! str_contains($system, 'Hidden Wallet Owner')
+            && ! str_contains($system, '777');
+    });
 });
 
 test('support chat does not expose generic processing error when openrouter returns an error payload', function () {
@@ -275,3 +455,26 @@ test('support chat does not expose generic processing error when openrouter retu
         ->toContain('For bidding issues')
         ->not->toContain("couldn't process your request");
 });
+
+test('support chat fallback handles main support intents without generic unavailable message', function (string $prompt, string $expected) {
+    clearOpenRouterConfiguration();
+    Http::fake();
+
+    $response = $this->postJson(route('support.chat.send'), [
+        'message' => $prompt,
+    ]);
+
+    $response->assertOk();
+
+    expect($response->json('message'))
+        ->toContain($expected)
+        ->not->toContain('Support AI is temporarily unavailable');
+
+    Http::assertNothingSent();
+})->with([
+    ['Wallet', 'Wallet actions are available'],
+    ['Payment', 'For disputes, refunds, returns, or invoices'],
+    ['Bid', 'For bidding issues'],
+    ['Seller', 'Seller applications are reviewed'],
+    ['Account', 'For account help'],
+]);

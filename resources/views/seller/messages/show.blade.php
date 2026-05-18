@@ -20,7 +20,7 @@
                     <a href="{{ route('seller.messages.index') }}?layout=minimal" class="theme-link text-sm">Back</a>
                 </div>
 
-                @include('messages.partials.thread', ['conversation' => $conversation, 'storeRoute' => route('seller.messages.store', $conversation)])
+                @include('messages.partials.thread', ['conversation' => $conversation, 'storeRoute' => route('seller.messages.store', $conversation), 'deliveryStatusRoute' => route('seller.messages.delivery-status', $conversation)])
             </div>
         </div>
 
@@ -33,7 +33,7 @@
 
         <div class="py-8">
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                @include('messages.partials.thread', ['conversation' => $conversation, 'storeRoute' => route('seller.messages.store', $conversation)])
+                @include('messages.partials.thread', ['conversation' => $conversation, 'storeRoute' => route('seller.messages.store', $conversation), 'deliveryStatusRoute' => route('seller.messages.delivery-status', $conversation)])
             </div>
         </div>
 

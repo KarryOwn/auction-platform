@@ -16,6 +16,7 @@ class BuyItNowService
         protected EscrowService $escrowService,
         protected PaymentService $paymentService,
         protected BiddingStrategy $biddingStrategy,
+        protected WonAuctionConversationService $wonAuctionConversationService,
     ) {}
 
     /**
@@ -61,6 +62,7 @@ class BuyItNowService
 
             // Capture payment immediately
             $invoice = $this->paymentService->captureWinnerPayment($locked);
+            $this->wonAuctionConversationService->ensureForAuction($locked);
 
             Log::info('BuyItNowService: purchase completed', [
                 'auction_id' => $locked->id,

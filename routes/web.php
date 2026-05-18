@@ -297,6 +297,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'seller'])->group(
     Route::get('/messages', [SellerMessageController::class, 'index'])->name('messages.index');
     Route::get('/messages/{conversation}', [SellerMessageController::class, 'show'])->name('messages.show');
     Route::post('/messages/{conversation}', [SellerMessageController::class, 'store'])->name('messages.store');
+    Route::patch('/messages/{conversation}/delivery-status', [SellerMessageController::class, 'updateDeliveryStatus'])->name('messages.delivery-status');
     Route::post('/messages/{conversation}/read', [SellerMessageController::class, 'markRead'])->name('messages.read');
 
     Route::post('/vacation-mode/activate', [\App\Http\Controllers\Seller\VacationModeController::class, 'activate'])->name('vacation.activate');

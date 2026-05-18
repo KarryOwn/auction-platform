@@ -6,6 +6,7 @@ use App\Contracts\BiddingStrategy;
 use App\Events\AuctionClosed;
 use App\Models\Auction;
 use App\Models\AuctionSnapshot;
+use App\Services\WonAuctionConversationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -40,7 +41,7 @@ class CloseExpiredAuctions implements ShouldQueue
 
         foreach ($expired as $auction) {
             try {
-                $this->closeAuction($auction, $engine);
+                $this->closeIfExpired($auction, $engine);
             } catch (\Throwable $e) {
                 Log::error('CloseExpiredAuctions: failed to close', [
                     'auction_id' => $auction->id,
@@ -50,7 +51,16 @@ class CloseExpiredAuctions implements ShouldQueue
         }
     }
 
-    protected function closeAuction(Auction $auction, BiddingStrategy $engine): void
+    public function closeIfExpired(Auction $auction, BiddingStrategy $engine): bool
+    {
+        if ($auction->status !== Auction::STATUS_ACTIVE || $auction->end_time->isFuture()) {
+            return false;
+        }
+
+        return $this->closeAuction($auction, $engine);
+    }
+
+    protected function closeAuction(Auction $auction, BiddingStrategy $engine): bool
     {
         // Guard: if the engine (Redis) reports a higher price than the DB,
         // there are still unprocessed bids in the queue.  Defer this close
@@ -60,15 +70,15 @@ class CloseExpiredAuctions implements ShouldQueue
 
         if ($enginePrice > $dbPrice) {
             Log::warning("CloseExpiredAuctions: deferring auction #{$auction->id} — pending bids (engine: {$enginePrice}, DB: {$dbPrice})");
-            return;
+            return false;
         }
 
-        DB::transaction(function () use ($auction, $engine) {
+        $closed = DB::transaction(function () use ($auction, $engine) {
             $auction = Auction::lockForUpdate()->findOrFail($auction->id);
 
-            // Double-check it's still active
-            if ($auction->status !== Auction::STATUS_ACTIVE) {
-                return;
+            // Double-check it is still active and expired after acquiring the lock.
+            if ($auction->status !== Auction::STATUS_ACTIVE || $auction->end_time->isFuture()) {
+                return false;
             }
 
             // Determine winner (highest bid)
@@ -92,12 +102,24 @@ class CloseExpiredAuctions implements ShouldQueue
 
             // Cleanup engine resources
             $engine->cleanup($auction);
+
+            return true;
         });
+
+        if (! $closed) {
+            return false;
+        }
+
+        $closedAuction = $auction->fresh();
+
+        if ($closedAuction?->winner_id) {
+            app(WonAuctionConversationService::class)->ensureForAuction($closedAuction);
+        }
 
         // Dispatch domain event outside transaction — wrap in try-catch
         // so a broadcast failure doesn't prevent processing other auctions.
         try {
-            AuctionClosed::dispatch($auction->fresh());
+            AuctionClosed::dispatch($closedAuction);
         } catch (\Throwable $e) {
             Log::error("CloseExpiredAuctions: AuctionClosed broadcast failed (auction #{$auction->id} closed OK)", [
                 'error' => $e->getMessage(),
@@ -105,8 +127,10 @@ class CloseExpiredAuctions implements ShouldQueue
         }
 
         Log::info("CloseExpiredAuctions: closed auction #{$auction->id}", [
-            'winner_id' => $auction->winner_id,
-            'final_price' => $auction->current_price,
+            'winner_id' => $closedAuction?->winner_id,
+            'final_price' => $closedAuction?->current_price,
         ]);
+
+        return true;
     }
 }

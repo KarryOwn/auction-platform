@@ -26,6 +26,16 @@
             @else
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach($auctions as $auction)
+                        @php
+                            $wonConversation = $auction->conversations->first();
+                            $paymentBadge = match ($auction->payment_status) {
+                                'pending' => ['class' => 'bg-orange-100 text-orange-800', 'label' => 'Pending'],
+                                'paid' => ['class' => 'bg-green-100 text-green-800', 'label' => 'Paid'],
+                                'failed' => ['class' => 'bg-red-100 text-red-800', 'label' => 'Failed'],
+                                'expired' => ['class' => 'bg-gray-100 text-gray-800', 'label' => 'Expired'],
+                                default => ['class' => 'bg-gray-100 text-gray-600', 'label' => 'N/A'],
+                            };
+                        @endphp
                         <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden hover:shadow-md transition">
                             <div class="aspect-video bg-gray-100">
                                 @if($auction->getCoverImageUrl('gallery'))
@@ -38,18 +48,8 @@
                                 <h3 class="font-bold text-gray-900 truncate">{{ $auction->title }}</h3>
                                 <div class="mt-2 flex items-center justify-between">
                                     <span class="text-green-600 font-bold text-xl">${{ number_format($auction->winning_bid_amount, 2) }}</span>
-                                    @php
-                                        $statusConfig = [
-                                            'pending' => ['bg-orange-100 text-orange-800', 'Pending'],
-                                            'paid'    => ['bg-green-100 text-green-800', 'Paid'],
-                                            'failed'  => ['bg-red-100 text-red-800', 'Failed'],
-                                            'expired' => ['bg-gray-100 text-gray-800', 'Expired'],
-                                            'none'    => ['bg-gray-100 text-gray-600', 'N/A'],
-                                        ];
-                                        [$statusClass, $statusLabel] = $statusConfig[$auction->payment_status] ?? $statusConfig['none'];
-                                    @endphp
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusClass }}">
-                                        {{ $statusLabel }}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $paymentBadge['class'] }}">
+                                        {{ $paymentBadge['label'] }}
                                     </span>
                                 </div>
                                 <div class="text-xs text-gray-400 mt-2">
@@ -64,6 +64,12 @@
                                         <a href="{{ route('auctions.show', $auction) }}" class="w-full inline-flex justify-center items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
                                             View Auction
                                         </a>
+
+                                        @if($wonConversation)
+                                            <a href="{{ route('messages.show', $wonConversation) }}" class="w-full inline-flex justify-center items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+                                                Open Thread
+                                            </a>
+                                        @endif
 
                                         @if(($auction->disputes_count ?? 0) > 0)
                                             <span class="w-full inline-flex justify-center items-center px-4 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium border border-amber-200">

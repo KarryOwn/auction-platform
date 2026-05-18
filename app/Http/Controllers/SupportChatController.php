@@ -6,6 +6,7 @@ use App\Models\SupportConversation;
 use App\Models\SupportMessage;
 use App\Models\User;
 use App\Notifications\SupportEscalationNotification;
+use App\Services\SupportChatContextBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -17,6 +18,10 @@ use Illuminate\Support\Str;
 class SupportChatController extends Controller
 {
     private const SESSION_KEY = 'support_conversation_ids';
+
+    public function __construct(private readonly SupportChatContextBuilder $contextBuilder)
+    {
+    }
 
     public function show(Request $request, SupportConversation $conversation): JsonResponse
     {
@@ -72,7 +77,8 @@ class SupportChatController extends Controller
             ])
             ->all();
 
-        $aiResponse = $this->askOpenRouter($history, $user);
+        $platformContext = $this->contextBuilder->build($user);
+        $aiResponse = $this->askOpenRouter($history, $user, $platformContext);
 
         SupportMessage::create([
             'conversation_id' => $conversation->id,
@@ -151,19 +157,19 @@ class SupportChatController extends Controller
         RateLimiter::hit($key, 3600);
     }
 
-    private function askOpenRouter(array $history, ?User $user): string
+    private function askOpenRouter(array $history, ?User $user, string $platformContext): string
     {
         $apiKey = config('services.openrouter.api_key');
 
         if (blank($apiKey)) {
             Log::warning('SupportChatController: OpenRouter API key is not configured.');
 
-            return $this->fallbackSupportReply($history);
+            return $this->fallbackSupportReply($history, $user);
         }
 
         $messages = [[
             'role' => 'system',
-            'content' => $this->buildSystemPrompt($user),
+            'content' => $this->buildSystemPrompt($user, $platformContext),
         ]];
 
         foreach ($history as $message) {
@@ -193,7 +199,7 @@ class SupportChatController extends Controller
                     'body' => Str::limit($response->body(), 1000),
                 ]);
 
-                return $this->fallbackSupportReply($history);
+                return $this->fallbackSupportReply($history, $user);
             }
 
             $data = $response->json();
@@ -208,25 +214,41 @@ class SupportChatController extends Controller
                 'error' => data_get($data, 'error.message'),
             ]);
 
-            return $this->fallbackSupportReply($history);
+            return $this->fallbackSupportReply($history, $user);
         } catch (\Throwable $e) {
             Log::error('SupportChatController: OpenRouter API error', [
                 'error' => $e->getMessage(),
             ]);
 
-            return $this->fallbackSupportReply($history);
+            return $this->fallbackSupportReply($history, $user);
         }
     }
 
-    private function fallbackSupportReply(array $history): string
+    private function fallbackSupportReply(array $history, ?User $user): string
     {
         $latest = $history === []
             ? ''
             : (string) ($history[array_key_last($history)]['content'] ?? '');
         $latestMessage = Str::lower($latest);
 
+        if (Str::contains($latestMessage, ['account', 'profile', 'login', 'password', 'email'])) {
+            if ($user) {
+                $sellerStatus = $user->seller_application_status
+                    ? " Your seller application status is {$user->seller_application_status}."
+                    : '';
+
+                return "Your account is active as a {$user->role}. Wallet, bids, invoices, and profile settings are available from your dashboard.{$sellerStatus} Click \"Talk to a human\" if you need staff to review a private account record.";
+            }
+
+            return 'For account help, sign in to view your dashboard, wallet, bids, invoices, and profile settings. If you cannot access the account, click "Talk to a human" and include the email or username you need help with.';
+        }
+
         if (Str::contains($latestMessage, ['wallet', 'fund', 'balance', 'deposit', 'money'])) {
-            return 'Wallet actions are available from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.';
+            if ($user) {
+                return 'Your wallet page shows available balance, held bid funds, pending payouts, deposits, withdrawals, payments, and refunds. If a balance or transaction looks wrong, click "Talk to a human" so support can review the specific record.';
+            }
+
+            return 'Wallet actions are available after signing in from your account wallet page. If a payment or balance looks wrong, click "Talk to a human" so support can review the transaction.';
         }
 
         if (Str::contains($latestMessage, ['bid', 'bidding', 'outbid', 'auction'])) {
@@ -244,7 +266,7 @@ class SupportChatController extends Controller
         return 'Support AI is temporarily unavailable, but I can still route your request. Please click "Talk to a human" and include the auction, payment, or account detail you need help with.';
     }
 
-    private function buildSystemPrompt(?User $user): string
+    private function buildSystemPrompt(?User $user, string $platformContext): string
     {
         $context = $user
             ? "The user is logged in as {$user->name} (role: {$user->role}). "
@@ -254,8 +276,12 @@ class SupportChatController extends Controller
 You are a helpful customer support assistant for an online auction platform.
 {$context}
 Answer questions about: bidding, auction rules, payment, wallets, seller applications, disputes, and account issues.
-Keep responses concise (2-3 sentences max). If you cannot confidently answer or if the user is frustrated, suggest they click "Talk to a human" to escalate.
-Do not make up platform-specific URLs, prices, or policies you are not certain about.
+Use the platform context below as the source of truth. Guests can only receive public platform information. Logged-in users can receive answers about their own records only.
+Keep responses concise (2-3 sentences max). If the answer requires staff action, sensitive investigation, or records not present in the context, suggest they click "Talk to a human" to escalate.
+Do not make up platform-specific URLs, prices, policies, user records, or staff actions you are not certain about.
+
+Platform context:
+{$platformContext}
 PROMPT;
     }
 }

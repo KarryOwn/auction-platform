@@ -37,11 +37,46 @@ class PriceModelSeeder extends Seeder
 
     public function run(): void
     {
-        $seller = User::where('role', 'seller')->first()
-            ?? User::first();
+        $seller = User::updateOrCreate(
+            ['email' => 'price-model-seller@example.com'],
+            [
+                'name'                      => 'Price Model Seller',
+                'password'                  => bcrypt('password'),
+                'role'                      => User::ROLE_SELLER,
+                'wallet_balance'            => 10000,
+                'seller_verified_at'        => now(),
+                'seller_application_status' => 'approved',
+                'seller_slug'               => 'price-model-seller',
+            ]
+        );
 
-        if (! $seller) {
-            $this->command->error('No users found. Run DatabaseSeeder first.');
+        $reassigned = Auction::query()
+            ->where('status', Auction::STATUS_COMPLETED)
+            ->where('payment_status', 'paid')
+            ->where('description', 'like', 'Auction listing for %')
+            ->where(function ($query) use ($seller) {
+                $query->where('user_id', '!=', $seller->id)
+                    ->orWhere('winner_id', '!=', $seller->id)
+                    ->orWhereNull('winner_id');
+            })
+            ->update([
+                'user_id' => $seller->id,
+                'winner_id' => $seller->id,
+            ]);
+
+        if ($reassigned > 0) {
+            $this->command->info("Reassigned {$reassigned} existing price-model auctions to {$seller->email}.");
+        }
+
+        $existing = Auction::query()
+            ->where('user_id', $seller->id)
+            ->where('status', Auction::STATUS_COMPLETED)
+            ->where('payment_status', 'paid')
+            ->where('description', 'like', 'Auction listing for %')
+            ->count();
+
+        if ($existing > 0) {
+            $this->command->info("Price model seeding skipped: {$existing} auctions already assigned to {$seller->email}.");
             return;
         }
 

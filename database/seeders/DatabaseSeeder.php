@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
                 'name'           => 'KarryOwn',
                 'password'       => bcrypt('khoaprovip01'),
                 'role'           => 'user',
-                'wallet_balance' => 999999,
+                'wallet_balance' => 10000,
             ]
         );
 

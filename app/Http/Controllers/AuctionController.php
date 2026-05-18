@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\BiddingStrategy;
+use App\Jobs\CloseExpiredAuctions;
 use App\Models\Auction;
 use App\Models\AuctionWatcher;
 use App\Models\AutoBid;
@@ -102,6 +103,10 @@ class AuctionController extends Controller
             abort(404);
         }
 
+        if (app(CloseExpiredAuctions::class)->closeIfExpired($auction, $this->biddingStrategy)) {
+            $auction->refresh();
+        }
+
         $auction->loadCount('bids');
         $auction->load([
             'seller',
@@ -195,6 +200,10 @@ class AuctionController extends Controller
      */
     public function liveState(Auction $auction, Request $request)
     {
+        if (app(CloseExpiredAuctions::class)->closeIfExpired($auction, $this->biddingStrategy)) {
+            $auction->refresh();
+        }
+
         $auction->loadCount('bids');
         $auction->load(['highestBid.user']);
 

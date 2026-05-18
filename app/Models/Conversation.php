@@ -11,6 +11,12 @@ class Conversation extends Model
 {
     use HasFactory;
 
+    public const DELIVERY_PENDING = 'pending';
+    public const DELIVERY_PREPARING = 'preparing';
+    public const DELIVERY_SHIPPED = 'shipped';
+    public const DELIVERY_DELIVERED = 'delivered';
+    public const DELIVERY_CANCELLED = 'cancelled';
+
     protected $fillable = [
         'auction_id',
         'buyer_id',
@@ -19,6 +25,9 @@ class Conversation extends Model
         'buyer_read_at',
         'seller_read_at',
         'is_closed',
+        'delivery_status',
+        'delivery_updated_at',
+        'delivery_note',
     ];
 
     protected $casts = [
@@ -26,6 +35,7 @@ class Conversation extends Model
         'buyer_read_at' => 'datetime',
         'seller_read_at' => 'datetime',
         'is_closed' => 'boolean',
+        'delivery_updated_at' => 'datetime',
     ];
 
     public function auction(): BelongsTo
@@ -51,5 +61,21 @@ class Conversation extends Model
     public function canParticipate(User $user): bool
     {
         return $user->id === $this->buyer_id || $user->id === $this->seller_id;
+    }
+
+    public static function deliveryStatuses(): array
+    {
+        return [
+            self::DELIVERY_PENDING => 'Pending',
+            self::DELIVERY_PREPARING => 'Preparing',
+            self::DELIVERY_SHIPPED => 'Shipped',
+            self::DELIVERY_DELIVERED => 'Delivered',
+            self::DELIVERY_CANCELLED => 'Cancelled',
+        ];
+    }
+
+    public function getDeliveryStatusLabelAttribute(): ?string
+    {
+        return self::deliveryStatuses()[$this->delivery_status] ?? null;
     }
 }
