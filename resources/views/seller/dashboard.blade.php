@@ -60,9 +60,14 @@
 
                 <div class="grid gap-6 lg:grid-cols-[1.3fr,0.7fr]">
                     @if(auth()->user()->vacation_mode)
+                        @php
+                            $hasPausedVacationAuctions = $activeListings->contains('paused_by_vacation', true);
+                        @endphp
                         <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                             <p class="text-sm font-semibold text-amber-900">Vacation mode is active.</p>
-                            <p class="mt-2 text-sm text-amber-800">Buyer actions are paused on eligible auctions while you are away.</p>
+                            <p class="mt-2 text-sm text-amber-800">
+                                {{ $hasPausedVacationAuctions ? 'Buyer actions are paused on eligible auctions while you are away.' : 'Your active auctions remain live while buyers see your away banner.' }}
+                            </p>
                             @if(auth()->user()->vacation_mode_message)
                                 <p class="mt-3 rounded-xl bg-white/70 px-3 py-2 text-sm text-amber-900">
                                     "{{ auth()->user()->vacation_mode_message }}"
@@ -213,11 +218,18 @@
             <div class="bg-white p-6 rounded shadow-sm">
                 <h3 class="font-semibold mb-3">Recent Activity</h3>
                 @if($recentActivity->isEmpty())
-                    <p class="text-sm text-gray-500">No bidding activity yet.</p>
+                    <p class="text-sm text-gray-500">No sales or bidding activity yet.</p>
                 @else
                     <ul class="space-y-2">
-                        @foreach($recentActivity as $bid)
-                            <li class="text-sm text-gray-700">{{ $bid->user?->name }} bid ${{ number_format($bid->amount,2) }} on {{ $bid->auction?->title }} ({{ $bid->created_at->diffForHumans() }})</li>
+                        @foreach($recentActivity as $activity)
+                            <li class="text-sm text-gray-700">
+                                @if($activity['type'] === 'buy_it_now')
+                                    {{ $activity['actor'] }} bought {{ $activity['auction_title'] }} for ${{ number_format($activity['amount'], 2) }} with Buy It Now
+                                @else
+                                    {{ $activity['actor'] }} bid ${{ number_format($activity['amount'], 2) }} on {{ $activity['auction_title'] }}
+                                @endif
+                                ({{ $activity['occurred_at']->diffForHumans() }})
+                            </li>
                         @endforeach
                     </ul>
                 @endif

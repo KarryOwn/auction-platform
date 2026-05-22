@@ -37,8 +37,8 @@ class DashboardController extends Controller
                 'completed_auctions' => $completedCount,
                 'cancelled_auctions' => (clone $auctions)->where('status', Auction::STATUS_CANCELLED)->count(),
                 'total_revenue' => (float) (clone $completed)
-                    ->where('reserve_met', true)
-                    ->whereHas('bids')
+                    ->whereNotNull('winner_id')
+                    ->whereNotNull('winning_bid_amount')
                     ->sum('winning_bid_amount'),
                 'total_bids_received' => Bid::query()->whereIn('auction_id', (clone $auctions)->select('id'))->count(),
                 'bids_today' => (int) $bidsToday,
@@ -77,12 +77,42 @@ class DashboardController extends Controller
 
         $revenueChartData = json_encode($this->buildRevenueChartData($seller->id));
 
-        $recentActivity = Bid::query()
+        $recentBidActivity = Bid::query()
             ->with(['user:id,name', 'auction:id,title,user_id'])
             ->whereHas('auction', fn ($q) => $q->where('user_id', $seller->id))
             ->latest()
             ->limit(10)
             ->get();
+
+        $recentBuyItNowActivity = Auction::query()
+            ->with('winner:id,name')
+            ->where('user_id', $seller->id)
+            ->where('status', Auction::STATUS_COMPLETED)
+            ->where('win_method', 'buy_it_now')
+            ->whereNotNull('winner_id')
+            ->whereNotNull('winning_bid_amount')
+            ->latest('closed_at')
+            ->limit(10)
+            ->get();
+
+        $recentActivity = collect($recentBidActivity
+            ->map(fn (Bid $bid) => [
+                'type' => 'bid',
+                'actor' => $bid->user?->name ?? 'Buyer',
+                'amount' => (float) $bid->amount,
+                'auction_title' => $bid->auction?->title ?? 'Untitled auction',
+                'occurred_at' => $bid->created_at,
+            ]))
+            ->merge(collect($recentBuyItNowActivity->map(fn (Auction $auction) => [
+                'type' => 'buy_it_now',
+                'actor' => $auction->winner?->name ?? 'Buyer',
+                'amount' => (float) $auction->winning_bid_amount,
+                'auction_title' => $auction->title,
+                'occurred_at' => $auction->closed_at ?? $auction->updated_at,
+            ])))
+            ->sortByDesc('occurred_at')
+            ->take(10)
+            ->values();
 
         return view('seller.dashboard', compact('stats', 'activeListings', 'recentActivity', 'recentMessages', 'revenueChartData'));
     }

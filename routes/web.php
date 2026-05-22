@@ -403,6 +403,7 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
         Route::get('/', [AdminMaintenanceController::class, 'index'])->name('index');
         Route::post('/', [AdminMaintenanceController::class, 'store'])->name('store');
         Route::patch('/{window}', [AdminMaintenanceController::class, 'update'])->name('update');
+        Route::post('/{window}/activate', [AdminMaintenanceController::class, 'activate'])->name('activate');
         Route::post('/{window}/cancel', [AdminMaintenanceController::class, 'cancel'])->name('cancel');
     });
 

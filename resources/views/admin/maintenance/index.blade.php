@@ -8,6 +8,9 @@
             <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <div class="font-semibold">Admin bypass URL</div>
                 <div class="mt-1 break-all">{{ $bypassUrl }}</div>
+                <div class="mt-2 text-xs text-amber-800">
+                    If your local host or port changes, open <span class="font-mono">{{ $bypassPath }}</span> on the host you are currently using.
+                </div>
             </div>
         </div>
     </x-slot>
@@ -73,12 +76,22 @@
                                 </div>
 
                                 @if(in_array($window->status, ['scheduled', 'active'], true))
-                                    <form method="POST" action="{{ route('admin.maintenance.cancel', $window) }}">
-                                        @csrf
-                                        <button type="submit" class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
-                                            Cancel
-                                        </button>
-                                    </form>
+                                    <div class="flex flex-wrap gap-2">
+                                        @if($window->status === 'scheduled')
+                                            <form method="POST" action="{{ route('admin.maintenance.activate', $window) }}">
+                                                @csrf
+                                                <button type="submit" class="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+                                                    Start Now
+                                                </button>
+                                            </form>
+                                        @endif
+                                        <form method="POST" action="{{ route('admin.maintenance.cancel', $window) }}">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                    </div>
                                 @endif
                             </div>
 

@@ -125,6 +125,52 @@ test('seller can activate vacation mode from dashboard route', function () {
     expect($auction->fresh()->paused_by_vacation)->toBeTrue();
 });
 
+test('seller can keep auctions live with away banner from dashboard route', function () {
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+    ]);
+    $auction = Auction::factory()->create([
+        'user_id' => $seller->id,
+        'status' => Auction::STATUS_ACTIVE,
+        'end_time' => now()->addDay(),
+    ]);
+
+    $response = $this->actingAs($seller)->post(route('seller.vacation.activate'), [
+        'message' => 'Shipping next Monday',
+        'mode' => 'message_only',
+    ]);
+
+    $response->assertRedirect(route('seller.dashboard'))
+        ->assertSessionHas('status', 'Vacation mode activated. Your active auctions will stay live with your away banner.');
+
+    expect($seller->fresh()->vacation_mode)->toBeTrue();
+    expect($auction->fresh()->paused_by_vacation)->toBeFalse();
+});
+
+test('message only vacation dashboard says auctions remain live', function () {
+    $seller = User::factory()->create([
+        'role' => 'seller',
+        'seller_verified_at' => now(),
+        'seller_application_status' => 'approved',
+        'vacation_mode' => true,
+        'vacation_mode_message' => 'Shipping next Monday',
+    ]);
+    Auction::factory()->create([
+        'user_id' => $seller->id,
+        'status' => Auction::STATUS_ACTIVE,
+        'paused_by_vacation' => false,
+        'end_time' => now()->addDay(),
+    ]);
+
+    $response = $this->actingAs($seller)->get(route('seller.dashboard'));
+
+    $response->assertOk()
+        ->assertSee('Your active auctions remain live while buyers see your away banner.')
+        ->assertDontSee('Buyer actions are paused on eligible auctions while you are away.');
+});
+
 test('paused auction detail shows vacation banner and disabled bid state', function () {
     $seller = User::factory()->create([
         'role' => 'seller',

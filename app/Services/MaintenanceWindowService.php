@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Models\MaintenanceWindow;
+use App\Models\User;
+use App\Notifications\MaintenanceWindowNotification;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
 
 class MaintenanceWindowService
 {
@@ -35,12 +38,31 @@ class MaintenanceWindowService
 
     public function getBypassToken(): string
     {
-        return (string) config('app.maintenance_bypass_token', 'admin-bypass-' . md5((string) config('app.key')));
+        $configuredToken = config('app.maintenance_bypass_token');
+
+        if (is_string($configuredToken) && $configuredToken !== '') {
+            return $configuredToken;
+        }
+
+        return 'admin-bypass-' . md5((string) config('app.key'));
     }
 
-    public function getBypassUrl(): string
+    public function getBypassUrl(?string $root = null): string
     {
+        if ($root) {
+            return rtrim($root, '/') . '/' . ltrim($this->getBypassToken(), '/');
+        }
+
         return url('/' . ltrim($this->getBypassToken(), '/'));
+    }
+
+    public function notifyUsers(MaintenanceWindow $window, string $event): void
+    {
+        User::query()
+            ->whereNull('deleted_at')
+            ->chunkById(100, function ($users) use ($window, $event): void {
+                Notification::send($users, new MaintenanceWindowNotification($window, $event));
+            });
     }
 
     public function activateDue(): void
@@ -55,7 +77,19 @@ class MaintenanceWindowService
             return;
         }
 
-        $window->update(['status' => MaintenanceWindow::STATUS_ACTIVE]);
+        $this->activate($window);
+    }
+
+    public function activate(MaintenanceWindow $window): void
+    {
+        if (! in_array($window->status, [MaintenanceWindow::STATUS_SCHEDULED, MaintenanceWindow::STATUS_ACTIVE], true)) {
+            return;
+        }
+
+        $window->update([
+            'status' => MaintenanceWindow::STATUS_ACTIVE,
+            'scheduled_start' => $window->scheduled_start?->isFuture() ? now() : $window->scheduled_start,
+        ]);
         $this->forgetUpcomingCache();
 
         Artisan::call('down', [
@@ -63,6 +97,8 @@ class MaintenanceWindowService
             '--render' => 'errors.maintenance',
             '--retry' => 60,
         ]);
+
+        $this->notifyUsers($window->fresh(), 'active');
     }
 
     public function deactivateExpired(): void

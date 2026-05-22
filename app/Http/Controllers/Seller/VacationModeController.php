@@ -27,8 +27,12 @@ class VacationModeController extends Controller
             $validated['mode'] ?? 'pause',
         );
 
+        $status = ($validated['mode'] ?? 'pause') === 'message_only'
+            ? 'Vacation mode activated. Your active auctions will stay live with your away banner.'
+            : 'Vacation mode activated. Your active auctions have been paused.';
+
         return redirect()->route('seller.dashboard')
-            ->with('status', 'Vacation mode activated. Your active auctions have been paused.');
+            ->with('status', $status);
     }
 
     public function deactivate(Request $request): RedirectResponse

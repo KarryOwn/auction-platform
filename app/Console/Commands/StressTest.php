@@ -48,7 +48,7 @@ class StressTest extends Command
         $this->info('Current Price: $'.$auction->current_price);
         $this->info('Minimum Next Bid: $'.number_format($auction->minimumNextBid(), 2));
         Redis::set("auction:{$auctionId}:price", $auction->current_price);
-        $this->info('✅ Redis synced with MySQL.');
+        $this->info('Redis synced with Database.');
 
         $botIds = User::where('email', 'like', 'stress-bot-%@example.test')
             ->where('role', User::ROLE_USER)
