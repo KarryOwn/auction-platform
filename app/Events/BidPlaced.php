@@ -38,10 +38,13 @@ class BidPlaced implements ShouldBroadcast
 
     public string $createdAtHuman;
 
+    public int $bidId;
+
     public function __construct(
         public Bid $bid,
         public Auction $auction,
     ) {
+        $this->bidId = (int) $bid->id;
         $this->auctionId = $auction->id;
         $this->bidderId = $bid->user_id;
         $this->bidderName = $bid->user?->name ?? 'Unknown';
@@ -79,6 +82,7 @@ class BidPlaced implements ShouldBroadcast
     {
         return [
             'auction_id' => $this->auctionId,
+            'bid_id' => $this->bidId,
             'bidder_id' => $this->bidderId,
             'bidder_name' => $this->bidderName,
             'user_name' => $this->bidderName,

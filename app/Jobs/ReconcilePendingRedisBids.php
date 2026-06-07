@@ -41,6 +41,7 @@ class ReconcilePendingRedisBids implements ShouldQueue
                         'user_agent' => $payload['user_agent'] ?? 'RedisEngine/Reconciler',
                         'auto_bid_id' => ($payload['auto_bid_id'] ?? '') === '' ? null : (int) $payload['auto_bid_id'],
                         'is_snipe_bid' => $payload['is_snipe_bid'] ?? false,
+                        'accepted_at' => $payload['accepted_at'] ?? null,
                     ],
                     acceptedBidId: $acceptedBidId,
                 ))->handle();

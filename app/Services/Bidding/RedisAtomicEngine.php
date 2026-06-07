@@ -161,6 +161,7 @@ class RedisAtomicEngine implements BiddingStrategy
                 'ip_address'      => $bid->ip_address,
                 'user_agent'      => $bid->user_agent,
                 'is_snipe_bid'    => $isSnipeBid,
+                'accepted_at'     => $acceptedAt,
             ]),
             acceptedBidId: $acceptedBidId,
         )->onQueue('bids');

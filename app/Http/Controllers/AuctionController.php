@@ -142,7 +142,9 @@ class AuctionController extends Controller
 
         $recentBids = $auction->bids()
             ->with('user:id,name')
-            ->latest()
+            ->orderByDesc('amount')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->take(10)
             ->get();
 
@@ -211,7 +213,9 @@ class AuctionController extends Controller
 
         $recentBids = $auction->bids()
             ->with('user:id,name')
-            ->latest()
+            ->orderByDesc('amount')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->take(10)
             ->get()
             ->map(fn ($bid) => [

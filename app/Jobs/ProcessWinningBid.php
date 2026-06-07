@@ -6,6 +6,7 @@ use App\Events\BidPlaced;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Services\Bidding\PendingRedisBidStore;
+use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -108,7 +109,7 @@ class ProcessWinningBid implements ShouldQueue
             }
 
             // Create the persistent bid record
-            $bid = Bid::create([
+            $bid = new Bid([
                 'accepted_bid_id'  => $this->acceptedBidId,
                 'auction_id'      => $this->auctionId,
                 'user_id'         => $this->userId,
@@ -120,6 +121,13 @@ class ProcessWinningBid implements ShouldQueue
                 'auto_bid_id'     => $this->meta['auto_bid_id'] ?? null,
                 'is_snipe_bid'    => $this->meta['is_snipe_bid'] ?? false,
             ]);
+
+            if ($acceptedAt = $this->acceptedAt()) {
+                $bid->created_at = $acceptedAt;
+                $bid->updated_at = $acceptedAt;
+            }
+
+            $bid->save();
 
             // Increment counters
             $auction->incrementBidCounters($this->userId);
@@ -144,6 +152,17 @@ class ProcessWinningBid implements ShouldQueue
         }
 
         return $result;
+    }
+
+    private function acceptedAt(): ?CarbonImmutable
+    {
+        $acceptedAt = $this->meta['accepted_at'] ?? null;
+
+        if (! is_numeric($acceptedAt)) {
+            return null;
+        }
+
+        return CarbonImmutable::createFromTimestamp((string) $acceptedAt);
     }
 
     /**

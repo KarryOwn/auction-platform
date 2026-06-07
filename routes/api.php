@@ -65,6 +65,12 @@ Route::post('/stress-test/bid', function (Request $request) {
         return response()->json(['error' => 'Unauthorized'], 403);
     }
 
+    $engine = $request->input('engine');
+    if (in_array($engine, ['redis', 'sql'], true)) {
+        config(['auction.engine' => $engine]);
+        app()->forgetInstance(BiddingStrategy::class);
+    }
+
     // Pick only isolated stress-test bot users so real/demo accounts are not mutated.
     $botQuery = User::where('email', 'like', 'stress-bot-%@example.test')
         ->where('role', User::ROLE_USER)

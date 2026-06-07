@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Auction;
+use App\Models\Bid;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 
 test('guests can browse active auctions', function () {
     useSqlBiddingEngine();
@@ -42,6 +44,39 @@ test('guests can fetch auction live state for public detail polling', function (
     $this->getJson(route('auctions.live-state', $auction))
         ->assertOk()
         ->assertJsonPath('auction_id', $auction->id);
+});
+
+test('auction live state returns recent bids in deterministic newest order', function () {
+    useSqlBiddingEngine();
+
+    $seller = createSeller();
+    $auction = createActiveAuction($seller, [
+        'current_price' => 130,
+        'starting_price' => 100,
+    ]);
+    $timestamp = Carbon::parse('2026-06-06 10:00:00.123456');
+
+    $olderIdBid = Bid::factory()->create([
+        'auction_id' => $auction->id,
+        'user_id' => User::factory()->create()->id,
+        'amount' => 120,
+        'created_at' => $timestamp,
+        'updated_at' => $timestamp,
+    ]);
+    $newerIdBid = Bid::factory()->create([
+        'auction_id' => $auction->id,
+        'user_id' => User::factory()->create()->id,
+        'amount' => 130,
+        'created_at' => $timestamp,
+        'updated_at' => $timestamp,
+    ]);
+
+    $response = $this->getJson(route('auctions.live-state', $auction))
+        ->assertOk();
+
+    $recentBidIds = collect($response->json('recent_bids'))->pluck('id')->all();
+
+    expect(array_slice($recentBidIds, 0, 2))->toBe([$newerIdBid->id, $olderIdBid->id]);
 });
 
 test('viewing an expired active auction finalizes the winner before rendering', function () {
