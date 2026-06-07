@@ -6,6 +6,7 @@ use App\Contracts\BiddingStrategy;
 use App\Models\Auction;
 use App\Policies\AuctionPolicy;
 use App\Services\Bidding\BidRateLimiter;
+use App\Services\Bidding\BiddingEngineHealth;
 use App\Services\Bidding\PessimisticSqlEngine;
 use App\Services\Bidding\RedisAtomicEngine;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -34,8 +35,14 @@ class AppServiceProvider extends ServiceProvider
                 return app(PessimisticSqlEngine::class);
             }
 
+            $health = app(BiddingEngineHealth::class);
+
+            if ($health->redisIsDegraded()) {
+                return app(PessimisticSqlEngine::class);
+            }
+
             // Redis engine selected — verify Redis is reachable
-            if ($this->isRedisAvailable()) {
+            if ($this->isRedisAvailable($health)) {
                 return app(RedisAtomicEngine::class);
             }
 
@@ -67,7 +74,7 @@ class AppServiceProvider extends ServiceProvider
 
     private ?bool $redisAvailable = null;
 
-    private function isRedisAvailable(): bool
+    private function isRedisAvailable(BiddingEngineHealth $health): bool
     {
         if ($this->redisAvailable !== null) {
             return $this->redisAvailable;
@@ -75,8 +82,10 @@ class AppServiceProvider extends ServiceProvider
 
         try {
             \Illuminate\Support\Facades\Redis::connection()->ping();
+            $health->clearRedisDegraded();
             $this->redisAvailable = true;
         } catch (\Throwable $e) {
+            $health->markRedisDegraded($e->getMessage());
             $this->redisAvailable = false;
         }
 

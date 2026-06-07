@@ -2,11 +2,13 @@
 
 use App\Events\BidPlaced;
 use App\Events\PriceUpdated;
+use App\Jobs\BatchPersistRedisBids;
 use App\Models\Auction;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
     Event::fake([BidPlaced::class, PriceUpdated::class]);
@@ -65,12 +67,15 @@ test('multi auction json scenario reports benchmark metrics', function () {
         ->and($report)->toBeArray()
         ->and($report['scenario'])->toBe('multi-even')
         ->and($report['driver'])->toBe('engine')
+        ->and($report['pipeline'])->toBe('full')
         ->and($report['resolved_engine'])->toBe('PessimisticSqlEngine')
         ->and($report['totals']['auctions'])->toBe(2)
         ->and($report['totals']['attempted'])->toBe(4)
         ->and($report['totals']['accepted'])->toBe(4)
         ->and($report['latency_ms'])->toHaveKeys(['min', 'p50', 'p95', 'p99', 'max'])
         ->and($report['queues'])->toHaveKeys(['before', 'after_run', 'after_drain', 'drain'])
+        ->and($report['queue_state'])->toHaveKeys(['before', 'after_run', 'after_drain'])
+        ->and($report)->toHaveKeys(['accept_only_expected_lag', 'clean_capacity_comparison'])
         ->and($report['redis_pending_bids'])->toHaveKeys(['before', 'after']);
 
     expect(Auction::where('title', 'like', 'Stress Benchmark%')->count())->toBe(2);
@@ -184,6 +189,7 @@ test('http benchmark driver includes selected engine in stress requests', functi
     expect($exitCode)->toBe(0);
 
     Http::assertSent(fn ($request) => $request['engine'] === 'sql'
+        && $request['pipeline'] === 'full'
         && $request['secret'] === 'thesis-2026');
 });
 
@@ -209,4 +215,57 @@ test('http benchmark driver counts responses across multiple batches', function 
         ->and($report['totals']['attempted'])->toBe(3)
         ->and($report['totals']['accepted'])->toBe(3)
         ->and($report['totals']['failed'])->toBe(0);
+});
+
+test('accept only redis benchmark suppresses queue and price broadcast dispatch while recording expected lag', function () {
+    Queue::fake();
+    createStressBotsForBenchmark(2);
+
+    $exitCode = Artisan::call('stress:test', [
+        '--scenario' => 'single-hot',
+        '--auctions' => 1,
+        '--bids-per-auction' => 2,
+        '--driver' => 'engine',
+        '--engine' => 'redis',
+        '--pipeline' => 'accept-only',
+        '--json' => true,
+    ]);
+
+    $report = json_decode(Artisan::output(), true);
+
+    expect($exitCode)->toBe(0)
+        ->and($report['pipeline'])->toBe('accept-only')
+        ->and($report['totals']['accepted'])->toBe(2)
+        ->and($report['persistence']['pending_redis_bids_after'])->toBe(2)
+        ->and($report['accept_only_expected_lag'])->toBe(2);
+
+    Queue::assertNotPushed(BatchPersistRedisBids::class);
+    Event::assertNotDispatched(PriceUpdated::class);
+});
+
+test('full redis benchmark drains pending bids with no db mismatch', function () {
+    createStressBotsForBenchmark(2);
+
+    $exitCode = Artisan::call('stress:test', [
+        '--scenario' => 'single-hot',
+        '--auctions' => 1,
+        '--bids-per-auction' => 2,
+        '--driver' => 'engine',
+        '--engine' => 'redis',
+        '--pipeline' => 'full',
+        '--drain-queues' => true,
+        '--drain-timeout' => 2,
+        '--json' => true,
+    ]);
+
+    $report = json_decode(Artisan::output(), true);
+
+    expect($exitCode)->toBe(0)
+        ->and($report['pipeline'])->toBe('full')
+        ->and($report['totals']['accepted'])->toBe(2)
+        ->and($report['persistence']['pending_redis_bids_after'])->toBe(0)
+        ->and($report['persistence']['db_mismatch_count'])->toBe(0)
+        ->and($report['queues']['drain']['enabled'])->toBeTrue()
+        ->and($report['queues']['drain']['timeout_seconds'])->toBe(2)
+        ->and($report['queues']['drain']['queue_order'])->toBe(['bids', 'broadcasts', 'notifications', 'default']);
 });

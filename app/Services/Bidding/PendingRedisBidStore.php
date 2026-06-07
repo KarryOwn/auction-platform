@@ -19,6 +19,23 @@ class PendingRedisBidStore
         return "auction:{$auctionId}:pending_bid_index";
     }
 
+    public static function drainScheduledKey(int $auctionId): string
+    {
+        return "auction:{$auctionId}:pending_bids:drain_scheduled";
+    }
+
+    public function clearDrainScheduled(int $auctionId): void
+    {
+        try {
+            Redis::del(self::drainScheduledKey($auctionId));
+        } catch (\Throwable $e) {
+            Log::warning('PendingRedisBidStore: drain schedule cleanup failed', [
+                'auction_id' => $auctionId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function markProcessed(int $auctionId, string $acceptedBidId): void
     {
         try {
@@ -77,6 +94,53 @@ class PendingRedisBidStore
         }
 
         return $pending;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function pendingBidsForAuction(int $auctionId, int $limit = 100): array
+    {
+        $acceptedBidIds = Redis::zrange(self::indexKey($auctionId), 0, max(0, $limit - 1));
+
+        if ($acceptedBidIds === [] || $acceptedBidIds === false || $acceptedBidIds === null) {
+            return [];
+        }
+
+        $pending = [];
+
+        foreach ($acceptedBidIds as $acceptedBidId) {
+            $payloadJson = Redis::hget(self::hashKey($auctionId), (string) $acceptedBidId);
+
+            if (! $payloadJson) {
+                Redis::zrem(self::indexKey($auctionId), (string) $acceptedBidId);
+                continue;
+            }
+
+            $payload = json_decode((string) $payloadJson, true);
+
+            if (! is_array($payload)) {
+                Log::warning('PendingRedisBidStore: invalid pending bid payload', [
+                    'auction_id' => $auctionId,
+                    'accepted_bid_id' => $acceptedBidId,
+                ]);
+                continue;
+            }
+
+            $payload['accepted_bid_id'] = (string) $acceptedBidId;
+            $pending[] = $payload;
+        }
+
+        usort($pending, static function (array $first, array $second): int {
+            return ((float) ($first['accepted_at'] ?? 0)) <=> ((float) ($second['accepted_at'] ?? 0));
+        });
+
+        return $pending;
+    }
+
+    public function pendingCount(int $auctionId): int
+    {
+        return (int) Redis::hlen(self::hashKey($auctionId));
     }
 
     /**

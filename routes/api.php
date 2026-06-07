@@ -68,6 +68,9 @@ Route::post('/stress-test/bid', function (Request $request) {
     $engine = $request->input('engine');
     if (in_array($engine, ['redis', 'sql'], true)) {
         config(['auction.engine' => $engine]);
+        if ($engine === 'redis') {
+            app(\App\Services\Bidding\BiddingEngineHealth::class)->clearRedisDegraded();
+        }
         app()->forgetInstance(BiddingStrategy::class);
     }
 
@@ -93,7 +96,12 @@ Route::post('/stress-test/bid', function (Request $request) {
     // Run
     try {
         $engine = app(BiddingStrategy::class);
-        $engine->placeBid($auction, $user, $request->input('amount'));
+        $pipeline = $request->input('pipeline', 'full');
+
+        $engine->placeBid($auction, $user, $request->input('amount'), [
+            'stress_suppress_price_broadcast' => $pipeline === 'accept-only',
+            'stress_suppress_persistence_dispatch' => $pipeline === 'accept-only',
+        ]);
 
         return response()->json(['status' => 'success']);
     } catch (\Exception $e) {

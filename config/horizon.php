@@ -98,6 +98,8 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        'redis:bids' => 10,
+        'redis:broadcasts' => 10,
     ],
 
     /*
@@ -197,33 +199,96 @@ return [
     */
 
     'defaults' => [
-        'supervisor-1' => [
-            'connection' => 'redis',
-            'queue' => ['default', 'bids', 'notifications', 'media-conversions'],
+        'supervisor-default' => [
+            'connection' => env('DEFAULT_QUEUE_CONNECTION', 'redis'),
+            'queue' => ['default', 'media-conversions'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
-            'maxProcesses' => 1,
+            'maxProcesses' => (int) env('DEFAULT_QUEUE_WORKERS', 1),
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 5,
             'timeout' => 60,
+            'nice' => 5,
+        ],
+        'supervisor-notifications' => [
+            'connection' => env('NOTIFICATIONS_QUEUE_CONNECTION', 'redis'),
+            'queue' => ['notifications'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => (int) env('NOTIFICATIONS_QUEUE_WORKERS', 2),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 5,
+            'timeout' => 60,
+            'nice' => 2,
+        ],
+        'supervisor-bids' => [
+            'connection' => env('BIDS_QUEUE_CONNECTION', 'redis'),
+            'queue' => ['bids'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => (int) env('BIDS_QUEUE_WORKERS', 6),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 5,
+            'timeout' => 30,
+            'nice' => -5,
+        ],
+        'supervisor-broadcasts' => [
+            'connection' => env('BROADCASTS_QUEUE_CONNECTION', 'redis'),
+            'queue' => ['broadcasts'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => (int) env('BROADCASTS_QUEUE_WORKERS', 2),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 30,
             'nice' => 0,
         ],
     ],
 
     'environments' => [
         'production' => [
-            'supervisor-1' => [
-                'maxProcesses' => 10,
+            'supervisor-default' => [
+                'maxProcesses' => (int) env('DEFAULT_QUEUE_WORKERS', 2),
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
+            ],
+            'supervisor-notifications' => [
+                'maxProcesses' => (int) env('NOTIFICATIONS_QUEUE_WORKERS', 4),
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+            'supervisor-bids' => [
+                'maxProcesses' => (int) env('BIDS_QUEUE_WORKERS', 8),
+                'balanceMaxShift' => 2,
+                'balanceCooldown' => 1,
+            ],
+            'supervisor-broadcasts' => [
+                'maxProcesses' => (int) env('BROADCASTS_QUEUE_WORKERS', 8),
+                'balanceMaxShift' => 2,
+                'balanceCooldown' => 1,
             ],
         ],
 
         'local' => [
-            'supervisor-1' => [
-                'maxProcesses' => 3,
+            'supervisor-default' => [
+                'maxProcesses' => (int) env('DEFAULT_QUEUE_WORKERS', 1),
+            ],
+            'supervisor-notifications' => [
+                'maxProcesses' => (int) env('NOTIFICATIONS_QUEUE_WORKERS', 2),
+            ],
+            'supervisor-bids' => [
+                'maxProcesses' => (int) env('BIDS_QUEUE_WORKERS', 6),
+            ],
+            'supervisor-broadcasts' => [
+                'maxProcesses' => (int) env('BROADCASTS_QUEUE_WORKERS', 2),
             ],
         ],
     ],

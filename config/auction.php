@@ -31,6 +31,37 @@ return [
         'window_seconds' => (int) env('AUCTION_RATE_LIMIT_WINDOW', 60),
     ],
 
+    'bids_queue' => [
+        'connection' => env('BIDS_QUEUE_CONNECTION', 'redis'),
+        'workers' => (int) env('BIDS_QUEUE_WORKERS', 6),
+    ],
+
+    'broadcasts_queue' => [
+        'connection' => env('BROADCASTS_QUEUE_CONNECTION', 'redis'),
+        'workers' => (int) env('BROADCASTS_QUEUE_WORKERS', 2),
+    ],
+
+    'notifications_queue' => [
+        'connection' => env('NOTIFICATIONS_QUEUE_CONNECTION', 'redis'),
+        'workers' => (int) env('NOTIFICATIONS_QUEUE_WORKERS', 2),
+    ],
+
+    'default_queue' => [
+        'connection' => env('DEFAULT_QUEUE_CONNECTION', 'redis'),
+        'workers' => (int) env('DEFAULT_QUEUE_WORKERS', 1),
+    ],
+
+    'redis_health' => [
+        'degraded_ttl' => (int) env('AUCTION_REDIS_DEGRADED_TTL', 15),
+        'cache_store' => env('AUCTION_REDIS_HEALTH_CACHE_STORE', 'file'),
+    ],
+
+    'redis_persistence' => [
+        'batch_size' => (int) env('AUCTION_REDIS_PERSISTENCE_BATCH_SIZE', 100),
+        'dispatch_window_seconds' => (int) env('AUCTION_REDIS_PERSISTENCE_DISPATCH_WINDOW', 1),
+        'price_broadcast_debounce_ms' => (int) env('AUCTION_REDIS_PRICE_BROADCAST_DEBOUNCE_MS', 250),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Anti-Snipe Defaults

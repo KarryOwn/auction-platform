@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Contracts\BiddingStrategy;
+use App\Jobs\BatchPersistRedisBids;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -26,6 +28,8 @@ class StressTest extends Command
     private const DRIVERS = ['engine', 'http'];
 
     private const ENGINE_MODES = ['auto', 'redis', 'sql'];
+
+    private const PIPELINES = ['full', 'accept-only'];
 
     private const SCENARIOS = [
         'single-hot',
@@ -49,6 +53,7 @@ class StressTest extends Command
         {count? : Number of bids for the legacy single-auction benchmark}
         {--driver=engine : Benchmark driver: engine or http}
         {--engine=auto : Engine mode: auto, redis, or sql}
+        {--pipeline=full : Benchmark pipeline: full or accept-only}
         {--scenario=single-hot : Scenario: single-hot, multi-even, multi-skewed, redis-failover, redis-midfailover, redis-recovery, queue-backlog, snipe-window, rate-limit}
         {--auctions=1 : Number of generated benchmark auctions when no auction_id or --auction-ids are supplied}
         {--auction-ids=* : Existing auction IDs to benchmark instead of generating new auctions}
@@ -56,6 +61,9 @@ class StressTest extends Command
         {--concurrency=25 : Max concurrent HTTP requests per batch; engine driver remains in-process}
         {--base-url= : Base URL for the HTTP driver}
         {--drain-queues : Run queue workers until empty after the benchmark before final persistence metrics}
+        {--drain-timeout=300 : Maximum seconds to wait for --drain-queues to settle all benchmark queues}
+        {--clear-failed-jobs : Clear existing failed_jobs rows before collecting benchmark metrics}
+        {--save-report : Save the JSON report to storage/app/benchmarks}
         {--json : Output a machine-readable JSON report only}';
 
     /**
@@ -71,6 +79,7 @@ class StressTest extends Command
             $driver = $this->validatedChoice('driver', self::DRIVERS);
             $scenario = $this->validatedChoice('scenario', self::SCENARIOS);
             $requestedEngineMode = $this->validatedChoice('engine', self::ENGINE_MODES);
+            $pipeline = $this->validatedChoice('pipeline', self::PIPELINES);
             $json = (bool) $this->option('json');
             $legacyAuctionId = $this->argument('auction_id');
             $legacyCount = $this->argument('count');
@@ -97,9 +106,14 @@ class StressTest extends Command
                 $this->line('Requested engine: '.$requestedEngineMode);
                 $this->line('Effective engine config: '.$engineMode);
                 $this->line('Resolved engine: '.class_basename($engineClass));
+                $this->line('Pipeline: '.$pipeline);
 
                 if ($driver === 'engine' && $concurrency > 1) {
                     $this->warn('The engine driver runs in-process; use --driver=http to exercise real request concurrency.');
+                }
+
+                if ((bool) $this->option('save-report') && $pipeline === 'full' && ! (bool) $this->option('drain-queues')) {
+                    $this->warn('Saving a full-pipeline report without --drain-queues can leave persistence and broadcast lag in the report.');
                 }
 
                 foreach ($this->scenarioNotes($scenario, $requestedEngineMode, $engineMode, $redisAvailableBefore) as $note) {
@@ -113,16 +127,17 @@ class StressTest extends Command
             $auctionIds = $auctions->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
             $initialBidCounts = $this->bidCounts($auctionIds);
             $queueBefore = $this->queueDepths();
+            $clearedFailedJobs = $this->clearFailedJobsIfRequested();
             $failedJobsBefore = $this->failedJobCount();
             $pendingRedisBefore = $this->pendingRedisBidCounts($auctionIds);
             $startedAt = microtime(true);
 
             if ($scenario === 'redis-midfailover') {
-                [$summary, $phaseReports] = $this->runMidFailoverBenchmark($attempts, $driver, $concurrency, $baseUrl);
+                [$summary, $phaseReports] = $this->runMidFailoverBenchmark($attempts, $driver, $concurrency, $baseUrl, $pipeline);
             } else {
                 $summary = $driver === 'http'
-                    ? $this->runHttpBenchmark($attempts, $concurrency, $baseUrl, $engineMode)
-                    : $this->runEngineBenchmark($attempts);
+                    ? $this->runHttpBenchmark($attempts, $concurrency, $baseUrl, $engineMode, $pipeline)
+                    : $this->runEngineBenchmark($attempts, $pipeline);
                 $phaseReports = [];
             }
 
@@ -130,7 +145,7 @@ class StressTest extends Command
             $queueAfterRun = $this->queueDepths();
             $failedJobsAfterRun = $this->failedJobCount();
             $queueDrain = $this->option('drain-queues')
-                ? $this->drainQueues()
+                ? $this->drainQueues($auctionIds)
                 : ['enabled' => false];
             $queueAfterDrain = $this->queueDepths();
             $failedJobsAfterDrain = $this->failedJobCount();
@@ -144,6 +159,7 @@ class StressTest extends Command
                 summary: $summary,
                 duration: $duration,
                 driver: $driver,
+                pipeline: $pipeline,
                 requestedEngineMode: $requestedEngineMode,
                 effectiveEngineMode: $engineMode,
                 engineClass: $engineClass,
@@ -164,6 +180,7 @@ class StressTest extends Command
                 pendingRedisBefore: $pendingRedisBefore,
                 pendingRedisAfter: $pendingRedisAfter,
                 queueDrain: $queueDrain,
+                clearedFailedJobs: $clearedFailedJobs,
                 scenarioNotes: $this->scenarioNotes($scenario, $requestedEngineMode, $engineMode, $redisAvailableBefore),
                 phaseReports: $phaseReports,
             );
@@ -172,6 +189,14 @@ class StressTest extends Command
                 $this->line(json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             } else {
                 $this->renderReport($report);
+            }
+
+            if ((bool) $this->option('save-report')) {
+                $path = $this->saveReport($report);
+
+                if (! $json) {
+                    $this->info('Saved report: '.$path);
+                }
             }
 
             return self::SUCCESS;
@@ -213,6 +238,10 @@ class StressTest extends Command
     {
         if ($engineMode === 'redis' || $engineMode === 'sql') {
             config(['auction.engine' => $engineMode]);
+        }
+
+        if ($engineMode === 'redis') {
+            app(\App\Services\Bidding\BiddingEngineHealth::class)->clearRedisDegraded();
         }
 
         app()->forgetInstance(BiddingStrategy::class);
@@ -380,6 +409,13 @@ class StressTest extends Command
 
         foreach ($auctions as $auction) {
             try {
+                Redis::del([
+                    PendingRedisBidStore::hashKey((int) $auction->id),
+                    PendingRedisBidStore::indexKey((int) $auction->id),
+                    PendingRedisBidStore::drainScheduledKey((int) $auction->id),
+                    "auction:{$auction->id}:price_broadcast_scheduled",
+                ]);
+                Redis::zrem(PendingRedisBidStore::GLOBAL_INDEX_KEY, (string) $auction->id);
                 Redis::set("auction:{$auction->id}:price", (string) $auction->current_price);
             } catch (Throwable $e) {
                 if (! $json) {
@@ -456,7 +492,7 @@ class StressTest extends Command
      * @param  array<int, array{auction_id:int, user_id:int, amount:float, ordinal:int}>  $attempts
      * @return array<string, mixed>
      */
-    private function runEngineBenchmark(array $attempts): array
+    private function runEngineBenchmark(array $attempts, string $pipeline): array
     {
         $engine = app(BiddingStrategy::class);
         $auctions = Auction::whereIn('id', collect($attempts)->pluck('auction_id')->unique()->all())->get()->keyBy('id');
@@ -470,6 +506,8 @@ class StressTest extends Command
                 $engine->placeBid($auctions->get($attempt['auction_id']), $users->get($attempt['user_id']), $attempt['amount'], [
                     'ip_address' => '127.0.0.1',
                     'user_agent' => 'StressTest/Engine',
+                    'stress_suppress_price_broadcast' => $pipeline === 'accept-only',
+                    'stress_suppress_persistence_dispatch' => $pipeline === 'accept-only',
                 ]);
 
                 $this->recordAttempt($summary, $attempt, true, null, $startedAt);
@@ -485,7 +523,7 @@ class StressTest extends Command
      * @param  array<int, array{auction_id:int, user_id:int, amount:float, ordinal:int}>  $attempts
      * @return array<string, mixed>
      */
-    private function runHttpBenchmark(array $attempts, int $concurrency, string $baseUrl, string $engineMode): array
+    private function runHttpBenchmark(array $attempts, int $concurrency, string $baseUrl, string $engineMode, string $pipeline): array
     {
         $summary = $this->emptySummary();
         $url = "{$baseUrl}/api/stress-test/bid";
@@ -494,7 +532,7 @@ class StressTest extends Command
             $startedAt = microtime(true);
 
             try {
-                $responses = Http::pool(function (Pool $pool) use ($batch, $engineMode, $url) {
+                $responses = Http::pool(function (Pool $pool) use ($batch, $engineMode, $pipeline, $url) {
                     $requests = [];
 
                     foreach ($batch as $index => $attempt) {
@@ -504,6 +542,7 @@ class StressTest extends Command
                             'amount' => $attempt['amount'],
                             'user_id' => $attempt['user_id'],
                             'engine' => $engineMode,
+                            'pipeline' => $pipeline,
                         ]);
                     }
 
@@ -539,7 +578,7 @@ class StressTest extends Command
      * @param  array<int, array{auction_id:int, user_id:int, amount:float, ordinal:int}>  $attempts
      * @return array{0: array<string, mixed>, 1: array<int, array<string, mixed>>}
      */
-    private function runMidFailoverBenchmark(array $attempts, string $driver, int $concurrency, string $baseUrl): array
+    private function runMidFailoverBenchmark(array $attempts, string $driver, int $concurrency, string $baseUrl, string $pipeline): array
     {
         $splitAt = max(1, (int) floor(count($attempts) / 2));
         $redisAttempts = array_slice($attempts, 0, $splitAt);
@@ -549,15 +588,15 @@ class StressTest extends Command
         $redisStartedAt = microtime(true);
         $this->configureEngine('redis');
         $redisSummary = $driver === 'http'
-            ? $this->runHttpBenchmark($redisAttempts, $concurrency, $baseUrl, 'redis')
-            : $this->runEngineBenchmark($redisAttempts);
+            ? $this->runHttpBenchmark($redisAttempts, $concurrency, $baseUrl, 'redis', $pipeline)
+            : $this->runEngineBenchmark($redisAttempts, $pipeline);
         $phaseReports[] = $this->phaseReport('redis-before-shutdown', 'redis', $redisAttempts, $redisSummary, microtime(true) - $redisStartedAt);
 
         $sqlStartedAt = microtime(true);
         $this->configureEngine('sql');
         $sqlSummary = $driver === 'http'
-            ? $this->runHttpBenchmark($sqlAttempts, $concurrency, $baseUrl, 'sql')
-            : $this->runEngineBenchmark($sqlAttempts);
+            ? $this->runHttpBenchmark($sqlAttempts, $concurrency, $baseUrl, 'sql', $pipeline)
+            : $this->runEngineBenchmark($sqlAttempts, $pipeline);
         $phaseReports[] = $this->phaseReport('sql-after-shutdown', 'sql', $sqlAttempts, $sqlSummary, microtime(true) - $sqlStartedAt);
 
         return [$this->mergeSummaries($redisSummary, $sqlSummary), $phaseReports];
@@ -680,16 +719,30 @@ class StressTest extends Command
      */
     private function queueDepths(): array
     {
-        if (! Schema::hasTable('jobs')) {
-            return [];
+        $depths = [];
+
+        if (Schema::hasTable('jobs')) {
+            $depths = DB::table('jobs')
+                ->select('queue', DB::raw('count(*) as total'))
+                ->groupBy('queue')
+                ->pluck('total', 'queue')
+                ->map(fn ($total) => (int) $total)
+                ->all();
         }
 
-        return DB::table('jobs')
-            ->select('queue', DB::raw('count(*) as total'))
-            ->groupBy('queue')
-            ->pluck('total', 'queue')
-            ->map(fn ($total) => (int) $total)
-            ->all();
+        foreach (['bids', 'default', 'notifications', 'broadcasts'] as $queue) {
+            try {
+                $redisDepth = (int) Redis::llen("queues:{$queue}");
+
+                if ($redisDepth > 0) {
+                    $depths["redis:{$queue}"] = $redisDepth;
+                }
+            } catch (Throwable) {
+                // Redis queue depth is best-effort so outage benchmarks still complete.
+            }
+        }
+
+        return $depths;
     }
 
     private function failedJobCount(): ?int
@@ -699,6 +752,18 @@ class StressTest extends Command
         }
 
         return (int) DB::table('failed_jobs')->count();
+    }
+
+    private function clearFailedJobsIfRequested(): ?int
+    {
+        if (! (bool) $this->option('clear-failed-jobs') || ! Schema::hasTable('failed_jobs')) {
+            return null;
+        }
+
+        $count = (int) DB::table('failed_jobs')->count();
+        DB::table('failed_jobs')->delete();
+
+        return $count;
     }
 
     /**
@@ -723,31 +788,173 @@ class StressTest extends Command
     /**
      * @return array<string, mixed>
      */
-    private function drainQueues(): array
+    private function drainQueues(array $auctionIds): array
+    {
+        $startedAt = microtime(true);
+        $timeoutSeconds = max(1, (int) $this->option('drain-timeout'));
+        $queues = $this->drainQueueNames();
+        $passes = [];
+
+        do {
+            $remainingTimeout = max(1, $timeoutSeconds - (int) floor(microtime(true) - $startedAt));
+            $seededPersistence = $this->seedPendingRedisPersistence($auctionIds);
+            $remainingBefore = $this->targetQueueDepths($queues);
+            $pass = $this->drainQueue(
+                connection: (string) config('auction.bids_queue.connection', 'redis'),
+                queue: implode(',', $queues),
+                tries: 1,
+                maxTimeSeconds: $remainingTimeout,
+            );
+            $remainingAfter = $this->targetQueueDepths($queues);
+            $pendingAfter = $this->pendingRedisBidCounts($auctionIds);
+            $passes[] = $pass + [
+                'seeded_persistence_jobs' => $seededPersistence,
+                'remaining_before' => $remainingBefore,
+                'remaining_after' => $remainingAfter,
+                'pending_redis_after' => $pendingAfter,
+            ];
+
+            if (($this->queueDepthTotal($remainingAfter) === 0 && $this->pendingRedisBidTotal($pendingAfter) === 0)
+                || ($pass['failed'] ?? false)) {
+                break;
+            }
+        } while ((microtime(true) - $startedAt) < $timeoutSeconds);
+
+        $remaining = $this->targetQueueDepths($queues);
+        $pendingRedis = $this->pendingRedisBidCounts($auctionIds);
+        $settled = $this->queueDepthTotal($remaining) === 0 && $this->pendingRedisBidTotal($pendingRedis) === 0;
+
+        return [
+            'enabled' => true,
+            'duration_seconds' => round(microtime(true) - $startedAt, 3),
+            'timeout_seconds' => $timeoutSeconds,
+            'queue_order' => $queues,
+            'passes' => $passes,
+            'remaining' => $remaining,
+            'pending_redis' => $pendingRedis,
+            'settled' => $settled,
+            'queues' => [
+                'all' => $passes[array_key_last($passes)] ?? [
+                    'failed' => true,
+                    'error' => 'No drain pass was executed.',
+                    'duration_seconds' => 0,
+                ],
+            ],
+            'failed' => ! $settled || collect($passes)->contains(fn ($pass) => (bool) ($pass['failed'] ?? false)),
+        ];
+    }
+
+    /**
+     * @param  array<int, int>  $auctionIds
+     * @return array<string, int|string>
+     */
+    private function seedPendingRedisPersistence(array $auctionIds): array
+    {
+        $seeded = [];
+
+        foreach ($auctionIds as $auctionId) {
+            $pending = $this->pendingRedisBidCounts([(int) $auctionId])[(string) $auctionId] ?? null;
+
+            if ($pending === null || $pending <= 0) {
+                continue;
+            }
+
+            try {
+                app(PendingRedisBidStore::class)->clearDrainScheduled((int) $auctionId);
+
+                BatchPersistRedisBids::dispatch(
+                    auctionId: (int) $auctionId,
+                    limit: (int) config('auction.redis_persistence.batch_size', 100),
+                )
+                    ->onConnection((string) config('auction.bids_queue.connection', 'redis'))
+                    ->onQueue('bids');
+
+                $seeded[(string) $auctionId] = $pending;
+            } catch (Throwable $e) {
+                $seeded[(string) $auctionId] = 'failed: '.$e->getMessage();
+            }
+        }
+
+        return $seeded;
+    }
+
+    /**
+     * @param  array<string, int|null>  $pendingCounts
+     */
+    private function pendingRedisBidTotal(array $pendingCounts): int
+    {
+        return collect($pendingCounts)
+            ->filter(fn ($count) => $count !== null)
+            ->sum();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function drainQueue(string $connection, string $queue, int $tries, int $maxTimeSeconds): array
     {
         $startedAt = microtime(true);
 
         try {
-            $exitCode = Artisan::call('queue:work', [
+            $exitCode = $this->callSilent('queue:work', [
+                'connection' => $connection,
                 '--stop-when-empty' => true,
-                '--queue' => 'bids,broadcasts,notifications,default',
-                '--tries' => 1,
+                '--queue' => $queue,
+                '--tries' => $tries,
                 '--timeout' => 60,
+                '--max-time' => $maxTimeSeconds,
+                '--quiet' => true,
             ]);
 
             return [
-                'enabled' => true,
                 'exit_code' => $exitCode,
+                'max_time_seconds' => $maxTimeSeconds,
                 'duration_seconds' => round(microtime(true) - $startedAt, 3),
             ];
         } catch (Throwable $e) {
             return [
-                'enabled' => true,
                 'failed' => true,
                 'error' => $e->getMessage() ?: $e::class,
+                'max_time_seconds' => $maxTimeSeconds,
                 'duration_seconds' => round(microtime(true) - $startedAt, 3),
             ];
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function drainQueueNames(): array
+    {
+        return ['bids', 'broadcasts', 'notifications', 'default'];
+    }
+
+    /**
+     * @param  array<int, string>  $queues
+     * @return array<string, int>
+     */
+    private function targetQueueDepths(array $queues): array
+    {
+        $allDepths = $this->queueDepths();
+        $remaining = [];
+
+        foreach ($queues as $queue) {
+            $depth = (int) ($allDepths[$queue] ?? 0) + (int) ($allDepths["redis:{$queue}"] ?? 0);
+
+            if ($depth > 0) {
+                $remaining[$queue] = $depth;
+            }
+        }
+
+        return $remaining;
+    }
+
+    /**
+     * @param  array<string, int>  $depths
+     */
+    private function queueDepthTotal(array $depths): int
+    {
+        return array_sum(array_map(fn ($depth) => (int) $depth, $depths));
     }
 
     /**
@@ -762,6 +969,7 @@ class StressTest extends Command
      * @param  array<string, int|null>  $pendingRedisBefore
      * @param  array<string, int|null>  $pendingRedisAfter
      * @param  array<string, mixed>  $queueDrain
+     * @param  int|null  $clearedFailedJobs
      * @param  array<int, string>  $scenarioNotes
      * @param  array<int, array<string, mixed>>  $phaseReports
      * @return array<string, mixed>
@@ -772,6 +980,7 @@ class StressTest extends Command
         array $summary,
         float $duration,
         string $driver,
+        string $pipeline,
         string $requestedEngineMode,
         string $effectiveEngineMode,
         string $engineClass,
@@ -792,6 +1001,7 @@ class StressTest extends Command
         array $pendingRedisBefore,
         array $pendingRedisAfter,
         array $queueDrain,
+        ?int $clearedFailedJobs,
         array $scenarioNotes,
         array $phaseReports = [],
     ): array {
@@ -804,10 +1014,30 @@ class StressTest extends Command
         $success = (int) $summary['success'];
         $fails = (int) $summary['fails'];
         $attemptCount = count($attempts);
+        $pendingAfterTotal = collect($pendingRedisAfter)->filter(fn ($count) => $count !== null)->sum();
+        $persistedDelta = collect($auctionPriceRows)->sum('persisted_bid_delta');
+        $persistenceLag = max(0, $success - $persistedDelta);
+        $acceptOnlyExpectedLag = $pipeline === 'accept-only' ? $persistenceLag : 0;
+        $dbMismatchCount = collect($auctionPriceRows)->filter(fn ($row) => ! $row['db_matches_expected'])->count();
+        $consistencyFailures = collect($auctionPriceRows)
+            ->filter(fn ($row) => ! $row['db_matches_expected'] && ! $row['db_lag_expected'])
+            ->count();
+        $broadcastQueueAfter = $queueAfterDrain['redis:broadcasts'] ?? 0;
+        $cleanCapacityComparison = $this->cleanCapacityComparison(
+            pipeline: $pipeline,
+            queueDrain: $queueDrain,
+            pendingAfterTotal: (int) $pendingAfterTotal,
+            dbMismatchCount: $dbMismatchCount,
+            consistencyFailures: $consistencyFailures,
+            broadcastQueueAfter: $broadcastQueueAfter,
+            failedJobsBefore: $failedJobsBefore,
+            failedJobsAfterDrain: $failedJobsAfterDrain,
+        );
 
         return [
             'scenario' => $scenario,
             'driver' => $driver,
+            'pipeline' => $pipeline,
             'base_url' => $driver === 'http' ? $baseUrl : null,
             'requested_engine' => $requestedEngineMode,
             'effective_engine_config' => $effectiveEngineMode,
@@ -830,6 +1060,23 @@ class StressTest extends Command
                 'attempts_per_second' => round($attemptCount / $duration, 2),
                 'accepted_per_second' => round($success / $duration, 2),
             ],
+            'accept_only_expected_lag' => $acceptOnlyExpectedLag,
+            'clean_capacity_comparison' => $cleanCapacityComparison,
+            'persistence' => [
+                'persisted_bid_delta' => $persistedDelta,
+                'lagging_bid_count' => $persistenceLag,
+                'lagging_bids_per_second' => round($persistenceLag / $duration, 2),
+                'pending_redis_bids_after' => $pendingAfterTotal,
+                'db_mismatch_count' => $dbMismatchCount,
+                'consistency_failure_count' => $consistencyFailures,
+                'drain_time_seconds' => $queueDrain['queues']['all']['duration_seconds']
+                    ?? $queueDrain['duration_seconds']
+                    ?? null,
+            ],
+            'realtime_fanout' => [
+                'broadcast_queue_depth_after' => $broadcastQueueAfter,
+                'drain_time_seconds' => $queueDrain['queues']['all']['duration_seconds'] ?? null,
+            ],
             'latency_ms' => $this->latencyStats($summary['latencies_ms']),
             'failure_reasons' => $summary['failure_reasons'],
             'phases' => $phaseReports,
@@ -841,6 +1088,21 @@ class StressTest extends Command
                 'failed_jobs_before' => $failedJobsBefore,
                 'failed_jobs_after_run' => $failedJobsAfterRun,
                 'failed_jobs_after_drain' => $failedJobsAfterDrain,
+                'cleared_failed_jobs_before_run' => $clearedFailedJobs,
+            ],
+            'queue_state' => [
+                'before' => [
+                    'depths' => $queueBefore,
+                    'failed_jobs' => $failedJobsBefore,
+                ],
+                'after_run' => [
+                    'depths' => $queueAfterRun,
+                    'failed_jobs' => $failedJobsAfterRun,
+                ],
+                'after_drain' => [
+                    'depths' => $queueAfterDrain,
+                    'failed_jobs' => $failedJobsAfterDrain,
+                ],
             ],
             'redis_pending_bids' => [
                 'before' => $pendingRedisBefore,
@@ -852,6 +1114,33 @@ class StressTest extends Command
                 'load_average' => $this->loadAverage(),
             ],
         ];
+    }
+
+    private function cleanCapacityComparison(
+        string $pipeline,
+        array $queueDrain,
+        int $pendingAfterTotal,
+        int $dbMismatchCount,
+        int $consistencyFailures,
+        int $broadcastQueueAfter,
+        ?int $failedJobsBefore,
+        ?int $failedJobsAfterDrain,
+    ): bool {
+        if ($failedJobsBefore !== null && $failedJobsAfterDrain !== null && $failedJobsAfterDrain > $failedJobsBefore) {
+            return false;
+        }
+
+        if ($pipeline === 'accept-only') {
+            return $consistencyFailures === 0 && $broadcastQueueAfter === 0;
+        }
+
+        return (bool) ($queueDrain['enabled'] ?? false)
+            && (bool) ($queueDrain['settled'] ?? false)
+            && ! (bool) ($queueDrain['failed'] ?? false)
+            && $pendingAfterTotal === 0
+            && $dbMismatchCount === 0
+            && $consistencyFailures === 0
+            && $broadcastQueueAfter === 0;
     }
 
     /**
@@ -876,6 +1165,9 @@ class StressTest extends Command
                 $initialBidCount = (int) ($initialBidCounts[$auctionId] ?? 0);
                 $finalBidCount = (int) ($finalBidCounts[$auctionId] ?? 0);
 
+                $pendingRedis = $this->pendingRedisBidCounts([(int) $auction->id])[$auctionId] ?? null;
+                $dbMatchesExpected = $expected === null || abs($dbPrice - $expected) < 0.01;
+
                 return [
                     'auction_id' => (int) $auction->id,
                     'attempted' => (int) ($summary['attempts_by_auction'][$auctionId] ?? 0),
@@ -884,7 +1176,9 @@ class StressTest extends Command
                     'expected_final_accepted_price' => $expected,
                     'db_current_price' => $dbPrice,
                     'redis_current_price' => $redisPrice,
-                    'db_matches_expected' => $expected === null || abs($dbPrice - $expected) < 0.01,
+                    'pending_redis_bids' => $pendingRedis,
+                    'db_matches_expected' => $dbMatchesExpected,
+                    'db_lag_expected' => ! $dbMatchesExpected && $pendingRedis !== null && $pendingRedis > 0,
                     'redis_matches_expected' => $expected === null || $redisPrice === null || abs($redisPrice - $expected) < 0.01,
                 ];
             })
@@ -998,6 +1292,7 @@ class StressTest extends Command
         $this->info('--- BENCHMARK REPORT ---');
         $this->line('Scenario: '.$report['scenario']);
         $this->line('Driver: '.$report['driver']);
+        $this->line('Pipeline: '.$report['pipeline']);
         $this->line('Resolved Engine: '.$report['resolved_engine']);
         $this->line('Redis Available: '.($report['redis_available_after'] ? 'yes' : 'no'));
         $this->line('Auctions: '.$report['totals']['auctions']);
@@ -1007,6 +1302,12 @@ class StressTest extends Command
         $this->line('Time Taken: '.number_format((float) $report['totals']['duration_seconds'], 3).' seconds');
         $this->line('Attempts/sec: '.number_format((float) $report['totals']['attempts_per_second'], 2));
         $this->line('Accepted/sec: '.number_format((float) $report['totals']['accepted_per_second'], 2));
+        $this->line('Pending Redis Bids: '.$report['persistence']['pending_redis_bids_after']);
+        $this->line('DB Mismatches: '.$report['persistence']['db_mismatch_count']);
+        $this->line('Consistency Failures: '.$report['persistence']['consistency_failure_count']);
+        $this->line('Clean Capacity Comparison: '.($report['clean_capacity_comparison'] ? 'yes' : 'no'));
+        $this->line('Broadcast Queue After Drain: '.$report['realtime_fanout']['broadcast_queue_depth_after']);
+        $this->line('Broadcast Drain Time: '.($report['realtime_fanout']['drain_time_seconds'] ?? 'n/a').' seconds');
 
         $this->newLine();
         $this->table(
@@ -1031,7 +1332,7 @@ class StressTest extends Command
 
         $this->newLine();
         $this->table(
-            ['Auction', 'Attempts', 'Accepted', 'Persisted', 'Expected', 'DB Price', 'Redis Price', 'DB OK'],
+            ['Auction', 'Attempts', 'Accepted', 'Persisted', 'Pending', 'Expected', 'DB Price', 'Redis Price', 'DB State'],
             collect($report['auctions'])
                 ->take(25)
                 ->map(fn ($row) => [
@@ -1039,10 +1340,11 @@ class StressTest extends Command
                     $row['attempted'],
                     $row['accepted'],
                     $row['persisted_bid_delta'],
+                    $row['pending_redis_bids'] ?? 'n/a',
                     $row['expected_final_accepted_price'] ?? 'n/a',
                     $row['db_current_price'],
                     $row['redis_current_price'] ?? 'n/a',
-                    $row['db_matches_expected'] ? 'yes' : 'no',
+                    $row['db_matches_expected'] ? 'ok' : ($row['db_lag_expected'] ? 'lagging' : 'failed'),
                 ])
                 ->all(),
         );
@@ -1050,6 +1352,19 @@ class StressTest extends Command
         if (count($report['auctions']) > 25) {
             $this->line('Auction table truncated to first 25 rows. Use --json for the full report.');
         }
+    }
+
+    private function saveReport(array $report): string
+    {
+        $directory = storage_path('app/benchmarks');
+        File::ensureDirectoryExists($directory);
+
+        $filename = now()->format('Ymd-His').'-'.$report['scenario'].'-'.$report['driver'].'-'.$report['pipeline'].'.json';
+        $path = $directory.'/'.$filename;
+
+        File::put($path, json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return $path;
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\EscrowService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class PessimisticSqlEngine implements BiddingStrategy
 {
@@ -89,6 +90,8 @@ class PessimisticSqlEngine implements BiddingStrategy
             // Record rate-limit hit
             $this->rateLimiter->hit($user, $locked);
 
+            $this->syncRedisPrice($locked);
+
             // Broadcast price update immediately
             try {
                 PriceUpdated::dispatch($locked);
@@ -110,11 +113,23 @@ class PessimisticSqlEngine implements BiddingStrategy
 
     public function initializePrice(Auction $auction): void
     {
-        // No-op for SQL engine — price lives in the DB already.
+        $this->syncRedisPrice($auction);
     }
 
     public function cleanup(Auction $auction): void
     {
         // No-op for SQL engine.
+    }
+
+    private function syncRedisPrice(Auction $auction): void
+    {
+        try {
+            Redis::set("auction:{$auction->id}:price", (string) $auction->current_price);
+        } catch (\Throwable $e) {
+            Log::warning('PessimisticSqlEngine: Redis price sync failed', [
+                'auction_id' => $auction->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
