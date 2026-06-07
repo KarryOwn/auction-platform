@@ -8,7 +8,6 @@ use App\Jobs\ProcessAutoBids;
 use App\Jobs\SendCoalescedOutbidNotification;
 use App\Models\AuctionWatcher;
 use App\Models\Bid;
-use App\Services\EscrowService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -17,10 +16,9 @@ use Illuminate\Support\Facades\Redis;
 /**
  * Handles the BidPlaced event:
  *
- * 1. Releases escrow holds from the previous highest bidder
- * 2. Sends outbid notifications to the previous highest bidder
- * 3. Notifies watchers who opted in to outbid alerts
- * 4. Triggers auto-bid processing for competing auto-bid rules
+ * 1. Sends outbid notifications to the previous highest bidder
+ * 2. Notifies watchers who opted in to outbid alerts
+ * 3. Triggers auto-bid processing for competing auto-bid rules
  */
 class HandleBidPlaced implements ShouldQueue
 {
@@ -29,7 +27,7 @@ class HandleBidPlaced implements ShouldQueue
     public int $tries = 3;
 
     public function __construct(
-        protected EscrowService $escrowService,
+        mixed $unusedEscrowService = null,
     ) {}
 
     public function viaConnection(): string
@@ -50,9 +48,6 @@ class HandleBidPlaced implements ShouldQueue
         if ($this->shouldBroadcastSellerBid($auction->id)) {
             broadcast(new NewBidOnListing($auction, (float) $bid->amount))->toOthers();
         }
-
-        // Release escrow for the previous highest bidder (regardless of bid type)
-        $this->releaseOutbidEscrow($bid, $auction);
 
         // 4. Check price alerts (regardless of bid type)
         $this->checkPriceAlerts($bid, $auction);
@@ -97,36 +92,6 @@ class HandleBidPlaced implements ShouldQueue
             ]);
 
             return true;
-        }
-    }
-
-    /**
-     * Release escrow hold for the previous highest bidder when outbid.
-     */
-    protected function releaseOutbidEscrow(Bid $bid, $auction): void
-    {
-        // Find the previous highest bid by a different user
-        $previousBid = Bid::where('auction_id', $auction->id)
-            ->where('user_id', '!=', $bid->user_id)
-            ->where('id', '!=', $bid->id)
-            ->orderByDesc('amount')
-            ->first();
-
-        if (! $previousBid) {
-            return;
-        }
-
-        try {
-            $previousUser = $previousBid->user;
-            if ($previousUser) {
-                $this->escrowService->releaseForUser($previousUser, $auction);
-            }
-        } catch (\Throwable $e) {
-            Log::error('HandleBidPlaced: escrow release failed for outbid user', [
-                'outbid_user_id' => $previousBid->user_id,
-                'auction_id'     => $auction->id,
-                'error'          => $e->getMessage(),
-            ]);
         }
     }
 

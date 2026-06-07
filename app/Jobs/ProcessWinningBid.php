@@ -6,6 +6,7 @@ use App\Events\BidPlaced;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Services\Bidding\PendingRedisBidStore;
+use App\Services\EscrowService;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -150,6 +151,8 @@ class ProcessWinningBid implements ShouldQueue
         if ($this->acceptedBidId) {
             app(PendingRedisBidStore::class)->markProcessed($this->auctionId, $this->acceptedBidId);
         }
+
+        app(EscrowService::class)->releaseOutbidHolds($result['auction']);
 
         return $result;
     }

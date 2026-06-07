@@ -94,6 +94,7 @@ class PessimisticSqlEngine implements BiddingStrategy
         });
 
         $this->syncRedisPrice($result['auction']);
+        $this->escrowService->releaseOutbidHolds($result['auction']);
 
         if ($this->shouldDispatchPriceUpdate((int) $result['auction']->id)) {
             try {

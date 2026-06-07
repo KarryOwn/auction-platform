@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Auction;
+use App\Models\Bid;
 use App\Models\EscrowHold;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -105,6 +106,34 @@ class EscrowService
                 'amount' => $hold->amount,
             ]);
         });
+    }
+
+    /**
+     * Release every active hold except the current highest bidder's hold.
+     */
+    public function releaseOutbidHolds(Auction $auction): void
+    {
+        $leader = Bid::where('auction_id', $auction->id)
+            ->orderByDesc('amount')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $leader) {
+            return;
+        }
+
+        $holds = EscrowHold::where('auction_id', $auction->id)
+            ->where('status', EscrowHold::STATUS_ACTIVE)
+            ->where('user_id', '!=', $leader->user_id)
+            ->with('user')
+            ->get();
+
+        foreach ($holds as $hold) {
+            if ($hold->user) {
+                $this->releaseForUser($hold->user, $auction);
+            }
+        }
     }
 
     /**

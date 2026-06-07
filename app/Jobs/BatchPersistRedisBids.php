@@ -6,6 +6,7 @@ use App\Events\BidPlaced;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Services\Bidding\PendingRedisBidStore;
+use App\Services\EscrowService;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -142,6 +143,10 @@ class BatchPersistRedisBids implements ShouldQueue, ShouldBeUniqueUntilProcessin
             if ($acceptedBidId !== '') {
                 $pendingBids->markProcessed($this->auctionId, $acceptedBidId);
             }
+        }
+
+        if ($created !== []) {
+            app(EscrowService::class)->releaseOutbidHolds(Auction::findOrFail($this->auctionId));
         }
 
         foreach ($created as $row) {
