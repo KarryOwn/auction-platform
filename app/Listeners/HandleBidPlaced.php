@@ -5,13 +5,14 @@ namespace App\Listeners;
 use App\Events\BidPlaced;
 use App\Events\NewBidOnListing;
 use App\Jobs\ProcessAutoBids;
+use App\Jobs\SendCoalescedOutbidNotification;
 use App\Models\AuctionWatcher;
 use App\Models\Bid;
-use App\Notifications\OutbidNotification;
 use App\Services\EscrowService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 /**
  * Handles the BidPlaced event:
@@ -25,42 +26,78 @@ class HandleBidPlaced implements ShouldQueue
 {
     use InteractsWithQueue;
 
-    public string $queue = 'notifications';
     public int $tries = 3;
 
     public function __construct(
         protected EscrowService $escrowService,
     ) {}
 
+    public function viaConnection(): string
+    {
+        return (string) config('auction.notifications_queue.connection', 'redis');
+    }
+
+    public function viaQueue(): string
+    {
+        return 'notifications';
+    }
+
     public function handle(BidPlaced $event): void
     {
         $bid     = $event->bid;
         $auction = $event->auction;
-// Always broadcast price update for real-time UI
-broadcast(new NewBidOnListing($auction, (float) $bid->amount))->toOthers();
 
-// Release escrow for the previous highest bidder (regardless of bid type)
-$this->releaseOutbidEscrow($bid, $auction);
+        if ($this->shouldBroadcastSellerBid($auction->id)) {
+            broadcast(new NewBidOnListing($auction, (float) $bid->amount))->toOthers();
+        }
 
-// 4. Check price alerts (regardless of bid type)
-$this->checkPriceAlerts($bid, $auction);
+        // Release escrow for the previous highest bidder (regardless of bid type)
+        $this->releaseOutbidEscrow($bid, $auction);
 
-// Skip outbid/watcher notifications for auto-bids — they fire rapidly
-// in sequence and would spam the user. Only the initial manual bid
-// that triggers the auto-bid chain should create notifications.
-if ($bid->bid_type !== Bid::TYPE_MANUAL) {
-    return;
-}
+        // 4. Check price alerts (regardless of bid type)
+        $this->checkPriceAlerts($bid, $auction);
 
-// 1. Outbid notification to the previous highest bidder
-$outbidUserId = clone $bid; // just keeping structure clean
-$outbidUserId = $this->notifyOutbidUser($bid, $auction);
+        // Skip outbid/watcher notifications for auto-bids — they fire rapidly
+        // in sequence and would spam the user. Only the initial manual bid
+        // that triggers the auto-bid chain should create notifications.
+        if ($bid->bid_type !== Bid::TYPE_MANUAL) {
+            return;
+        }
 
-// 2. Notify watchers (skip the bidder AND the already-notified outbid user)
-$this->notifyWatchers($bid, $auction, $outbidUserId);
+        // 1. Outbid notification to the previous highest bidder
+        $outbidUserId = $this->notifyOutbidUser($bid, $auction);
+
+        // 2. Notify watchers (skip the bidder AND the already-notified outbid user)
+        $this->notifyWatchers($bid, $auction, $outbidUserId);
 
         // 3. Trigger auto-bid processing
         ProcessAutoBids::dispatch($auction->id, $bid->user_id)->onQueue('bids');
+    }
+
+    protected function shouldBroadcastSellerBid(int $auctionId): bool
+    {
+        $debounceMs = max(0, (int) config('auction.redis_persistence.seller_bid_broadcast_debounce_ms', 250));
+
+        if ($debounceMs === 0) {
+            return true;
+        }
+
+        try {
+            return (bool) Redis::set(
+                "auction:{$auctionId}:seller_bid_broadcast_scheduled",
+                '1',
+                'PX',
+                $debounceMs,
+                'NX',
+            );
+        } catch (\Throwable $e) {
+            Log::warning('HandleBidPlaced: seller bid broadcast debounce failed open', [
+                'auction_id' => $auctionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return true;
+        }
     }
 
     /**
@@ -120,14 +157,16 @@ $this->notifyWatchers($bid, $auction, $outbidUserId);
         }
 
         try {
-            $previousBid->user->notify(new OutbidNotification(
-                auctionId:    $auction->id,
+            $this->queueOutbidNotification(
+                userId: $previousBid->user_id,
+                auctionId: $auction->id,
                 auctionTitle: $auction->title,
                 outbidAmount: (float) $bid->amount,
-                yourAmount:   (float) $previousBid->amount,
-            ));
+                yourAmount: (float) $previousBid->amount,
+                isWatcher: false,
+            );
 
-            Log::info('HandleBidPlaced: outbid notification sent', [
+            Log::info('HandleBidPlaced: outbid notification coalesced', [
                 'outbid_user_id' => $previousBid->user_id,
                 'auction_id'     => $auction->id,
             ]);
@@ -159,13 +198,14 @@ $this->notifyWatchers($bid, $auction, $outbidUserId);
             }
 
             try {
-                $watcher->user->notify(new OutbidNotification(
-                    auctionId:    $auction->id,
+                $this->queueOutbidNotification(
+                    userId: $watcher->user_id,
+                    auctionId: $auction->id,
                     auctionTitle: $auction->title,
                     outbidAmount: (float) $bid->amount,
-                    yourAmount:   0, // watchers may not have bid
-                    isWatcher:    true,
-                ));
+                    yourAmount: 0,
+                    isWatcher: true,
+                );
             } catch (\Throwable $e) {
                 Log::warning('HandleBidPlaced: watcher notification failed', [
                     'watcher_user_id' => $watcher->user_id,
@@ -212,5 +252,29 @@ $this->notifyWatchers($bid, $auction, $outbidUserId);
                 ));
                 $watcher->update(['price_alert_sent' => true]);
             });
+    }
+
+    private function queueOutbidNotification(
+        int $userId,
+        int $auctionId,
+        string $auctionTitle,
+        float $outbidAmount,
+        float $yourAmount,
+        bool $isWatcher,
+    ): void {
+        $key = SendCoalescedOutbidNotification::stateKey($auctionId, $userId, $isWatcher);
+
+        Redis::setex($key, 86400, json_encode([
+            'auction_id' => $auctionId,
+            'auction_title' => $auctionTitle,
+            'outbid_amount' => $outbidAmount,
+            'your_amount' => $yourAmount,
+            'is_watcher' => $isWatcher,
+        ], JSON_THROW_ON_ERROR));
+
+        SendCoalescedOutbidNotification::dispatch($auctionId, $userId, $isWatcher)
+            ->delay(now()->addSeconds((int) config('auction.notifications.outbid_coalesce_delay_seconds', 5)))
+            ->onConnection((string) config('auction.notifications_queue.connection', 'redis'))
+            ->onQueue('notifications');
     }
 }

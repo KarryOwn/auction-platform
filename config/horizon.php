@@ -225,6 +225,19 @@ return [
             'timeout' => 60,
             'nice' => 2,
         ],
+        'supervisor-webhooks' => [
+            'connection' => env('WEBHOOKS_QUEUE_CONNECTION', 'redis'),
+            'queue' => ['webhooks'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => (int) env('WEBHOOKS_QUEUE_WORKERS', 1),
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 5,
+            'timeout' => 60,
+            'nice' => 5,
+        ],
         'supervisor-bids' => [
             'connection' => env('BIDS_QUEUE_CONNECTION', 'redis'),
             'queue' => ['bids'],
@@ -265,6 +278,11 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
+            'supervisor-webhooks' => [
+                'maxProcesses' => (int) env('WEBHOOKS_QUEUE_WORKERS', 2),
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
             'supervisor-bids' => [
                 'maxProcesses' => (int) env('BIDS_QUEUE_WORKERS', 8),
                 'balanceMaxShift' => 2,
@@ -283,6 +301,9 @@ return [
             ],
             'supervisor-notifications' => [
                 'maxProcesses' => (int) env('NOTIFICATIONS_QUEUE_WORKERS', 2),
+            ],
+            'supervisor-webhooks' => [
+                'maxProcesses' => (int) env('WEBHOOKS_QUEUE_WORKERS', 1),
             ],
             'supervisor-bids' => [
                 'maxProcesses' => (int) env('BIDS_QUEUE_WORKERS', 6),

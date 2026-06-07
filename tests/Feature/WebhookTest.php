@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Events\BidPlaced;
+use App\Jobs\DeliverWebhook;
+use App\Jobs\ProcessCoalescedBidWebhook;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Models\User;
@@ -49,7 +51,7 @@ class WebhookTest extends TestCase
 
     public function test_bid_placed_event_triggers_webhook_dispatch()
     {
-        Queue::fake([\App\Jobs\DeliverWebhook::class]);
+        Queue::fake([ProcessCoalescedBidWebhook::class]);
 
         $seller = User::factory()->create();
         $bidder = User::factory()->create();
@@ -69,13 +71,58 @@ class WebhookTest extends TestCase
         $listener = new \App\Listeners\DispatchWebhooksListener(app(WebhookDispatchService::class));
         $listener->handleBidPlaced($event);
 
+        $this->assertDatabaseMissing('webhook_deliveries', [
+            'webhook_endpoint_id' => $endpoint->id,
+        ]);
+
+        Queue::assertPushed(ProcessCoalescedBidWebhook::class, fn ($job) => $job->userId === $seller->id
+            && $job->auctionId === $auction->id);
+    }
+
+    public function test_coalesced_bid_webhook_flush_creates_grouped_delivery()
+    {
+        Queue::fake([DeliverWebhook::class]);
+
+        $seller = User::factory()->create();
+        $bidder = User::factory()->create();
+        $auction = Auction::factory()->create(['user_id' => $seller->id]);
+        $firstBid = Bid::factory()->create(['auction_id' => $auction->id, 'user_id' => $bidder->id, 'amount' => 100]);
+        $secondBid = Bid::factory()->create(['auction_id' => $auction->id, 'user_id' => $bidder->id, 'amount' => 125]);
+
+        $endpoint = WebhookEndpoint::create([
+            'user_id' => $seller->id,
+            'url' => 'https://example.com/hook',
+            'secret' => 'testsecret',
+            'events' => ['bid.placed'],
+            'is_active' => true,
+        ]);
+
+        $listener = new \App\Listeners\DispatchWebhooksListener(app(WebhookDispatchService::class));
+        $listener->handleBidPlaced(new BidPlaced($firstBid, $auction->forceFill([
+            'current_price' => 100,
+            'bid_count' => 1,
+        ])));
+        $listener->handleBidPlaced(new BidPlaced($secondBid, $auction->forceFill([
+            'current_price' => 125,
+            'bid_count' => 2,
+        ])));
+
+        app(WebhookDispatchService::class)->flushCoalescedBidPlaced($seller->id, $auction->id);
+
         $this->assertDatabaseHas('webhook_deliveries', [
             'webhook_endpoint_id' => $endpoint->id,
-            'event_type' => 'bid.placed',
+            'event_type' => 'bid.placed.batch',
             'status' => 'pending',
         ]);
 
-        Queue::assertPushed(\App\Jobs\DeliverWebhook::class);
+        $delivery = WebhookDelivery::where('webhook_endpoint_id', $endpoint->id)->firstOrFail();
+
+        $this->assertSame($auction->id, (int) $delivery->payload['auction_id']);
+        $this->assertSame($secondBid->id, (int) $delivery->payload['latest_bid_id']);
+        $this->assertSame(2, (int) $delivery->payload['bid_count_delta']);
+        $this->assertEquals(125.0, (float) $delivery->payload['current_price']);
+
+        Queue::assertPushed(DeliverWebhook::class);
     }
 
     public function test_webhook_delivery_success_and_signature()

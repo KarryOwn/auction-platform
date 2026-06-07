@@ -47,14 +47,21 @@ class BenchmarkSummary extends Command
                     : $this->legacyCleanCapacityComparison($report),
                 $report['persistence']['pending_redis_bids_after'] ?? array_sum(array_filter($report['redis_pending_bids']['after'] ?? [])),
                 $report['persistence']['db_mismatch_count'] ?? $this->dbMismatchCount($report),
-                $report['persistence']['drain_time_seconds'] ?? 'n/a',
+                $report['drain_times']['total_drain_time_seconds']
+                    ?? $report['persistence']['drain_time_seconds']
+                    ?? 'n/a',
+                $report['drain_times']['persistence_drain_time_seconds']
+                    ?? $report['persistence']['persistence_drain_time_seconds']
+                    ?? 'n/a',
                 $report['realtime_fanout']['broadcast_queue_depth_after'] ?? 'n/a',
-                $report['realtime_fanout']['drain_time_seconds'] ?? 'n/a',
+                $report['drain_times']['queue_drain_time_seconds']
+                    ?? $report['realtime_fanout']['drain_time_seconds']
+                    ?? 'n/a',
             ];
         }
 
         $this->table(
-            ['File', 'Scenario', 'Pipeline', 'Engine', 'Accepted/sec', 'p95 ms', 'Failures', 'Clean', 'Pending Redis', 'DB Mismatch', 'Bid Drain sec', 'Broadcast Q', 'Broadcast Drain sec'],
+            ['File', 'Scenario', 'Pipeline', 'Engine', 'Accepted/sec', 'p95 ms', 'Failures', 'Clean', 'Pending Redis', 'DB Mismatch', 'Total Drain sec', 'Persistence Drain sec', 'Broadcast Q', 'Queue Drain sec'],
             $rows,
         );
 

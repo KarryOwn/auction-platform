@@ -13,11 +13,13 @@ class DispatchWebhooksListener
 
     public function handleBidPlaced(BidPlaced $event): void
     {
-        $this->service->dispatch('bid.placed', [
+        $this->service->dispatchCoalescedBidPlaced([
             'auction_id'  => $event->auctionId,
             'bid_id'      => $event->bid->id,
             'amount'      => $event->amount,
+            'current_price' => $event->amount,
             'bidder_id'   => $event->bidderId,
+            'bid_count'   => $event->bidCount,
             'created_at'  => now()->toIso8601String(),
         ], $event->auction->user_id); // notify seller's webhooks
     }

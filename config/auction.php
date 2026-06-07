@@ -51,6 +51,15 @@ return [
         'workers' => (int) env('DEFAULT_QUEUE_WORKERS', 1),
     ],
 
+    'webhooks_queue' => [
+        'connection' => env('WEBHOOKS_QUEUE_CONNECTION', 'redis'),
+        'workers' => (int) env('WEBHOOKS_QUEUE_WORKERS', 1),
+    ],
+
+    'webhooks' => [
+        'bid_placed_coalesce_window_ms' => (int) env('AUCTION_BID_WEBHOOK_WINDOW_MS', 1000),
+    ],
+
     'redis_health' => [
         'degraded_ttl' => (int) env('AUCTION_REDIS_DEGRADED_TTL', 15),
         'cache_store' => env('AUCTION_REDIS_HEALTH_CACHE_STORE', 'file'),
@@ -60,6 +69,11 @@ return [
         'batch_size' => (int) env('AUCTION_REDIS_PERSISTENCE_BATCH_SIZE', 100),
         'dispatch_window_seconds' => (int) env('AUCTION_REDIS_PERSISTENCE_DISPATCH_WINDOW', 1),
         'price_broadcast_debounce_ms' => (int) env('AUCTION_REDIS_PRICE_BROADCAST_DEBOUNCE_MS', 250),
+        'seller_bid_broadcast_debounce_ms' => (int) env('AUCTION_SELLER_BID_BROADCAST_DEBOUNCE_MS', 250),
+    ],
+
+    'notifications' => [
+        'outbid_coalesce_delay_seconds' => (int) env('AUCTION_OUTBID_NOTIFICATION_DELAY', 5),
     ],
 
     /*

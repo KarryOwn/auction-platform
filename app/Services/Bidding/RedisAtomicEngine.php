@@ -285,6 +285,7 @@ class RedisAtomicEngine implements BiddingStrategy
             "auction:{$auction->id}:meta",
             "auction:{$auction->id}:leaderboard",
             "auction:{$auction->id}:price_broadcast_scheduled",
+            "auction:{$auction->id}:seller_bid_broadcast_scheduled",
             PendingRedisBidStore::hashKey($auction->id),
             PendingRedisBidStore::indexKey($auction->id),
             PendingRedisBidStore::drainScheduledKey($auction->id),

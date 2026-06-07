@@ -17,6 +17,7 @@ use App\Services\EscrowService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 
 test('process winning bid is idempotent for a redis accepted bid', function () {
@@ -89,8 +90,8 @@ test('process winning bid preserves redis accepted timestamp seconds', function 
     expect($bid->created_at->format('Y-m-d H:i:s'))->toBe($acceptedAt->format('Y-m-d H:i:s'));
 });
 
-test('reconciler persists pending redis accepted bids', function () {
-    Event::fake([BidPlaced::class]);
+test('reconciler dispatches idempotent batch persistence for pending redis accepted bids', function () {
+    Queue::fake();
 
     $seller = User::factory()->create();
     $bidder = User::factory()->create(['wallet_balance' => 1000]);
@@ -104,51 +105,17 @@ test('reconciler persists pending redis accepted bids', function () {
     ]);
 
     $pendingBids = Mockery::mock(PendingRedisBidStore::class);
-    $pendingBids->shouldReceive('duePendingBids')
+    $pendingBids->shouldReceive('auctionsWithPendingBids')
         ->once()
         ->with(10)
-        ->andReturn([[
-            'accepted_bid_id' => 'accepted-bid-2',
-            'auction_id' => $auction->id,
-            'user_id' => $bidder->id,
-            'amount' => 110,
-            'bid_type' => Bid::TYPE_MANUAL,
-            'previous_amount' => 100,
-            'ip_address' => '127.0.0.1',
-            'user_agent' => 'test',
-            'auto_bid_id' => null,
-            'is_snipe_bid' => false,
-        ]]);
-    $pendingBids->shouldReceive('markProcessed')
-        ->once()
-        ->with($auction->id, 'accepted-bid-2');
-    $pendingBids->shouldReceive('pendingBidsForAuction')
-        ->once()
-        ->with($auction->id, 100)
-        ->andReturn([[
-            'accepted_bid_id' => 'accepted-bid-2',
-            'auction_id' => $auction->id,
-            'user_id' => $bidder->id,
-            'amount' => 110,
-            'bid_type' => Bid::TYPE_MANUAL,
-            'previous_amount' => 100,
-            'ip_address' => '127.0.0.1',
-            'user_agent' => 'test',
-            'auto_bid_id' => null,
-            'is_snipe_bid' => false,
-        ]]);
-    $pendingBids->shouldReceive('clearDrainScheduled')
-        ->once()
-        ->with($auction->id);
+        ->andReturn([$auction->id]);
 
     app()->instance(PendingRedisBidStore::class, $pendingBids);
 
     (new ReconcilePendingRedisBids)->handle($pendingBids);
 
-    expect(Bid::where('accepted_bid_id', 'accepted-bid-2')->count())->toBe(1);
-    expect($auction->fresh()->current_price)->toBe('110.00');
-
-    Event::assertDispatchedTimes(BidPlaced::class, 1);
+    Queue::assertPushed(BatchPersistRedisBids::class, fn ($job) => $job->auctionId === $auction->id
+        && $job->limit === (int) config('auction.redis_persistence.batch_size', 100));
 });
 
 test('batch persistence stores redis accepted bids in accepted order and updates auction once', function () {

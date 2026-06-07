@@ -36,6 +36,20 @@ class PendingRedisBidStore
         }
     }
 
+    public function isDrainScheduled(int $auctionId): bool
+    {
+        try {
+            return (bool) Redis::exists(self::drainScheduledKey($auctionId));
+        } catch (\Throwable $e) {
+            Log::warning('PendingRedisBidStore: drain schedule check failed', [
+                'auction_id' => $auctionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
     public function markProcessed(int $auctionId, string $acceptedBidId): void
     {
         try {
@@ -97,6 +111,29 @@ class PendingRedisBidStore
     }
 
     /**
+     * @return array<int, int>
+     */
+    public function auctionsWithPendingBids(int $olderThanSeconds = 0): array
+    {
+        $cutoff = microtime(true) - max(0, $olderThanSeconds);
+
+        try {
+            return collect(Redis::zrangebyscore(self::GLOBAL_INDEX_KEY, '-inf', (string) $cutoff))
+                ->map(fn ($auctionId) => (int) $auctionId)
+                ->filter(fn (int $auctionId) => $auctionId > 0 && $this->pendingCount($auctionId) > 0)
+                ->unique()
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('PendingRedisBidStore: pending auction scan failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function pendingBidsForAuction(int $auctionId, int $limit = 100): array
@@ -141,6 +178,23 @@ class PendingRedisBidStore
     public function pendingCount(int $auctionId): int
     {
         return (int) Redis::hlen(self::hashKey($auctionId));
+    }
+
+    public function oldestPendingAgeSeconds(int $auctionId): ?float
+    {
+        $pending = $this->pendingBidsForAuction($auctionId, 1);
+
+        if ($pending === []) {
+            return null;
+        }
+
+        $acceptedAt = $pending[0]['accepted_at'] ?? null;
+
+        if (! is_numeric($acceptedAt)) {
+            return null;
+        }
+
+        return round(max(0, microtime(true) - (float) $acceptedAt), 3);
     }
 
     /**

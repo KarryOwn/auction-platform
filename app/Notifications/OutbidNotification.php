@@ -18,7 +18,10 @@ class OutbidNotification extends Notification implements ShouldQueue
         public float  $outbidAmount,
         public float  $yourAmount = 0,
         public bool   $isWatcher = false,
-    ) {}
+    ) {
+        $this->onConnection((string) config('auction.notifications_queue.connection', 'redis'));
+        $this->onQueue('notifications');
+    }
 
     /**
      * Deliver via channels based on user preferences.
@@ -36,6 +39,15 @@ class OutbidNotification extends Notification implements ShouldQueue
         }
 
         return $channels;
+    }
+
+    public function viaQueues(): array
+    {
+        return [
+            'database' => 'notifications',
+            'mail' => 'notifications',
+            'broadcast' => 'broadcasts',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -65,7 +77,7 @@ class OutbidNotification extends Notification implements ShouldQueue
      */
     public function toBroadcast(object $notifiable): BroadcastMessage
     {
-        return new BroadcastMessage([
+        return (new BroadcastMessage([
             'type'          => $this->isWatcher ? 'auction_activity' : 'outbid',
             'auction_id'    => $this->auctionId,
             'auction_title' => $this->auctionTitle,
@@ -75,7 +87,9 @@ class OutbidNotification extends Notification implements ShouldQueue
             'message'       => $this->isWatcher
                 ? "New bid of \${$this->outbidAmount} on \"{$this->auctionTitle}\""
                 : "You've been outbid on \"{$this->auctionTitle}\" — new bid: \${$this->outbidAmount}",
-        ]);
+        ]))
+            ->onConnection((string) config('auction.broadcasts_queue.connection', 'redis'))
+            ->onQueue('broadcasts');
     }
 
     public function toArray(object $notifiable): array

@@ -27,7 +27,10 @@ class BatchPersistRedisBids implements ShouldQueue, ShouldBeUniqueUntilProcessin
     public function __construct(
         public int $auctionId,
         public int $limit = 100,
-    ) {}
+    ) {
+        $this->onConnection((string) config('auction.bids_queue.connection', 'redis'));
+        $this->onQueue('bids');
+    }
 
     public function uniqueId(): string
     {

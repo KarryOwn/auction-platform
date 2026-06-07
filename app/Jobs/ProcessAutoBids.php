@@ -31,7 +31,10 @@ class ProcessAutoBids implements ShouldQueue, ShouldBeUniqueUntilProcessing
     public function __construct(
         public int $auctionId,
         public int $triggeredByUserId,
-    ) {}
+    ) {
+        $this->onConnection((string) config('auction.bids_queue.connection', 'redis'));
+        $this->onQueue('bids');
+    }
 
     // one auto bid job per auction
     public function uniqueId(): string

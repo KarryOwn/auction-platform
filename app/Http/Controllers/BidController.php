@@ -29,8 +29,7 @@ class BidController extends Controller
                 ],
             );
 
-            $freshAuction = $auction->fresh();
-            $minimumNextBid = (float) $freshAuction->minimumNextBid();
+            $minimumNextBid = round((float) $bid->amount + (float) $auction->min_bid_increment, 2);
 
             return response()->json([
                 'success'   => true,

@@ -267,5 +267,5 @@ test('full redis benchmark drains pending bids with no db mismatch', function ()
         ->and($report['persistence']['db_mismatch_count'])->toBe(0)
         ->and($report['queues']['drain']['enabled'])->toBeTrue()
         ->and($report['queues']['drain']['timeout_seconds'])->toBe(2)
-        ->and($report['queues']['drain']['queue_order'])->toBe(['bids', 'broadcasts', 'notifications', 'default']);
+        ->and($report['queues']['drain']['queue_order'])->toBe(['bids', 'broadcasts', 'notifications', 'webhooks', 'default']);
 });

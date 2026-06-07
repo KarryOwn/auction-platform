@@ -19,20 +19,23 @@ class ReconcilePendingRedisBids implements ShouldQueue
 
     public function __construct(
         public int $olderThanSeconds = 10,
-    ) {}
+    ) {
+        $this->onConnection((string) config('auction.bids_queue.connection', 'redis'));
+        $this->onQueue('bids');
+    }
 
     public function handle(PendingRedisBidStore $pendingBids): void
     {
-        $auctionIds = collect($pendingBids->duePendingBids($this->olderThanSeconds))
-            ->pluck('auction_id')
-            ->map(fn ($auctionId) => (int) $auctionId)
-            ->filter()
-            ->unique()
-            ->values();
+        $auctionIds = $pendingBids->auctionsWithPendingBids($this->olderThanSeconds);
 
         foreach ($auctionIds as $auctionId) {
             try {
-                (new BatchPersistRedisBids($auctionId))->handle($pendingBids);
+                BatchPersistRedisBids::dispatch(
+                    auctionId: $auctionId,
+                    limit: (int) config('auction.redis_persistence.batch_size', 100),
+                )
+                    ->onConnection((string) config('auction.bids_queue.connection', 'redis'))
+                    ->onQueue('bids');
             } catch (\Throwable $e) {
                 Log::error('ReconcilePendingRedisBids: pending bid recovery failed', [
                     'auction_id' => $auctionId,

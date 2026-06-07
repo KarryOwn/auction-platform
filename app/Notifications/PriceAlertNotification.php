@@ -14,15 +14,24 @@ class PriceAlertNotification extends Notification implements ShouldQueue
     public function __construct(
         public readonly int $auctionId,
         public readonly string $auctionTitle,
-        public readonly float $currentPrice,
+    public readonly float $currentPrice,
         public readonly float $thresholdAmount,
     ) {
-        $this->queue = 'notifications';
+        $this->onConnection((string) config('auction.notifications_queue.connection', 'redis'));
+        $this->onQueue('notifications');
     }
 
     public function via(object $notifiable): array
     {
         return ['mail', 'database'];
+    }
+
+    public function viaQueues(): array
+    {
+        return [
+            'database' => 'notifications',
+            'mail' => 'notifications',
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

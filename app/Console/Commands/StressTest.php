@@ -151,6 +151,7 @@ class StressTest extends Command
             $failedJobsAfterDrain = $this->failedJobCount();
             $finalBidCounts = $this->bidCounts($auctionIds);
             $pendingRedisAfter = $this->pendingRedisBidCounts($auctionIds);
+            $pendingRedisAgesAfter = $this->pendingRedisBidAges($auctionIds);
             $redisAvailableAfter = $this->redisAvailable();
 
             $report = $this->buildReport(
@@ -179,6 +180,7 @@ class StressTest extends Command
                 failedJobsAfterDrain: $failedJobsAfterDrain,
                 pendingRedisBefore: $pendingRedisBefore,
                 pendingRedisAfter: $pendingRedisAfter,
+                pendingRedisAgesAfter: $pendingRedisAgesAfter,
                 queueDrain: $queueDrain,
                 clearedFailedJobs: $clearedFailedJobs,
                 scenarioNotes: $this->scenarioNotes($scenario, $requestedEngineMode, $engineMode, $redisAvailableBefore),
@@ -414,6 +416,7 @@ class StressTest extends Command
                     PendingRedisBidStore::indexKey((int) $auction->id),
                     PendingRedisBidStore::drainScheduledKey((int) $auction->id),
                     "auction:{$auction->id}:price_broadcast_scheduled",
+                    "auction:{$auction->id}:seller_bid_broadcast_scheduled",
                 ]);
                 Redis::zrem(PendingRedisBidStore::GLOBAL_INDEX_KEY, (string) $auction->id);
                 Redis::set("auction:{$auction->id}:price", (string) $auction->current_price);
@@ -730,12 +733,22 @@ class StressTest extends Command
                 ->all();
         }
 
-        foreach (['bids', 'default', 'notifications', 'broadcasts'] as $queue) {
+        foreach (['bids', 'broadcasts', 'notifications', 'webhooks', 'default'] as $queue) {
             try {
                 $redisDepth = (int) Redis::llen("queues:{$queue}");
+                $redisDelayed = (int) Redis::zcard("queues:{$queue}:delayed");
+                $redisReserved = (int) Redis::zcard("queues:{$queue}:reserved");
 
                 if ($redisDepth > 0) {
                     $depths["redis:{$queue}"] = $redisDepth;
+                }
+
+                if ($redisDelayed > 0) {
+                    $depths["redis:{$queue}:delayed"] = $redisDelayed;
+                }
+
+                if ($redisReserved > 0) {
+                    $depths["redis:{$queue}:reserved"] = $redisReserved;
                 }
             } catch (Throwable) {
                 // Redis queue depth is best-effort so outage benchmarks still complete.
@@ -783,6 +796,26 @@ class StressTest extends Command
         }
 
         return $counts;
+    }
+
+    /**
+     * @param  array<int, int>  $auctionIds
+     * @return array<string, float|null>
+     */
+    private function pendingRedisBidAges(array $auctionIds): array
+    {
+        $ages = [];
+        $pendingBids = app(PendingRedisBidStore::class);
+
+        foreach ($auctionIds as $auctionId) {
+            try {
+                $ages[(string) $auctionId] = $pendingBids->oldestPendingAgeSeconds((int) $auctionId);
+            } catch (Throwable) {
+                $ages[(string) $auctionId] = null;
+            }
+        }
+
+        return $ages;
     }
 
     /**
@@ -860,7 +893,13 @@ class StressTest extends Command
             }
 
             try {
-                app(PendingRedisBidStore::class)->clearDrainScheduled((int) $auctionId);
+                $pendingStore = app(PendingRedisBidStore::class);
+
+                if ($pendingStore->isDrainScheduled((int) $auctionId)) {
+                    continue;
+                }
+
+                $pendingStore->clearDrainScheduled((int) $auctionId);
 
                 BatchPersistRedisBids::dispatch(
                     auctionId: (int) $auctionId,
@@ -926,7 +965,7 @@ class StressTest extends Command
      */
     private function drainQueueNames(): array
     {
-        return ['bids', 'broadcasts', 'notifications', 'default'];
+        return ['bids', 'broadcasts', 'notifications', 'webhooks', 'default'];
     }
 
     /**
@@ -939,7 +978,10 @@ class StressTest extends Command
         $remaining = [];
 
         foreach ($queues as $queue) {
-            $depth = (int) ($allDepths[$queue] ?? 0) + (int) ($allDepths["redis:{$queue}"] ?? 0);
+            $depth = (int) ($allDepths[$queue] ?? 0)
+                + (int) ($allDepths["redis:{$queue}"] ?? 0)
+                + (int) ($allDepths["redis:{$queue}:delayed"] ?? 0)
+                + (int) ($allDepths["redis:{$queue}:reserved"] ?? 0);
 
             if ($depth > 0) {
                 $remaining[$queue] = $depth;
@@ -968,6 +1010,7 @@ class StressTest extends Command
      * @param  array<string, int>  $queueAfterDrain
      * @param  array<string, int|null>  $pendingRedisBefore
      * @param  array<string, int|null>  $pendingRedisAfter
+     * @param  array<string, float|null>  $pendingRedisAgesAfter
      * @param  array<string, mixed>  $queueDrain
      * @param  int|null  $clearedFailedJobs
      * @param  array<int, string>  $scenarioNotes
@@ -1000,6 +1043,7 @@ class StressTest extends Command
         ?int $failedJobsAfterDrain,
         array $pendingRedisBefore,
         array $pendingRedisAfter,
+        array $pendingRedisAgesAfter,
         array $queueDrain,
         ?int $clearedFailedJobs,
         array $scenarioNotes,
@@ -1015,6 +1059,14 @@ class StressTest extends Command
         $fails = (int) $summary['fails'];
         $attemptCount = count($attempts);
         $pendingAfterTotal = collect($pendingRedisAfter)->filter(fn ($count) => $count !== null)->sum();
+        $oldestPendingAgeAfter = collect($pendingRedisAgesAfter)
+            ->filter(fn ($age) => $age !== null)
+            ->max();
+        $seededPersistenceJobs = $this->seededPersistenceJobsCount($queueDrain);
+        $totalDrainTime = $queueDrain['duration_seconds'] ?? null;
+        $lastPassDrainTime = $queueDrain['queues']['all']['duration_seconds'] ?? null;
+        $persistenceDrainTime = $this->persistenceDrainTimeSeconds($queueDrain);
+        $queueDrainTime = $totalDrainTime;
         $persistedDelta = collect($auctionPriceRows)->sum('persisted_bid_delta');
         $persistenceLag = max(0, $success - $persistedDelta);
         $acceptOnlyExpectedLag = $pipeline === 'accept-only' ? $persistenceLag : 0;
@@ -1067,15 +1119,23 @@ class StressTest extends Command
                 'lagging_bid_count' => $persistenceLag,
                 'lagging_bids_per_second' => round($persistenceLag / $duration, 2),
                 'pending_redis_bids_after' => $pendingAfterTotal,
+                'pending_redis_bids_count' => $pendingAfterTotal,
+                'oldest_pending_redis_bid_age_seconds' => $oldestPendingAgeAfter,
+                'seeded_persistence_jobs_count' => $seededPersistenceJobs,
                 'db_mismatch_count' => $dbMismatchCount,
                 'consistency_failure_count' => $consistencyFailures,
-                'drain_time_seconds' => $queueDrain['queues']['all']['duration_seconds']
-                    ?? $queueDrain['duration_seconds']
-                    ?? null,
+                'drain_time_seconds' => $totalDrainTime,
+                'persistence_drain_time_seconds' => $persistenceDrainTime,
             ],
             'realtime_fanout' => [
                 'broadcast_queue_depth_after' => $broadcastQueueAfter,
-                'drain_time_seconds' => $queueDrain['queues']['all']['duration_seconds'] ?? null,
+                'drain_time_seconds' => $totalDrainTime,
+            ],
+            'drain_times' => [
+                'total_drain_time_seconds' => $totalDrainTime,
+                'last_pass_drain_time_seconds' => $lastPassDrainTime,
+                'persistence_drain_time_seconds' => $persistenceDrainTime,
+                'queue_drain_time_seconds' => $queueDrainTime,
             ],
             'latency_ms' => $this->latencyStats($summary['latencies_ms']),
             'failure_reasons' => $summary['failure_reasons'],
@@ -1107,6 +1167,8 @@ class StressTest extends Command
             'redis_pending_bids' => [
                 'before' => $pendingRedisBefore,
                 'after' => $pendingRedisAfter,
+                'oldest_age_seconds_after' => $pendingRedisAgesAfter,
+                'oldest_pending_redis_bid_age_seconds' => $oldestPendingAgeAfter,
             ],
             'auctions' => $auctionPriceRows,
             'system' => [
@@ -1114,6 +1176,31 @@ class StressTest extends Command
                 'load_average' => $this->loadAverage(),
             ],
         ];
+    }
+
+    private function seededPersistenceJobsCount(array $queueDrain): int
+    {
+        return collect($queueDrain['passes'] ?? [])
+            ->sum(function (array $pass): int {
+                return collect($pass['seeded_persistence_jobs'] ?? [])
+                    ->filter(fn ($value) => is_numeric($value))
+                    ->count();
+            });
+    }
+
+    private function persistenceDrainTimeSeconds(array $queueDrain): ?float
+    {
+        $passes = collect($queueDrain['passes'] ?? []);
+        $lastPersistencePass = $passes
+            ->filter(fn (array $pass) => ! empty($pass['seeded_persistence_jobs'])
+                || ! empty($pass['pending_redis_after']))
+            ->last();
+
+        if (! is_array($lastPersistencePass)) {
+            return null;
+        }
+
+        return $lastPersistencePass['duration_seconds'] ?? null;
     }
 
     private function cleanCapacityComparison(

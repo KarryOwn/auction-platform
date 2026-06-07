@@ -81,9 +81,17 @@ class BidController extends Controller
             );
 
             return response()->json([
-                'data' => new BidResource($bid),
+                'data' => [
+                    'id' => $bid->id,
+                    'auction_id' => $bid->auction_id,
+                    'amount' => (float) $bid->amount,
+                    'bid_type' => $bid->bid_type,
+                    'is_snipe_bid' => (bool) $bid->is_snipe_bid,
+                    'created_at' => $bid->created_at?->toIso8601String(),
+                ],
                 'meta' => [
                     'new_price' => (float) $bid->amount,
+                    'minimum_next_bid' => round((float) $bid->amount + (float) $auction->min_bid_increment, 2),
                 ],
             ], 201);
         } catch (BidValidationException $exception) {

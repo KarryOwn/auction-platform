@@ -30,7 +30,7 @@ class PessimisticSqlEngine implements BiddingStrategy
         $this->validator->validate($auction, $user, $amount);
         $this->rateLimiter->check($user, $auction);
 
-        return DB::transaction(function () use ($auction, $user, $amount, $meta) {
+        $result = DB::transaction(function () use ($auction, $user, $amount, $meta) {
             // Lock the auction row — pessimistic concurrency control
             $locked = Auction::where('id', $auction->id)
                 ->lockForUpdate()
@@ -90,20 +90,22 @@ class PessimisticSqlEngine implements BiddingStrategy
             // Record rate-limit hit
             $this->rateLimiter->hit($user, $locked);
 
-            $this->syncRedisPrice($locked);
+            return ['bid' => $bid, 'auction' => $locked->fresh()];
+        });
 
-            // Broadcast price update immediately
+        $this->syncRedisPrice($result['auction']);
+
+        if ($this->shouldDispatchPriceUpdate((int) $result['auction']->id)) {
             try {
-                PriceUpdated::dispatch($locked);
+                PriceUpdated::dispatch($result['auction']);
             } catch (\Throwable $e) {
                 Log::error('PriceUpdated broadcast failed', ['error' => $e->getMessage()]);
             }
+        }
 
-            // Dispatch domain event for listener chain
-            BidPlaced::dispatch($bid, $locked);
+        BidPlaced::dispatch($result['bid'], $result['auction']);
 
-            return $bid;
-        });
+        return $result['bid'];
     }
 
     public function getCurrentPrice(Auction $auction): float
@@ -130,6 +132,32 @@ class PessimisticSqlEngine implements BiddingStrategy
                 'auction_id' => $auction->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    private function shouldDispatchPriceUpdate(int $auctionId): bool
+    {
+        $debounceMs = max(0, (int) config('auction.redis_persistence.price_broadcast_debounce_ms', 250));
+
+        if ($debounceMs === 0) {
+            return true;
+        }
+
+        try {
+            return (bool) Redis::set(
+                "auction:{$auctionId}:price_broadcast_scheduled",
+                '1',
+                'PX',
+                $debounceMs,
+                'NX',
+            );
+        } catch (\Throwable $e) {
+            Log::warning('PessimisticSqlEngine: price broadcast debounce failed open', [
+                'auction_id' => $auctionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return true;
         }
     }
 }

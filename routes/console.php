@@ -34,7 +34,7 @@ Schedule::call(function (): void {
 
 // Replay Redis-accepted bids if the normal persistence queue was delayed/lost.
 Schedule::job(new ReconcilePendingRedisBids)
-    ->everyMinute()
+    ->everyFiveSeconds()
     ->name('reconcile-pending-redis-bids')
     ->withoutOverlapping();
 
@@ -139,5 +139,7 @@ Schedule::call(function () {
         ->where('attempt_count', '<', 5)
         ->where('next_retry_at', '<=', now())
         ->get()
-        ->each(fn ($d) => DeliverWebhook::dispatch($d->id));
+        ->each(fn ($d) => DeliverWebhook::dispatch($d->id)
+            ->onConnection((string) config('auction.webhooks_queue.connection', 'redis'))
+            ->onQueue('webhooks'));
 })->everyFiveMinutes()->name('retry-webhook-deliveries');
