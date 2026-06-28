@@ -578,7 +578,7 @@ class Auction extends Model implements HasMedia
                 'thumbnail_url' => $thumbnailUrl,
                 'order' => $media->order_column,
             ];
-        })->all();
+        })->values()->all();
     }
 
     public function hasVideo(): bool

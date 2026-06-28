@@ -201,7 +201,7 @@
             <div class="bg-white shadow-sm sm:rounded-lg p-6" x-data="{ images: @js($galleryImages), activeImage: @js($galleryImages[0]['full_url'] ?? null) }" aria-label="Auction images">
                 @if(!empty($galleryImages))
                     <div class="aspect-[16/10] rounded-lg overflow-hidden bg-gray-100 mb-4">
-                        <img :src="activeImage" class="w-full h-full object-contain" alt="{{ $auction->title }}">
+                        <img :src="activeImage" src="{{ $galleryImages[0]['full_url'] ?? '' }}" class="w-full h-full object-contain" alt="{{ $auction->title }}">
                     </div>
                     <div class="grid grid-cols-5 md:grid-cols-8 gap-2">
                         <template x-for="image in images" :key="image.id">
