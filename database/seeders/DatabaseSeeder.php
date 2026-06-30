@@ -36,7 +36,31 @@ class DatabaseSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['email' => 'admin@example.com'],
+            ['email' => 'buyer@buyer.com'],
+            [
+                'name'           => 'buyer',
+                'password'       => bcrypt('buyer'),
+                'role'           => 'user',
+                'wallet_balance' => 10000,
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'seller@seller.com'],
+            [
+                'name'           => 'seller',
+                'password'       => bcrypt('seller'),
+                'role' => User::ROLE_SELLER,
+                'seller_verified_at' => now(),
+                'seller_application_status' => 'approved',
+                'seller_rejected_reason' => null,
+                'seller_slug' => 'seller',
+                'wallet_balance' => 10000,
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'admin@admin.com'],
             [
                 'name'           => 'Admin User',
                 'password'       => bcrypt('admin'),
@@ -45,7 +69,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $targetUsers = 1002; // 2 fixed accounts + 1000 generated users
+        $targetUsers = 1003; 
         $missingUsers = max(0, $targetUsers - User::count());
 
         if ($missingUsers > 0) {

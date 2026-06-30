@@ -145,7 +145,9 @@ class BatchPersistRedisBids implements ShouldQueue, ShouldBeUniqueUntilProcessin
             }
         }
 
-        if ($created !== []) {
+        $pendingCount = $pendingBids->pendingCount($this->auctionId);
+
+        if ($created !== [] && $pendingCount === 0) {
             app(EscrowService::class)->releaseOutbidHolds(Auction::findOrFail($this->auctionId));
         }
 
@@ -162,7 +164,7 @@ class BatchPersistRedisBids implements ShouldQueue, ShouldBeUniqueUntilProcessin
             }
         }
 
-        if ($pendingBids->pendingCount($this->auctionId) > 0) {
+        if ($pendingCount > 0) {
             self::dispatch($this->auctionId, $this->limit)
                 ->onConnection((string) config('auction.bids_queue.connection', 'redis'))
                 ->onQueue('bids');

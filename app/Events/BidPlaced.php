@@ -12,7 +12,11 @@ use Illuminate\Queue\SerializesModels;
 
 class BidPlaced implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, InteractsWithSockets;
+    use SerializesModels {
+        __serialize as traitSerialize;
+        __unserialize as traitUnserialize;
+    }
 
     public string $connection = 'redis';
 
@@ -38,13 +42,13 @@ class BidPlaced implements ShouldBroadcast
 
     public string $createdAtHuman;
 
-    public int $bidId;
+    public int|string $bidId;
 
     public function __construct(
         public Bid $bid,
         public Auction $auction,
     ) {
-        $this->bidId = (int) $bid->id;
+        $this->bidId = $bid->id ?? $bid->accepted_bid_id ?? 0;
         $this->auctionId = $auction->id;
         $this->bidderId = $bid->user_id;
         $this->bidderName = $bid->user?->name ?? 'Unknown';
@@ -96,5 +100,36 @@ class BidPlaced implements ShouldBroadcast
             'created_at_human' => $this->createdAtHuman,
             'end_time' => $this->auction->end_time->toIso8601String(),
         ];
+    }
+
+    public function __serialize(): array
+    {
+        $rawBid = null;
+        if (! $this->bid->exists) {
+            $rawBid = $this->bid->getAttributes();
+        }
+
+        $values = $this->traitSerialize();
+
+        if ($rawBid !== null) {
+            $values['raw_bid_attributes'] = $rawBid;
+            unset($values['bid']); // Prevent SerializesModels from restoring this
+        }
+
+        return $values;
+    }
+
+    public function __unserialize(array $values): void
+    {
+        $rawBid = $values['raw_bid_attributes'] ?? null;
+        unset($values['raw_bid_attributes']);
+
+        $this->traitUnserialize($values);
+
+        if ($rawBid !== null) {
+            $bid = new Bid;
+            $bid->setRawAttributes($rawBid);
+            $this->bid = $bid;
+        }
     }
 }

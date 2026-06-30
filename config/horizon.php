@@ -249,7 +249,7 @@ return [
             'memory' => 128,
             'tries' => 5,
             'timeout' => 30,
-            'nice' => -5,
+            'nice' => 0,
         ],
         'supervisor-broadcasts' => [
             'connection' => env('BROADCASTS_QUEUE_CONNECTION', 'redis'),

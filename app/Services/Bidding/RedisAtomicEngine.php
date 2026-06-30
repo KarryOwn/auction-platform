@@ -184,6 +184,13 @@ class RedisAtomicEngine implements BiddingStrategy
             }
         }
 
+        // Broadcast BidPlaced immediately to the UI
+        try {
+            \App\Events\BidPlaced::dispatch($bid, $auction);
+        } catch (\Throwable $e) {
+            Log::error('BidPlaced broadcast failed', ['error' => $e->getMessage()]);
+        }
+
         if ($drainScheduled) {
             try {
                 // Queue a per-auction drainer; the pending Redis store carries the durable payload.

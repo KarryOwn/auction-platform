@@ -102,10 +102,14 @@ class HandleBidPlaced implements ShouldQueue
     protected function notifyOutbidUser(Bid $bid, $auction): ?int
     {
         // Find the previous highest bid by a different user
-        $previousBid = Bid::where('auction_id', $auction->id)
-            ->where('user_id', '!=', $bid->user_id)
-            ->where('id', '!=', $bid->id)
-            ->orderByDesc('amount')
+        $query = Bid::where('auction_id', $auction->id)
+            ->where('user_id', '!=', $bid->user_id);
+            
+        if ($bid->id !== null) {
+            $query->where('id', '!=', $bid->id);
+        }
+
+        $previousBid = $query->orderByDesc('amount')
             ->with('user')
             ->first();
 
